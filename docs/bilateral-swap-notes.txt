@@ -1,0 +1,32 @@
+# bilateral atomic swap
+
+one way to implement them is to have a condition or prerequesite flag 
+
+this means the transaction can sit in the mempool for as long as it's valid
+however it won't be included in a block unless all of the transactions it
+depends on exist.
+
+for example:
+
+ I submit payment X which is contingent on payment Y being sent.
+ Payment Y will only be sent if payment X exists.
+
+Payment X dependent on Y
+Payment Y dependent on X
+
+However, both have valid signatures and are submitted for a specific block.
+
+But if neither has all dependencies at the point of finalisation, it won't get
+committed...
+
+This could be an additional flag on the payment, 'dependent ref', however it doesn't include any other information like the payment, destination or currency...
+
+The simplest conditional is the transaction id (which excludes the signature), this means the counterparty must submit a payment of the exact specification otherwise both will be dropped.
+
+however, is it necessary to create multiple dependent payments
+
+----------
+
+partial fills
+
+ - fixed denomination like mobius?

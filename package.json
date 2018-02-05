@@ -1,0 +1,21 @@
+{
+  "name": "ion-truffle",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/clearmatics/ion.git",
+  "author": "opensource@clearmatics.com",
+  "license": "LGPL-3.0+",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "ganache-cli": "^6.0.0",
+    "json-bigint-string": "^1.0.0",
+    "truffle": "^4.0.0",
+    "solidity-coverage": "^0.4.0"
+  },
+  "scripts": {
+    "testrpc": "ganache-cli --gasLimit 0xFFFFFFF",
+    "test": "truffle test",
+    "coverage": "solidity-coverage"
+  }
+}

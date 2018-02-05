@@ -1,0 +1,10 @@
+ethjsonrpc
+ethereum
+jsonrpc2
+flask
+gevent
+rlp
+python-jsonrpc
+graphviz
+coincurve
+msgpack-python

@@ -1,0 +1,21 @@
+From: https://www.bcb.gov.br/htms/public/microcredito/Distributed_ledger_technical_research_in_Central_Bank_of_Brazil.pdf
+
+"""
+1. A ledger would be created at the start of contingency;
+2. Full money quantity would be issued by a Central Bank controlled node on ledger inception;
+3. Nodes would be operated by participants in a permissioned network;
+4. No money could be created after inception;
+5. Wallets would be created for each participant and necessary keys distributed accordingly and securely, preferably (but not mandatorily) without using backchannels. The term wallets, in this context, is used in the sense of conceptual wallets: whatever existing mechanism from the available platforms through which nodes are able to hold balance and transfer, i.e. not exclusively address wallets (e.g. Bitcoin’s);
+6. At the outset, each wallet would be attributed a balance by the Central Bank Node;
+7. Each participant may or may not host nodes, i.e. participants may use third parties to submit transactions, if a platform allows so;
+8. Participants would send or receive money to each other, restricted only by their available balance (i.e. wallets’ balances are non-negative);
+9. No participant would be allowed to be aware of any other participants’ balances;
+10. Participants would know their own balance at all times;
+11. Central bank node would be able, at any time, to audit transactions and balances from any node;
+12. After inception and initial distribution, the system should operate with or without the central bank node, automatically ensuring privacy and preventing double-spending;
+13. Once operations are terminated (contingency is over), balances are transferred back to the Central Bank RTGS;
+"""
+
+ - https://www.ethnews.com/central-bank-of-brazil-explores-real-time-gross-settlement-with-ethereum-network
+ - https://www.bankofengland.co.uk/-/media/boe/files/markets/sterling-monetary-framework/red-book.pdf
+ - https://www.bis.org/publ/cgfs53.pdf

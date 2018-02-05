@@ -1,0 +1,12 @@
+digraph {
+	USD -> 2 [label="1 USD" color=green fontsize=8.0 penwidth=0.037037037037 weight="defaultdict(<type 'int'>, {'USD': 1, 'EUR': 8})"]
+	USD -> 2 [label="8 EUR" color=blue fontsize=8.0 penwidth=0.851063829787 weight="defaultdict(<type 'int'>, {'USD': 1, 'EUR': 8})"]
+	USD -> Ion [label="134 USD" color=green fontsize=8.0 penwidth=4.96296296296 weight="defaultdict(<type 'int'>, {'USD': 134})"]
+	EUR -> 1 [label="134 USD" color=green fontsize=8.0 penwidth=4.96296296296 weight="defaultdict(<type 'int'>, {'USD': 134})"]
+	USD -> 0 [label="39 EUR" color=blue fontsize=8.0 penwidth=4.14893617021 weight="defaultdict(<type 'int'>, {'EUR': 39})"]
+	Ion -> EUR [label="134 USD" color=green fontsize=8.0 penwidth=4.96296296296 weight="defaultdict(<type 'int'>, {'USD': 134})"]
+	Ion -> USD [label="47 EUR" color=blue fontsize=8.0 penwidth=5.0 weight="defaultdict(<type 'int'>, {'EUR': 47})"]
+	0 -> USD [label="135 USD" color=green fontsize=8.0 penwidth=5.0 weight="defaultdict(<type 'int'>, {'USD': 135})"]
+	EUR -> Ion [label="47 EUR" color=blue fontsize=8.0 penwidth=5.0 weight="defaultdict(<type 'int'>, {'EUR': 47})"]
+	1 -> EUR [label="47 EUR" color=blue fontsize=8.0 penwidth=5.0 weight="defaultdict(<type 'int'>, {'EUR': 47})"]
+}

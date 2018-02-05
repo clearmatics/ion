@@ -1,0 +1,46 @@
+syntax = "proto2";
+
+message Block {
+	required uint32 id = 1;
+	required bytes root = 2;
+	required bytes hash = 3;
+}
+
+
+message PaymentLink {
+	required bytes t = 1;
+	required bytes c = 2;
+	required uint64 v = 3;
+	repeated bytes r = 4;
+}
+
+
+message Payment {
+	required bytes f = 1;
+	required bytes t = 2;
+	required bytes c = 3;
+	required uint64 v = 4;
+	repeated bytes r = 5;
+	repeated PaymentLink d = 6;
+}
+
+
+message EcdsaSignature {
+	required bytes v = 1;
+	required bytes r = 2;
+	required bytes s = 3;
+}
+
+
+message SignedPayment {
+	required Payment p = 1;
+	oneof s {
+		EcdsaSignature ecdsa = 2;
+	}
+}
+
+
+message BlockPayments {
+    required Block b = 1;
+	repeated SignedPayment sp = 2;
+}
