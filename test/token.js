@@ -33,10 +33,9 @@ contract('Token', (accounts) => {
 
     it('should throw an error when trying to transfer more than balance', async function() {
 		(await token.balanceOf(accounts[0], {from:accounts[0]})).should.be.bignumber.equal(new BigNumber(0));
-
 		await token.mint(500, {from:accounts[0]});
-		(await token.balanceOf(accounts[0], {from:accounts[0]})).should.be.bignumber.equal(new BigNumber(500));
 
+		(await token.balanceOf(accounts[0], {from:accounts[0]})).should.be.bignumber.equal(new BigNumber(500));
     	await token.transfer(accounts[1], 501, {from:accounts[0]}).should.be.rejected;
 
     	await token.transfer(accounts[1], 500, {from:accounts[0]});

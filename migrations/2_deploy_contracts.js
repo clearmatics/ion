@@ -6,9 +6,14 @@ const Token = artifacts.require("Token");
 module.exports = async (deployer) => {
     deployer.deploy(Sodium);
 
-    deployer.deploy(Token).then( function () {
-        deployer.deploy(IonLink, 0).then( async function () {
-            await deployer.deploy(IonLock, Token.address, IonLink.address);
-        } );
-    } );
+    await deployer.deploy(Token);
+
+    await deployer.deploy(IonLink, 0);
+
+    let ionlink_deployed = await IonLink.deployed();
+    console.log("IonLink address", ionlink_deployed.address);
+
+    await deployer.deploy(IonLock, Token.address, ionlink_deployed.address);
+    let ionlock_deployed = await IonLock.deployed();
+    console.log("IonLock address", ionlock_deployed.address);
 };
