@@ -10,7 +10,9 @@ contract Token is ERC223
 {
     using SafeMath for uint256;
 
+
     mapping(address => uint256) balances; // List of user balances.
+
 
     function Token ()
         public
@@ -23,7 +25,17 @@ contract Token is ERC223
         public
     {
         totalSupply = totalSupply.add(_value);
+
         balances[msg.sender] = balances[msg.sender].add(_value);
+    }
+
+
+    function burn(uint256 _value)
+        public
+    {
+        balances[msg.sender] = balances[msg.sender].sub(_value);
+
+        totalSupply = totalSupply.sub(_value);
     }
 
 

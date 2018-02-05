@@ -33,6 +33,8 @@ def erc223_options(args):
 
     parser.add_argument('--mint', action=PosInt256Action)
 
+    parser.add_argument('--burn', action=PosInt256Action)
+
     opts = parser.parse_args(args or sys.argv[1:])
 
     if isinstance(opts.rpc, str):
@@ -55,12 +57,17 @@ def main(args=None):
     print("Account:", opts.from_account.encode('hex'))
     print("")
 
+    if opts.mint:
+        print("Minting", opts.mint)
+        token.mint(opts.mint)
+
     if opts.transfer:
         print("Transfer %r to %r" % (opts.value, opts.transfer.encode('hex')))
-        result = token.transfer_a9059cbb(opts.transfer.encode('hex'), opts.value)
+        token.transfer_a9059cbb(opts.transfer.encode('hex'), opts.value)
 
-    if opts.mint:
-        token.mint(opts.mint)
+    if opts.burn:
+        print("Burning", opts.burn)
+        token.burn(opts.burn)
 
     #print("From acct", opts.from_account.encode('hex'), len(opts.from_account.encode('hex')))
     print("Balance = ", token.balanceOf(opts.balance or opts.from_account.encode('hex')))
