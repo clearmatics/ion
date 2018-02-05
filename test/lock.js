@@ -1,11 +1,8 @@
-/*
 
-*/
-const IonLink = artifacts.require("./IonLink.sol");
-const IonLock = artifacts.require("./IonLock.sol");
+const IonLock = artifacts.require("IonLock");
 
-contract('IonLink', (accounts) => {
+contract('IonLock', (accounts) => {
     it('works', async () => {
-        console.log(await IonLink.deployed());
+        await IonLock.deployed();
     });
 });

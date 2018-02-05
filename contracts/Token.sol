@@ -86,7 +86,7 @@ contract Token is ERC223
      * @return balance Balance of the `_owner`.
      */
     function balanceOf(address _owner)
-        public view returns (uint256 balance)
+        public view returns (uint256)
     {
         return balances[_owner];
     }

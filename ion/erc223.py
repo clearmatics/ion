@@ -8,7 +8,8 @@ from .args import Bytes20Action, EthRpcAction, PosInt256Action
 from .solproxy import solproxy
 
 
-Token = lambda rpc, contract, account: solproxy(opts.rpc, "abi/Token.abi", opts.contract.encode('hex'), opts.from_account.encode('hex'))
+def Token(rpc, contract, account):
+    return solproxy(rpc, "abi/Token.abi", contract.encode('hex'), account.encode('hex'))
 
 
 def erc223_options(args):
@@ -47,7 +48,7 @@ def erc223_options(args):
 def main(args=None):
     opts = erc223_options(args)
 
-    token = Token(opts.rpc, opts.contract.encode('hex'), opts.from_account.encode('hex'))
+    token = Token(opts.rpc, opts.contract, opts.from_account)
 
     print("RPC Server:", opts.rpc)
     print("Contract:", opts.contract.encode('hex'))
@@ -62,7 +63,8 @@ def main(args=None):
     if opts.mint:
         token.mint(opts.mint)
 
-    print("Balance = ", token.balanceOf(opts.balance or opts.from_account))
+    #print("From acct", opts.from_account.encode('hex'), len(opts.from_account.encode('hex')))
+    print("Balance = ", token.balanceOf(opts.balance or opts.from_account.encode('hex')))
 
 
 

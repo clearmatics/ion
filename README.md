@@ -16,6 +16,33 @@ combined or used alone to tackle different scenarios and more complex types of t
 from research will be used to guide the project into a state which can fulfill a small but viable
 feature-set.
 
+
+# High Level Overview
+
+The reality is that as 'block-chain' gains wider adoption there will be even more commpeting standards
+and a wider collection of dispirate financial systems which will need to interoperate with each other.
+Emerging technologies have the potential to break the mould by tackling existing problems in more elegant
+ways and introducing new paradigms for integration and cross-system compatibility.
+
+Ion seeks to explore the following topics:
+
+ * Trust relationships and the nature of security
+
+ * Cross-system cooperation and interoperability
+
+ * Underpinning requirements for finance applications
+
+ * Overcoming the limitations of existing protocols
+
+ * Points of integration and common use cases
+
+Ultimately one recognition is that compatibility with the rest of the ecosystem - be it the existing one 
+or future expected one - is necessary to a greater or lesser extent for the percieved benefits of block-chain 
+technology to be realised.
+
+
+## Summary of Findings
+
 Research started by identifying types of cross-chain transactions and the general challenges encountered
 when settling financial transactions, and then progressed to reviewing research to identify patterns and
 technologies to create prototypes and specify methods which can meet new requirements as they were
@@ -29,9 +56,6 @@ of prototypes for the following components:
  * Privacy-enhancing methods (such as ring signatures)
  * Ethereum event and transaction relay
  * Cross-chain notifications
-
-
-## Summary of Findings
 
 After performing the research and creating several prototypes I have come to some interesting conclusions
 and a better understanding of the trade-offs involved:
@@ -200,8 +224,10 @@ Double-spending is prevented as long as the following constraints are enforced:
 
 # Cross-blockchain interoperability
  
-Distributed blockchains of blockchains:
+Distributed blockchains of blockchains and cross-chain operations:
  
+ * https://lightning.network/
+ * https://interledger.org/ ( https://interledger.org/interledger.pdf )
  * https://cosmos.network
  * https://github.com/theloopkr/loopchain ( http://docs.icon.foundation/ICON-Whitepaper-EN-Draft-4.8.pdf )
 
