@@ -57,8 +57,7 @@ def main(args=None):
 
     if opts.transfer:
         print("Transfer %r to %r" % (opts.value, opts.transfer.encode('hex')))
-        result = token.transfer(opts.transfer.encode('hex'), opts.value)
-        print("Result is:" , result)
+        result = token.transfer_a9059cbb(opts.transfer.encode('hex'), opts.value)
 
     if opts.mint:
         token.mint(opts.mint)

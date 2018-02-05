@@ -1,7 +1,7 @@
 import json
 from collections import namedtuple
 from ethjsonrpc import EthJsonRpc
-
+from .crypto import keccak_256
 
 def solproxy_bind(rpc, method, address, account):
     ins = [_['type'] for _ in method['inputs']]
@@ -22,7 +22,13 @@ def solproxy(rpc, abi, address, account):
     if isinstance(abi, str):
         with open(abi) as handle:
             abi = json.load(handle)
-    proxy = {method['name']: solproxy_bind(rpc, method, address, account)
-             for method in abi
-             if method['type'] == 'function'}
+    proxy = dict()
+    for method in abi:
+        if method['type'] != 'function':
+            continue
+        handler = solproxy_bind(rpc, method, address, account)
+        sig = "%s(%s)" % (method['name'], ','.join([i['type'] for i in method['inputs']]))
+        sig_hash = keccak_256(bytes(sig)).hexdigest()[:8]
+        proxy[method['name']] = handler
+        proxy[method['name'] + '_' + sig_hash] = handler
     return namedtuple('SolProxy', proxy.keys())(*proxy.values())
