@@ -1,0 +1,8 @@
+node_modules
+*.egg-info
+/docs/
+/chaindata/
+/build/
+/dist/
+/migrations/
+/contracts/

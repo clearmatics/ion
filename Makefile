@@ -51,6 +51,9 @@ docs/deps-modules.dot:
 docs/deps-files.dot:
 	sfood -i -r ion | sfood-graph > $@
 
+docker:
+	docker build --rm=true -t clearmatics/ion:latest .
+
 yarn:
 	yarn
 $(TRUFFLE): yarn
