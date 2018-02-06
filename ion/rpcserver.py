@@ -9,8 +9,8 @@ import argparse
 from gevent.pywsgi import WSGIServer
 from flask import Flask, request, jsonify 
 from jsonrpc2 import JsonRpc
-from ethjsonrpc import EthJsonRpc
 
+from .ethrpc import EthJsonRpc
 from .args import EthRpcAction, Bytes20Action
 from .utils import marshal, unmarshal, require
 from .chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path

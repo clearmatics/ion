@@ -1,7 +1,8 @@
 import argparse
 
-from ethjsonrpc import EthJsonRpc
 from ethereum.utils import scan_bin
+
+from .ethrpc import EthJsonRpc
 
 from .utils import require
 
@@ -59,13 +60,16 @@ class Bytes32Action(argparse.Action):
 class Bytes20Action(argparse.Action):
     """Parse Ethereum address"""
 
-    def __init__(self, option_strings, dest, nargs=None, **kwa):
-        require( nargs is None, 'nargs not allowed' )
+    def __init__(self, option_strings, dest, **kwa):
+        # require( nargs is None, 'nargs not allowed' )
         super(Bytes20Action, self).__init__(option_strings, dest, **kwa)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        require( len(scan_bin(values)) == 20, 'Invalid address length' )
-        setattr(namespace, self.dest, arg_bytes20(values))
+        if isinstance(values, list):
+            values = map(arg_bytes20, values)
+        else:
+            values = arg_bytes20(values)
+        setattr(namespace, self.dest, values)
 
 
 class EthRpcAction(argparse.Action):

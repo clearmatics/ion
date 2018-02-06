@@ -56,10 +56,10 @@ yarn:
 $(TRUFFLE): yarn
 $(GANACHE): yarn
 
-truffle-test:
+truffle-test: $(TRUFFLE)
 	$(TRUFFLE) test
 
-truffle-compile:
+truffle-compile: $(TRUFFLE)
 	$(TRUFFLE) compile
 
 truffle-deploy:

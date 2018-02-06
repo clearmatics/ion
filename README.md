@@ -16,33 +16,6 @@ combined or used alone to tackle different scenarios and more complex types of t
 from research will be used to guide the project into a state which can fulfill a small but viable
 feature-set.
 
-
-# High Level Overview
-
-The reality is that as 'block-chain' gains wider adoption there will be even more commpeting standards
-and a wider collection of dispirate financial systems which will need to interoperate with each other.
-Emerging technologies have the potential to break the mould by tackling existing problems in more elegant
-ways and introducing new paradigms for integration and cross-system compatibility.
-
-Ion seeks to explore the following topics:
-
- * Trust relationships and the nature of security
-
- * Cross-system cooperation and interoperability
-
- * Underpinning requirements for finance applications
-
- * Overcoming the limitations of existing protocols
-
- * Points of integration and common use cases
-
-Ultimately one recognition is that compatibility with the rest of the ecosystem - be it the existing one 
-or future expected one - is necessary to a greater or lesser extent for the percieved benefits of block-chain 
-technology to be realised.
-
-
-## Summary of Findings
-
 Research started by identifying types of cross-chain transactions and the general challenges encountered
 when settling financial transactions, and then progressed to reviewing research to identify patterns and
 technologies to create prototypes and specify methods which can meet new requirements as they were
@@ -51,11 +24,15 @@ of prototypes for the following components:
 
  * Merkle tree generation and verification
  * Multi-currency payment netting
- * Solidity / Python integration
+ * Solidity / Python / Go integration
  * Minimal Plasma chain
+ * Cross-chain interoperability
  * Privacy-enhancing methods (such as ring signatures)
- * Ethereum event and transaction relay
+ * Transaction relay for Ethereum events 
  * Cross-chain notifications
+
+
+## Summary of Findings
 
 After performing the research and creating several prototypes I have come to some interesting conclusions
 and a better understanding of the trade-offs involved:
@@ -80,8 +57,8 @@ and a better understanding of the trade-offs involved:
 ## Theoretical Preface
 
 The core precept of the Ion prototype is that there is a source of truth and finality which must witness
-all payments so that it can keep a tally of the balances and enforce the rules. The security model of all
-crypto-currencies relies on a source of validity and agreement on what validity is, usually by consensus of
+all payments it can keep a tally of the balances and enforce the rules. The security model of all
+crypto-currencies rely on a source of validity and agreement on what validity is, usually by consensus of
 many participants, to prove that history hasn't been tampered with. There are various other methods to
 prevent history from being tampered with without it being easily detectable such as the rolling average
 difficulty in the PoW mechanism employed by BitCoin which makes any divergence from the status quo an
@@ -89,11 +66,11 @@ expensive endeavour because it must overpower the inertia introduced by thousand
 the same time it means that, regardless of how much energy you invest in Proof of Work, if you try to forge
 history your attempts will be mostly ignored unless there is a trust relationship where the consumer of
 the information doesn't perform their own verification (such as in the case of a 'light client'), or where
-finality is a window where each transaction must be 'set in stone' by the mining of subsequent blocks.   
+finality is a window where each transaction must be 'set in stone' by the mining of subsequent blocks...
 
 However, I find that thinking about the security model is easier when the properties are reviewed within 
 the context of more general dichotomies, such as temporal, spacial and level of benevolence or participation,
-to better understand the relationships between threats, and also as a way of getting a deeper intuitive
+to better understand the relationships between threats and also as a way of getting a deeper intuitive
 understanding of the reasons for more general or specific design choices. The temporal categories are:
 Future, Immediate and History; the spacial categories are: Local and Distant; and the adversaries are Neutral,
 Malicious and Chaotic. For example, a local chaotic adversary which exists in the future is hard-drive failure.
@@ -102,7 +79,7 @@ Malicious and Chaotic. For example, a local chaotic adversary which exists in th
 ## Trust at the point of consumption versus scalability
 
 If you look at a program as a tree of decisions then every branch it takes relies on it knowing which
-questions to ask and having to blindly depend on any answers it gets. Any component which retrieves
+questions to ask and having to blindly depend on any answers it gets, then any component which retrieves
 information from multiple sources ends up with the worst collective security properties from each one
 and becomes the weakest link unless it independently verifies the information it consumes, but the more
 information required for verification increases the amount of data which needs to be transmitted between
@@ -111,14 +88,15 @@ data transmission.
 
 Whenever we consume information we trust that it has been verified at the point of origin to be correct in
 terms of being honestly and accurately relayed without any attempt to deliberately deceive the consumer.
-Cryptographic signatures, hashes, block-chains and and consensus algorithms provide an additional layer of
-assurance by allowing the collective us, as participants in the system, to verify that we all have the same
-information as everybody else.
+Cryptographic signatures, hashes, block-chains and consensus algorithms provide an additional layer of
+assurance by allowing the collective us - participants of the system - to verify that we all have the same
+information as everybody else as long as we trust a small handful of things we don't necessarily understand
+and follow the actions described by others to meet a desire which originates from where?
 
 From the perspective of a software designer and progressive logician I would prefer to have a system which
-allows trustworthy properties such as non-repudibility and provenance to be verifiable whenever is necessary,
-but  in a way which doesn't impose a specific structure to my trust relationships and allows me to decide
-whatever I think a consensus is in order to be able to hedge against specific threats that I perceive.
+allows trustworthy properties such as non-repudibility and provenance to be relied upon whenever is necessary,
+but in a way which doesn't impose a specific structure to my trust relationships and allows me to decide
+on whatever I think a consensus is in order to be able to hedge against specific threats that I perceive.
 
 
 ## RSCoin, abstracted
@@ -127,22 +105,22 @@ RSCoin describes an incompatibilist approach which relies upon a system with a s
 which ultimately signs-off on everything as being the pinnacle standard for what is correct or not, but
 in a distributed system consisting of thousands of nodes it comes with the presupposition that it should
 define for us what trust is rather than simply that its structure and properties can be trusted. For RSCoin
-to be truly distributed and trustable each information source should provide its own mechanisms to verify
-its own reliability by co-proving that others are meeting the same or higher standards in a way which
-enables the human-actors who decide what trust is to make their own choices when forming a consensus.
+to be truly trustable it must be distributed so each source of information can provide its own mechanisms
+to verify its own reliability by co-proving that others are meeting the same or higher standards in a way
+which enables the human-actors who decide what trust is to make their own choices when forming a consensus.
 
 ### If everybody was the 'Central Bank', then who would you trust? That should be the real question...
 
 But, what is the purpose of a bank? Essentially it is to value assets, keep them in deposit, and provide
-a proportionate fungible quantity of it or an item of exchangeable value on-demand. If I were to get a
-mortgage for the value of my house the bank would be liable to provide something of equivalent value, like
-honouring a cheque or card payment up to the limit of their liabilities or my overdraft.
+a proportionate fungible quantity of it available to you on-demand, or an item of exchangeable value. If
+I were to get a mortgage for the value of my house the bank would be liable to provide something of equivalent
+value, like honouring a cheque or card payment up to the limit of their liabilities or my overdraft.
 
-However, how many levels of abstraction are theDichotomyre between this conception of 'banked' and the model proposed
-by the RSCoin paper which adds an unnecessary 'centralised' requirement, it seems more like a central
-validator node and single point of failure without the benefits of BitCoin segwit, where the web-of-trust
-is imposed for our collective benefit without it being easy to opt-out regardless of whatever the
-underlying technology can achieve. 
+However, how many levels of indirection are there between the above conception of 'bank' and the model
+proposed by the RSCoin paper which adds an unnecessary 'centralised' requirement, it seems more like a
+central validator node and single point of failure without the benefits of BitCoin segwit, where the
+web-of-trust is imposed for our collective benefit without it being easy to opt-out regardless of whatever
+the underlying technology can achieve. 
 
 
 ## Non-repudibility is the enemy of privacy
@@ -189,7 +167,8 @@ After distilling these ideas into their underlying mechanisms I've come to reali
 is a gaurantee that a provable history won't change. For example it isn't even necessary for the whole
 blockchain to be stored if you can trust that any money you receive is backed by a redeemable
 asset upon proof of your interest in it - like the note in your hand, as long as at the point of exchange
-the recipient can be assured of it meeting whatever their preferences are for storage of value.
+the recipient can be assured of it being easily exchangeable into whatever their preferences are for
+storage of value is on the terms they would prefer...
 
 A good rule of thumb would be: never depend on any single entity which could cause the entire system
 to fail, but without the implications of the SkyNet or HAL scenarios etc.
@@ -197,9 +176,9 @@ to fail, but without the implications of the SkyNet or HAL scenarios etc.
 
 # Desirable properties:
 
- * There is no window where it is possible to double-spend, e.g. waiting for 3 confirmations on BitCoin
+ * There is no window where it is possible to double-spend, e.g. waiting for 3 confirmations
  * Each transaction accepted into a block is finalised, it can never be revoked.
- * It is the duty of the reciever to verify that no message is acted upon twice
+ * It is the duty of the receiver to verify that no message is acted upon twice
  * 
  
  * Altering the content of a merkle root would allow malicous events to be triggered and funds to be withdrawn
@@ -216,18 +195,16 @@ Double-spending is prevented as long as the following constraints are enforced:
  * The transaction signature is only valid for one block
  * A transaction reference may only occur once on a block
  * Only the owner of the `from` address can update a payment by providing a new signature
- * Blocks are applied sequentially  
+ * Blocks are applied sequentially
  * The verifier nodes keep a list of all current balances
- * Payments within a block modify the balance accordingly
+ * Payments within a block never exceed their available balance
 
 
 
 # Cross-blockchain interoperability
  
-Distributed blockchains of blockchains and cross-chain operations:
+Distributed blockchains of blockchains:
  
- * https://lightning.network/
- * https://interledger.org/ ( https://interledger.org/interledger.pdf )
  * https://cosmos.network
  * https://github.com/theloopkr/loopchain ( http://docs.icon.foundation/ICON-Whitepaper-EN-Draft-4.8.pdf )
 

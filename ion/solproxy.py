@@ -1,6 +1,6 @@
 import json
 from collections import namedtuple
-from ethjsonrpc import EthJsonRpc
+from .ethrpc import EthJsonRpc
 from .crypto import keccak_256
 
 def solproxy_bind(rpc, method, address, account):
