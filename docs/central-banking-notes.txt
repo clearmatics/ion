@@ -1,0 +1,123 @@
+
+
+# Inspiration and Influences
+
+## Theoretical Preface
+
+The core precept of the Ion prototype is that there is a source of truth and finality which must witness
+all payments it can keep a tally of the balances and enforce the rules. The security model of all
+crypto-currencies rely on a source of validity and agreement on what validity is, usually by consensus of
+many participants, to prove that history hasn't been tampered with. There are various other methods to
+prevent history from being tampered with without it being easily detectable such as the rolling average
+difficulty in the PoW mechanism employed by BitCoin which makes any divergence from the status quo an
+expensive endeavour because it must overpower the inertia introduced by thousands of ASIC miners, but at
+the same time it means that, regardless of how much energy you invest in Proof of Work, if you try to forge
+history your attempts will be mostly ignored unless there is a trust relationship where the consumer of
+the information doesn't perform their own verification (such as in the case of a 'light client'), or where
+finality is a window where each transaction must be 'set in stone' by the mining of subsequent blocks...
+
+However, I find that thinking about the security model is easier when the properties are reviewed within
+the context of more general dichotomies, such as temporal, spacial and level of benevolence or participation,
+to better understand the relationships between threats and also as a way of getting a deeper intuitive
+understanding of the reasons for more general or specific design choices. The temporal categories are:
+Future, Immediate and History; the spacial categories are: Local and Distant; and the adversaries are Neutral,
+Malicious and Chaotic. For example, a local chaotic adversary which exists in the future is hard-drive failure.
+
+
+## Trust at the point of consumption versus scalability
+
+If you look at a program as a tree of decisions then every branch it takes relies on it knowing which
+questions to ask and having to blindly depend on any answers it gets, then any component which retrieves
+information from multiple sources ends up with the worst collective security properties from each one
+and becomes the weakest link unless it independently verifies the information it consumes, but the more
+information required for verification increases the amount of data which needs to be transmitted between
+every participant. This scenario forms the basis of the axiom that trusted summaries are required to reduce
+data transmission.
+
+Whenever we consume information we trust that it has been verified at the point of origin to be correct in
+terms of being honestly and accurately relayed without any attempt to deliberately deceive the consumer.
+Cryptographic signatures, hashes, block-chains and consensus algorithms provide an additional layer of
+assurance by allowing the collective us - participants of the system - to verify that we all have the same
+information as everybody else as long as we trust a small handful of things we don't necessarily understand
+and follow the actions described by others to meet a desire which originates from where?
+
+From the perspective of a software designer and progressive logician I would prefer to have a system which
+allows trustworthy properties such as non-repudibility and provenance to be relied upon whenever is necessary,
+but in a way which doesn't impose a specific structure to my trust relationships and allows me to decide
+on whatever I think a consensus is in order to be able to hedge against specific threats that I perceive.
+
+
+## RSCoin, abstracted
+
+RSCoin describes an incompatibilist approach which relies upon a system with a single trusted authority
+which ultimately signs-off on everything as being the pinnacle standard for what is correct or not, but
+in a distributed system consisting of thousands of nodes it comes with the presupposition that it should
+define for us what trust is rather than simply that its structure and properties can be trusted. For RSCoin
+to be truly trustable it must be distributed so each source of information can provide its own mechanisms
+to verify its own reliability by co-proving that others are meeting the same or higher standards in a way
+which enables the human-actors who decide what trust is to make their own choices when forming a consensus.
+
+### If everybody was the 'Central Bank', then who would you trust? That should be the real question...
+
+But, what is the purpose of a bank? Essentially it is to value assets, keep them in deposit, and provide
+a proportionate fungible quantity of it available to you on-demand, or an item of exchangeable value. If
+I were to get a mortgage for the value of my house the bank would be liable to provide something of equivalent
+value, like honouring a cheque or card payment up to the limit of their liabilities or my overdraft.
+
+However, how many levels of indirection are there between the above conception of 'bank' and the model
+proposed by the RSCoin paper which adds an unnecessary 'centralised' requirement, it seems more like a
+central validator node and single point of failure without the benefits of BitCoin segwit, where the
+web-of-trust is imposed for our collective benefit without it being easy to opt-out regardless of whatever
+the underlying technology can achieve.
+
+
+## Non-repudibility is the enemy of privacy
+
+And money is just a collective hallucination... but regardless of whatever it is there is a quantity
+of it, either as a physical possession or a balance held with some entity which exists as a positive
+or negative potential with an intuitive probability of being met.
+
+Non-repudibility with a limit is used to determine the creditworthiness of somebody, every application
+they make and significant event is correlated to one or more sources of truth about a specific account,
+the credit rating agencies are implicitly provided with this information as per your agreement with
+the lender. At the same time every dollar, pound or euro they provide in return is treated as equal
+to each and every other unit of that currency in a fungible sense.
+
+The case for involuntary non-repudibility is that evidence of your participation is available to others
+to verify that your claims are true regardless of whether or not you lie. Each source of information
+promotes the notion that it adheres to high standards and a set of rules which give it the distinctions
+of being trustworthy and reputable - this requires a degree of impartiality and accepting corrections
+to maintain accurate up to date information. Does keeping information disclosure voluntary provide any
+less benefit to the parties involved in lending or other activities where trust is necessary compared
+to enforced disclosure of all transactions and agreements between all parties.
+
+But why should a system enforce one or another, or add specific properties which could be optional
+depending on the use case. With a plurality of different systems with various properties unfortunately
+the lowest common denominator often defines the highest level of security attainable.
+
+
+## How have these insight guided Ion?
+
+Instead of a hub and spoke architecture there are many hubs and spokes, where the architecture evolves
+as a chaotic ecosystem of overlapping implementations, and amongst them they must find a harmonious
+way to interoperate without unnecessary or artificial boundaries. Central Banking in a cryptocurrency
+ecosystem extends further than where the coin is and who owns it, when the shared measure of value is
+a currency like GBP, USD or EUR it is possible for policy to influence any parties which use it to
+compare the value of one asset to another; as long as the 'Central Bank' policy has influence wherever
+it needs to then why does it matter what the medium of exchange is?
+
+The model that I think should be encouraged is to focus on the mechanism of exchange, the security
+properties and trust relationships etc. and let the market determine what the best mediums are at
+the point of exchange, where trust is a developing intuitive gauge rather than a package which we
+are provided with, possibly even with a cost associated with it?
+
+After distilling these ideas into their underlying mechanisms I've come to realise that all that matters
+is a gaurantee that a provable history won't change. For example it isn't even necessary for the whole
+blockchain to be stored if you can trust that any money you receive is backed by a redeemable
+asset upon proof of your interest in it - like the note in your hand, as long as at the point of exchange
+the recipient can be assured of it being easily exchangeable into whatever their preferences are for
+storage of value is on the terms they would prefer...
+
+A good rule of thumb would be: never depend on any single entity which could cause the entire system
+to fail, but without the implications of the SkyNet or HAL scenarios etc.
+

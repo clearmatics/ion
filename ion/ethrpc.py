@@ -115,6 +115,7 @@ class EthJsonRpc(object):
         data = self._encode_function(sig, args)
         data_hex = data.encode('hex')
         response = self.eth_call(to_address=address, data=data_hex)
+        # XXX: horrible hack for when RPC returns '0x0'...
         if result_types[0] == 'uint256' and response == '0x0':
             response = '0x' + ('0' * 64)
         return decode_abi(result_types, response[2:].decode('hex'))
