@@ -5,8 +5,8 @@
 ## Theoretical Preface
 
 The core precept of the Ion prototype is that there is a source of truth and finality which must witness
-all payments it can keep a tally of the balances and enforce the rules. The security model of all
-crypto-currencies rely on a source of validity and agreement on what validity is, usually by consensus of
+all payments so it can keep a tally of the balances and enforce the rules. The security model of all
+crypto-currencies relies on a source of validity and agreement on what validity is, usually by consensus of
 many participants, to prove that history hasn't been tampered with. There are various other methods to
 prevent history from being tampered with without it being easily detectable such as the rolling average
 difficulty in the PoW mechanism employed by BitCoin which makes any divergence from the status quo an

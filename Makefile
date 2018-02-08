@@ -45,14 +45,19 @@ dev-python:
 	$(PYTHON) -mpip install pylint pyflakes snakefood pycallgraph
 	apt install protobuf-compiler
 
+dev: dev-python dev-nodejs dev-yarn
+
 docs/deps-modules.dot:
 	pydepgraph -p ion > $@
 
 docs/deps-files.dot:
 	sfood -i -r ion | sfood-graph > $@
 
-docker:
+docker-build:
 	docker build --rm=true -t clearmatics/ion:latest .
+
+docker-run:
+	docker run --rm=true -ti clearmatics/ion:latest
 
 yarn:
 	yarn

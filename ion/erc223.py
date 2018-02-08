@@ -64,8 +64,6 @@ def main(args=None):
         print("Minting", opts.value)
         token.mint(opts.value)
 
-    print(opts)
-
     if opts.action == "transfer":
         destination = opts.destination.encode('hex')
         print(len(destination))
@@ -76,6 +74,7 @@ def main(args=None):
         print("Burning", opts.value)
         token.burn(opts.value)
 
+    # XXX: messy
     destination = getattr(opts, 'destination', [])
     if not isinstance(destination, list):
         destination = [destination]
