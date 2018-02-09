@@ -63,35 +63,17 @@ merkle_hash = lambda *x: bit_clear(hashs(*x), 255)
 
 
 def merkle_tree(items):
-    """
-    Given an array of items, build a merkle tree
-    """
-    level = map(merkle_hash, items)
-
-    # Single item in a tree is its own root...
-    if len(items) == 1:
-        return [level], level[0]
-
-    tree = []
-    keep = []
+    tree = [map(merkle_hash, items)]
+    extra = merkle_hash(0)
     while True:
-        # When node has been pushed up, append to current level
-        if keep:
-            level += keep
-            keep = []
-
-        # Unbalanced level - push last node up to the level above
-        if len(level) % 2 == 1:
-            keep.append(level[-1])
-            level = level[:-1]
-
-        tree.append(level)
+        level = tree[-1]
+        if len(level) % 2 != 0:
+            extra = merkle_hash(extra)
+            level.append( extra )
         it = iter(level)
         level = [merkle_hash(item, next(it)) for item in it]
-
-        # Tree has finally been reduced down to a single node
-        if len(level) == 1 and not len(keep):
-            tree.append(level)
+        tree.append(level)
+        if len(level) == 1:
             break
     return tree, tree[-1][0]
 
@@ -103,20 +85,18 @@ def merkle_path(item, tree):
     min length = 1
     """
     item = merkle_hash(item)
+    idx = tree[0].index(item)
+
     path = []
     for level in tree:
-        if item not in level:
-            continue
         if len(level) == 1:
-            return path
-        idx = level.index(item)
+            break
         even = (idx % 2) == 0
         if even:
             path.append(bit_set(level[idx+1], 255))
-            item = merkle_hash(item, level[idx+1])
         else:
             path.append(level[idx-1])
-            item = merkle_hash(level[idx-1], item)
+        idx = idx // 2
     return path
 
 
