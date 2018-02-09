@@ -15,7 +15,7 @@ def serialize(v):
 
 hashs = lambda *x: bytes_to_int(keccak_256(''.join(map(serialize, x))).digest())
 
-merkle_hash = lambda *x: bit_clear(hashs(*x), 255)
+merkle_hash = lambda *x: bit_clear(hashs(*x), 0xFF)
 
 
 def merkle_tree(items):

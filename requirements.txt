@@ -1,4 +1,4 @@
-ethjsonrpc
+requests
 ethereum
 jsonrpc2
 flask

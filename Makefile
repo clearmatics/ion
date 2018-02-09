@@ -2,7 +2,7 @@ SOLC=solc --optimize
 PYTHON=python
 GANACHE=./node_modules/.bin/ganache-cli
 TRUFFLE=./node_modules/.bin/truffle
-CONTRACTS=Sodium Fluoride IonLock IonLink ERC223 Token
+CONTRACTS=Sodium Fluoride IonLock IonLink ERC223 Token HTLC
 CONTRACTS_BIN=$(addprefix build/,$(addsuffix .bin,$(CONTRACTS)))
 CONTRACTS_ABI=$(addprefix abi/,$(addsuffix .abi,$(CONTRACTS)))
 

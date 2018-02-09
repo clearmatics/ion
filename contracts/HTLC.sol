@@ -15,14 +15,14 @@ contract HTLC
 		uint256 value;
 	}
 
-	mapping(bytes32 => LockState) internal m_locks;
+	mapping(uint256 => LockState) internal m_locks;
 
 	uint256 internal m_ctr;
 
 
-	event OnDeposit( bytes32 lock_id, address recipient );
+	event OnDeposit( uint256 lock_id, address recipient );
 
-	event OnClaim( bytes32 lock_id, bytes32 preimage );
+	event OnClaim( uint256 lock_id, bytes32 preimage );
 
 
 	/**
@@ -36,13 +36,13 @@ contract HTLC
 	* If the timeout has been reached Alice (the `owner`) can request a Refund.
 	*/
 	function Deposit (uint256 timeout, bytes32 hash, address recipient)
-		public payable returns (bytes32)
+		public payable returns (uint256)
 	{
 		require( timeout >= now );
 		require( timeout < (now + MAX_TIMEOUT) );
 		require( msg.value > 0 );
 
-		var lock_id = bytes32(m_ctr);
+		var lock_id = m_ctr;
 		m_ctr += 1;
 		m_locks[lock_id] = LockState(timeout, hash, recipient, msg.sender, msg.value);
 
@@ -50,7 +50,7 @@ contract HTLC
 	}
 
 
-	function Claim (bytes32 lock_id, bytes32 preimage, uint8 v, bytes32 r, bytes32 s)
+	function Claim (uint256 lock_id, bytes32 preimage, uint8 v, bytes32 r, bytes32 s)
 		public
 	{
 		LockState storage lock = m_locks[lock_id];
@@ -58,6 +58,7 @@ contract HTLC
 		require( lock.timeout >= now );
 		require( keccak256(preimage) == lock.hash );
 
+        // Only recipient can provide the preimage to withdraw
 		address recipient = ecrecover(keccak256(lock_id, msg.sender), v, r, s);
 		require( recipient == lock.recipient );
 
@@ -68,7 +69,7 @@ contract HTLC
 	}
 
 
-	function Refund (bytes32 lock_id, uint8 v, bytes32 r, bytes32 s)
+	function Refund (uint256 lock_id, uint8 v, bytes32 r, bytes32 s)
 		public
 	{
 		LockState storage lock = m_locks[lock_id];
