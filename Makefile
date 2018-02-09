@@ -61,6 +61,7 @@ docker-run:
 
 yarn:
 	yarn
+
 $(TRUFFLE): yarn
 $(GANACHE): yarn
 

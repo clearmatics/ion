@@ -1,48 +1,4 @@
 #!/usr/bin/env python
-"""
-This merkle tree implementation uses a balanced binary tree, for example a 
-tree containing 5 leafs has 3 nodes and 1 root.
-
-        r
-       / \ 
-      n3  L5
-      /\
-     /  \
-    /    \
-   n1     n2
-  / \    / \
- L1  L2 L3 L4
-
-When hashing the leafs and nodes the highest bit is reserved for the proof
-to store the left or right attribute. Example proof of L1:
-
-  H(H(H(L1, L2), n2), L5) = r
-
-The proof supplied for L1 is:
-
-   L2, n2, L5
-
-To prove L2 instead of L1 the proof supplied is:
-
-   L1, n2, L5
-
-The highest bit of each item in the proof determines if it's the 
-left or right argument to the hash function.
-
-Whereas to prove L5 the proof would be:
-
-    n3
-
-To verify the proof:
-
-    r = H(n3, L5)
-
-As you can see the `n3` entry takes the lhs param in order to preserve
-the ordering property of the hash function by sacrificing a bit.
-
-The 'balanced' terminology here may be different from the common understanding
-of balanced, here it means that every node always has 2 children. 
-"""
 from __future__ import print_function
 import random
 
@@ -64,16 +20,16 @@ merkle_hash = lambda *x: bit_clear(hashs(*x), 255)
 
 def merkle_tree(items):
     tree = [map(merkle_hash, items)]
-    extra = merkle_hash(0)
+    extra = merkle_hash("merkle-tree-extra")
     while True:
         level = tree[-1]
+        # Ensure level has an even number of items, pad it with an 'extra item'
         if len(level) % 2 != 0:
-            extra = merkle_hash(extra)
             level.append( extra )
+        # Hash each pair in the list to create the next level
         it = iter(level)
-        level = [merkle_hash(item, next(it)) for item in it]
-        tree.append(level)
-        if len(level) == 1:
+        tree.append([merkle_hash(item, next(it)) for item in it])
+        if len(tree[-1]) == 1:
             break
     return tree, tree[-1][0]
 
@@ -88,11 +44,8 @@ def merkle_path(item, tree):
     idx = tree[0].index(item)
 
     path = []
-    for level in tree:
-        if len(level) == 1:
-            break
-        even = (idx % 2) == 0
-        if even:
+    for level in tree[:-1]:
+        if (idx % 2) == 0:
             path.append(bit_set(level[idx+1], 255))
         else:
             path.append(level[idx-1])

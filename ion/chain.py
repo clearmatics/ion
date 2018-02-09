@@ -321,11 +321,7 @@ def main():
     # Create a block of random payments
     if opts.random:
         signed_payments = random_payments(prev_hash, opts.random)
-        block = blockchain_apply(prev_hash, signed_payments)
-        print("%s = %s | %s\n" % (
-            block.hash.encode('hex'),
-            block.prev.encode('hex'),
-            block.root.encode('hex')))
+        blockchain_apply(prev_hash, signed_payments)
         return 1
 
     # Otherwise, process payment files to create blocks
