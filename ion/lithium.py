@@ -9,7 +9,7 @@ from .utils import u256be
 from .merkle import merkle_tree
 from .solproxy import solproxy
 
-from .args import Bytes20Action, EthRpcAction
+from .args import Bytes20, EthRpc
 
 
 def pack_txn(block_no, tx):
@@ -76,13 +76,13 @@ def iter_blocks(c, start=1, group=1, backlog=0, interval=1):
 def lithium_options():
     """Parse commandline options"""
     parser = argparse.ArgumentParser(description='Lithium merkle tree builder')
-    parser.add_argument('--from', dest='rpc_from', action=EthRpcAction, required=True,
+    parser.add_argument('--from', dest='rpc_from', action=EthRpc, required=True,
                         help='Source Ethereum RPC address, ip:port')
-    parser.add_argument('--to', dest='rpc_to', action=EthRpcAction, required=True,
+    parser.add_argument('--to', dest='rpc_to', action=EthRpc, required=True,
                         help='Destination Ethereum RPC address, ip:port')
-    parser.add_argument('--account', dest='account', required=True, action=Bytes20Action,
+    parser.add_argument('--account', dest='account', required=True, action=Bytes20,
                         help='Ethereum account address, 0x....')
-    parser.add_argument('--contract', dest='contract', required=True, action=Bytes20Action,
+    parser.add_argument('--contract', dest='contract', required=True, action=Bytes20,
                         help='Sodium contract address, 0x....')
     parser.add_argument('--batch-size', dest='batchsize', default=32, type=int,
                         help='Maximum number of merkle roots to submit to Sodium at once')

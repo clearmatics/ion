@@ -134,7 +134,7 @@ import argparse
 from base64 import b32encode
 import msgpack
 
-from .args import Bytes32Action
+from .args import Bytes32
 from .model import Block
 from .payment import payments_apply, random_payments, payments_graphviz
 from .utils import u256be, require, marshal
@@ -297,7 +297,7 @@ def blockchain_apply(prev_hash, signed_payments):
 
 def chain_options():
     parser = argparse.ArgumentParser(description="Plasma Chain")
-    parser.add_argument('-b', '--block', dest='block_hash', action=Bytes32Action,
+    parser.add_argument('-b', '--block', dest='block_hash', action=Bytes32,
                         help='Most recent block hash')
     parser.add_argument('-g', '--genesis', dest='genesis', action='store_true',
                         help="Create new genesis block")

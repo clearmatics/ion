@@ -196,28 +196,28 @@ def payments_graphviz(payments, colours=dict()):
 
 
 def payment_options(args=None):
-    from .args import Bytes20Action, Bytes32Action
+    from .args import Bytes20, Bytes32
     parser = argparse.ArgumentParser(description="Ion: Payment utility")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--random', dest='random', action='store_true',
                        help='Sign using secret key, hex encoded')
-    group.add_argument('-s', '--secret', dest='secret', type=str, action=Bytes32Action,
+    group.add_argument('-s', '--secret', dest='secret', type=str, action=Bytes32,
                        help='Sign using secret key, hex encoded')
     group.add_argument('-i', '--input', type=argparse.FileType('r'),
                        help='Open payment from file')
 
-    parser.add_argument('-t', '--to', dest='dest', type=str, action=Bytes20Action,
+    parser.add_argument('-t', '--to', dest='dest', type=str, action=Bytes20,
                         help='Destination address, 0x...20')
-    parser.add_argument('-c', '--currency', dest='currency', type=str, action=Bytes20Action,
+    parser.add_argument('-c', '--currency', dest='currency', type=str, action=Bytes20,
                         help='Currency address, 0x...20')
     parser.add_argument('-r', '--reference', dest='ref', type=str,
-                        help='Payment reference', action=Bytes32Action)
+                        help='Payment reference', action=Bytes32)
     parser.add_argument('-v', '--value', dest='value', type=int,
                         help='Payment value')
 
     parser.add_argument('-b', '--block-hash', dest='block_hash', type=str,
-                        help='Signature block hash', action=Bytes32Action)
+                        help='Signature block hash', action=Bytes32)
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-m', '--meta', dest='meta', action='store_true',

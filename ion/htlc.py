@@ -2,7 +2,7 @@ import sys
 import argparse
 
 from .ethrpc import EthJsonRpc
-from .args import PosInt256Action, EthRpcAction, Bytes20Action, Bytes32Action
+from .args import PosInt256, EthRpc, Bytes20, Bytes32
 from .solproxy import solproxy
 
 
@@ -13,31 +13,31 @@ def HTL_Contract(rpc, contract, account):
 def htlc_options(args):
     parser = argparse.ArgumentParser(description="HTLC utility")
 
-    parser.add_argument('-r', '--rpc', metavar="ip:port", dest='rpc', action=EthRpcAction,
+    parser.add_argument('-r', '--rpc', metavar="ip:port", dest='rpc', action=EthRpc,
                         help='Ethereum RPC address', default='127.0.0.1:8545')
 
-    parser.add_argument('-c', '--contract', metavar="0x...20", dest='contract', action=Bytes20Action,
+    parser.add_argument('-c', '--contract', metavar="0x...20", dest='contract', action=Bytes20,
                         help='ERC-223 contract address', required=True)
 
-    parser.add_argument('-a', '--account', metavar="0x...20", dest='from_account', action=Bytes20Action,
+    parser.add_argument('-a', '--account', metavar="0x...20", dest='from_account', action=Bytes20,
                         help='Ethereum account address', required=True)
 
     subparsers = parser.add_subparsers()
 
     deposit_group = subparsers.add_parser('deposit')
-    deposit_group.add_argument('hash', action=Bytes32Action)
-    deposit_group.add_argument('recipient', action=Bytes20Action)
+    deposit_group.add_argument('hash', action=Bytes32)
+    deposit_group.add_argument('recipient', action=Bytes20)
     deposit_group.set_defaults(action="deposit")
 
     claim_group = subparsers.add_parser('claim')
-    claim_group.add_argument('lock_id', action=PosInt256Action)
-    claim_group.add_argument('preimage', action=Bytes20Action)
-    claim_group.add_argument('signature', action=Bytes20Action)
+    claim_group.add_argument('lock_id', action=PosInt256)
+    claim_group.add_argument('preimage', action=Bytes20)
+    claim_group.add_argument('signature', action=Bytes20)
     claim_group.set_defaults(action="claim")
 
     refund_group = subparsers.add_parser('refund')
-    refund_group.add_argument('lock_id', action=PosInt256Action)
-    refund_group.add_argument('signature', action=PosInt256Action)
+    refund_group.add_argument('lock_id', action=PosInt256)
+    refund_group.add_argument('signature', action=PosInt256)
     refund_group.set_defaults(action="refund")
 
     opts = parser.parse_args(args or sys.argv[1:])

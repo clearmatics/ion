@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify
 from jsonrpc2 import JsonRpc
 
 from .ethrpc import EthJsonRpc
-from .args import EthRpcAction, Bytes20Action
+from .args import EthRpc, Bytes20
 from .utils import marshal, unmarshal, require
 from .chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path
 from .payment import payments_graphviz, SignedPayment
@@ -125,11 +125,11 @@ def rpcserver_options(args=None):
 
     # Connect to uplink
     # TODO: have ionlink options, --ion-rpc, --ion-account, --ion-contract etc.
-    parser.add_argument('--ion-rpc', dest='ion_rpc', action=EthRpcAction, default='127.0.0.1:8545',
+    parser.add_argument('--ion-rpc', dest='ion_rpc', action=EthRpc, default='127.0.0.1:8545',
                         help='Ethereum JSON-RPC HTTP endpoint')
-    parser.add_argument('--ion-account', dest='ion_account', action=Bytes20Action,
+    parser.add_argument('--ion-account', dest='ion_account', action=Bytes20,
                         help='Ethereum account address, 0x...20')
-    parser.add_argument('--ion-contract', dest='ion_contract', action=Bytes20Action,
+    parser.add_argument('--ion-contract', dest='ion_contract', action=Bytes20,
                         help='IonLink contract address, 0x...20')
 
     parser.add_argument('-p', '--port', dest='port', type=int,

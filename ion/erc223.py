@@ -3,7 +3,7 @@ import sys
 import argparse
 
 from .ethrpc import EthJsonRpc
-from .args import Bytes20Action, EthRpcAction, PosInt256Action
+from .args import Bytes20, EthRpc, PosInt256
 from .solproxy import solproxy
 
 
@@ -14,32 +14,32 @@ def Token(rpc, contract, account):
 def erc223_options(args):
     parser = argparse.ArgumentParser(description="ERC-223 token utility")
 
-    parser.add_argument('-r', '--rpc', metavar="ip:port", dest='rpc', action=EthRpcAction,
+    parser.add_argument('-r', '--rpc', metavar="ip:port", dest='rpc', action=EthRpc,
                         help='Ethereum RPC address', default='127.0.0.1:8545')
 
-    parser.add_argument('-c', '--contract', metavar="0x...20", dest='contract', action=Bytes20Action,
+    parser.add_argument('-c', '--contract', metavar="0x...20", dest='contract', action=Bytes20,
                         help='ERC-223 contract address', required=True)
 
-    parser.add_argument('-a', '--account', metavar="0x...20", dest='from_account', action=Bytes20Action,
+    parser.add_argument('-a', '--account', metavar="0x...20", dest='from_account', action=Bytes20,
                         help='Ethereum account address', required=True)
 
     subparsers = parser.add_subparsers()
 
     transfer_group = subparsers.add_parser('transfer')
-    transfer_group.add_argument('destination', action=Bytes20Action)
-    transfer_group.add_argument('value', action=PosInt256Action)
+    transfer_group.add_argument('destination', action=Bytes20)
+    transfer_group.add_argument('value', action=PosInt256)
     transfer_group.set_defaults(action="transfer")
 
     balance_group = subparsers.add_parser('balance')
-    balance_group.add_argument('destination', action=Bytes20Action, nargs='*')
+    balance_group.add_argument('destination', action=Bytes20, nargs='*')
     balance_group.set_defaults(action="balance")
 
     mint_group = subparsers.add_parser('mint')
-    mint_group.add_argument('value', action=PosInt256Action)
+    mint_group.add_argument('value', action=PosInt256)
     mint_group.set_defaults(action="mint")
 
     burn_group = subparsers.add_parser('burn')
-    burn_group.add_argument('value', action=PosInt256Action)
+    burn_group.add_argument('value', action=PosInt256)
     burn_group.set_defaults(action="burn")
 
     opts = parser.parse_args(args or sys.argv[1:])
@@ -83,7 +83,6 @@ def main(args=None):
     for balance_addr in destination:
         balance_addr = balance_addr.encode('hex')
         print(balance_addr, "Balance = ", token.balanceOf(balance_addr))
-
 
 
 if __name__ == "__main__":

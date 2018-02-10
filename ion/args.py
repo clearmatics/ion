@@ -7,19 +7,19 @@ from .ethrpc import EthJsonRpc
 from .utils import require
 
 
-def arg_bytes20(value):
+def bytes20(value):
     value = scan_bin(value)
     require( len(value) == 20, "20 bytes required" )
     return value
 
 
-def arg_bytes32(value):
+def bytes32(value):
     value = scan_bin(value)
     require( len(value) == 32, "32 bytes required" )
     return value
 
 
-def arg_posint256(value):
+def posint256(value):
     value = int(value)
     require( value > 0 )
     require( value <= (1<<255) )
@@ -35,49 +35,49 @@ class BinAction(argparse.Action):
         setattr(namespace, self.dest, scan_bin(values))
 
 
-class PosInt256Action(argparse.Action):
+class PosInt256(argparse.Action):
     """Parse Ethereum address secret"""
 
     def __init__(self, option_strings, dest, nargs=None, **kwa):
         require( nargs is None, 'nargs not allowed' )
-        super(PosInt256Action, self).__init__(option_strings, dest, **kwa)
+        super(PosInt256, self).__init__(option_strings, dest, **kwa)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, arg_posint256(values))
+        setattr(namespace, self.dest, posint256(values))
 
 
-class Bytes32Action(argparse.Action):
+class Bytes32(argparse.Action):
     """Parse Ethereum bytes32"""
 
     def __init__(self, option_strings, dest, nargs=None, **kwa):
         require( nargs is None, 'nargs not allowed' )
-        super(Bytes32Action, self).__init__(option_strings, dest, **kwa)
+        super(Bytes32, self).__init__(option_strings, dest, **kwa)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, arg_bytes32(values))
+        setattr(namespace, self.dest, bytes32(values))
 
 
-class Bytes20Action(argparse.Action):
+class Bytes20(argparse.Action):
     """Parse Ethereum address"""
 
     def __init__(self, option_strings, dest, **kwa):
         # require( nargs is None, 'nargs not allowed' )
-        super(Bytes20Action, self).__init__(option_strings, dest, **kwa)
+        super(Bytes20, self).__init__(option_strings, dest, **kwa)
 
     def __call__(self, parser, namespace, values, option_string=None):
         if isinstance(values, list):
-            values = map(arg_bytes20, values)
+            values = map(bytes20, values)
         else:
-            values = arg_bytes20(values)
+            values = bytes20(values)
         setattr(namespace, self.dest, values)
 
 
-class EthRpcAction(argparse.Action):
+class EthRpc(argparse.Action):
     """Parse RPC address, return EthJsonRpc handle"""
 
     def __init__(self, option_strings, dest, nargs=None, **kwa):
         require(nargs is None, 'nargs not allowed')
-        super(EthRpcAction, self).__init__(option_strings, dest, **kwa)
+        super(EthRpc, self).__init__(option_strings, dest, **kwa)
 
     def __call__(self, parser, namespace, values, option_string=None):
         ip, port = values.split(':')
@@ -85,17 +85,17 @@ class EthRpcAction(argparse.Action):
         setattr(namespace, self.dest, EthJsonRpc(ip, port))
 
 
-class PaymentDependencyAction(argparse.Action):
+class PaymentDependency(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwa):
         require(nargs is None, 'nargs not allowed')
-        super(PaymentDependencyAction, self).__init__(option_strings, dest, **kwa)
+        super(PaymentDependency, self).__init__(option_strings, dest, **kwa)
 
     def __call__(self, parser, namespace, values, option_string=None):
         pay_to , pay_cur, pay_ref, pay_amt = values.split(',')
-        pay_to = arg_bytes20(pay_to)
-        pay_cur = arg_bytes20(pay_cur)
-        pay_amt = arg_posint256(pay_amt)
-        pay_ref = arg_bytes32(pay_ref)
+        pay_to = bytes20(pay_to)
+        pay_cur = bytes20(pay_cur)
+        pay_amt = posint256(pay_amt)
+        pay_ref = bytes32(pay_ref)
         if len(scan_bin(values)) != 20:
             raise ValueError('Invalid address length')
         setattr(namespace, self.dest, (pay_to, pay_cur, pay_amt, pay_ref))
