@@ -27,8 +27,9 @@ pylint:
 
 lint: pyflakes pylint
 
-dist:
+bdist:
 	$(PYTHON) setup.py bdist_egg --exclude-source-files
+	$(PYTHON) setup.py bdist_wheel --universal
 
 dist/ion: dist
 	$(PYTHON) -mPyInstaller ion.spec
