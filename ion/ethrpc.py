@@ -182,12 +182,12 @@ class EthJsonRpc(object):
             if method['type'] != 'function':
                 continue
 
+            handler = self._solproxy_bind(method, address, account)
             if handler is None:
                 continue
 
             sig = "%s(%s)" % (method['name'], ','.join([i['type'] for i in method['inputs']]))
             sig_hash = keccak_256(bytes(sig)).hexdigest()[:8]
-            handler = self._solproxy_bind(method, address, account)
 
             # Provide an alternate, where the explicit function signature
             proxy[method['name']] = handler

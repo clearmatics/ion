@@ -1,8 +1,8 @@
 node_modules
 *.egg-info
-/docs/
-/chaindata/
-/build/
-/dist/
-/migrations/
-/contracts/
+build
+chaindata
+contracts
+docs
+migrations
+test

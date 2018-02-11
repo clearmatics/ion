@@ -56,8 +56,8 @@ docs/deps-modules.dot:
 docs/deps-files.dot:
 	sfood -i -r ion | sfood-graph > $@
 
-docker-build:
-	docker build --rm=true -t clearmatics/ion:latest .
+docker-build: dist/ion
+	docker build --rm=true -t clearmatics/ion:latest -f Dockerfile.alpine-libc .
 
 docker-run:
 	docker run --rm=true -ti clearmatics/ion:latest

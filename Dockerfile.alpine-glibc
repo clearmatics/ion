@@ -1,0 +1,6 @@
+FROM frolvlad/alpine-glibc
+
+COPY dist/ion /app/
+WORKDIR /app
+
+ENTRYPOINT ["/app/ion"]
