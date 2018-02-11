@@ -18,8 +18,38 @@ hashs = lambda *x: bytes_to_int(keccak_256(''.join(map(serialize, x))).digest())
 merkle_hash = lambda *x: bit_clear(hashs(*x), 0xFF)
 
 
+"""
+References:
+
+TODO: add more interesting references and notes to get a better understanding
+of the data structure, its properties, usage guidelines and potential applications.
+
+ - http://calvino.polito.it/~tilli/matdiscreta/complexity_remarks.pdf
+ - http://www.ccs.neu.edu/home/wichs/class/crypto-fall15/lecture11.pdf
+ - https://lab.getmonero.org/pubs/MRL-0002.pdf
+ - http://naun.org/multimedia/UPress/ami/16-125.pdf
+"""
+
+
 def merkle_tree(items):
-    tree = [map(merkle_hash, items)]
+    """
+    Hashes a list of items, then creates a Merkle tree where the items are
+    hashed in pairs to form the next level of the tree until the level is
+    only one item (the root).
+
+    [ [ H(0), H(1), H(2), H(3) ]                # Level 2
+      [ H(H(0)||H(1)), H(H(2)||H(3)) ]          # Level 1
+      [ H(H(H(0)||H(1))||H(H(2)||H(3))) ] ]     # Level 0 (root)
+
+    If a level has an odd number of items it is padded with an 'extra' item
+    to keep the tree perfectly balanced.
+
+    The first level of items is sorted.
+
+    :type items: list
+    :return: list, long
+    """
+    tree = [sorted(map(merkle_hash, items))]
     extra = merkle_hash("merkle-tree-extra")
     while True:
         level = tree[-1]
@@ -37,7 +67,7 @@ def merkle_tree(items):
 def merkle_path(item, tree):
     """
     Create a merkle path for the item within the tree
-    max length = (height*2) - 1
+    max length = height - 1
     min length = 1
     """
     item = merkle_hash(item)
@@ -46,7 +76,7 @@ def merkle_path(item, tree):
     path = []
     for level in tree[:-1]:
         if (idx % 2) == 0:
-            path.append(bit_set(level[idx+1], 255))
+            path.append(bit_set(level[idx+1], 0xFF))
         else:
             path.append(level[idx-1])
         idx = idx // 2
@@ -55,12 +85,17 @@ def merkle_path(item, tree):
 
 def merkle_proof(leaf, path, root):
     """
-    Verify merkle path for an item matches the root
+    Verify Merkle path for an item matches the root
+
+    The most significant bit of every item in the path is used to
+    determine if it's a 'left' or 'right' node, meaning:
+
+        H(node, item) or H(item, node)
     """
     node = merkle_hash(leaf)
     for item in path:
-        if bit_test(item, 255):
-            node = merkle_hash(node, bit_clear(item, 255))
+        if bit_test(item, 0xFF):
+            node = merkle_hash(node, bit_clear(item, 0xFF))
         else:
             node = merkle_hash(item, node)
     return node == root

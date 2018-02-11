@@ -1,9 +1,8 @@
 syntax = "proto2";
 
 message Block {
-	required uint32 id = 1;
+	required bytes prev = 1;
 	required bytes root = 2;
-	required bytes hash = 3;
 }
 
 
@@ -21,7 +20,7 @@ message Payment {
 	required bytes c = 3;
 	required uint64 v = 4;
 	repeated bytes r = 5;
-	repeated PaymentLink d = 6;
+	repeated bytes d = 6;
 }
 
 

@@ -3,6 +3,8 @@ from base64 import b64encode, b64decode
 import binascii
 import json
 
+from rlp.sedes import big_endian_int
+from rlp.utils import decode_hex, str_to_bytes
 
 if sys.version_info.major == 2:
     def bytearray_to_bytestr(value):
@@ -10,6 +12,9 @@ if sys.version_info.major == 2:
 else:
     def bytearray_to_bytestr(value):
         return bytes(value)
+
+
+TT256 = 2 ** 256
 
 
 safe_ord = ord if sys.version_info.major == 2 else lambda x: x if isinstance(x, int) else ord(x)
@@ -35,6 +40,10 @@ def packl(lnum):
 
 int_to_big_endian = packl
 
+
+def big_endian_to_int(x): return big_endian_int.deserialize(
+    str_to_bytes(x).lstrip(b'\x00'))
+
 zpad = lambda x, l: b'\x00' * max(0, l - len(x)) + x
 
 
@@ -44,6 +53,23 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 
 # Turns a `defaultdict(defaultdict)` into a flat dictionary
 dict_dump = lambda diff: {c: dict(d.items()) for c, d in diff.items()}
+
+
+def is_numeric(x): return isinstance(x, (int, long))
+
+
+def encode_int(v):
+    """encodes an integer into serialization"""
+    if not is_numeric(v) or v < 0 or v >= TT256:
+        raise Exception("Integer invalid or out of range: %r" % v)
+    return int_to_big_endian(v)
+
+
+def scan_bin(v):
+    if v[:2] in ('0x', b'0x'):
+        return decode_hex(v[2:])
+    else:
+        return decode_hex(v)
 
 
 def require(arg, msg=None):

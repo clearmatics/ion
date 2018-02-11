@@ -4,11 +4,11 @@ import argparse
 
 from .ethrpc import EthJsonRpc
 from .args import Bytes20, EthRpc, PosInt256
-from .solproxy import solproxy
 
 
-def Token(rpc, contract, account):
-    return solproxy(rpc, "abi/Token.abi", contract.encode('hex'), account.encode('hex'))
+def Token(rpc, contract, account=None):
+    with open("abi/Token.abi", "rb") as handle:
+        return rpc.proxy(handle, contract, account)
 
 
 def erc223_options(args):

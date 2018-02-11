@@ -3,11 +3,10 @@ import argparse
 
 from .ethrpc import EthJsonRpc
 from .args import PosInt256, EthRpc, Bytes20, Bytes32
-from .solproxy import solproxy
 
 
 def HTL_Contract(rpc, contract, account):
-    return solproxy(rpc, "abi/HTLC.abi", contract.encode('hex'), account.encode('hex'))
+    return rpc.proxy("abi/HTLC.abi", contract, account)
 
 
 def htlc_options(args):
@@ -30,9 +29,10 @@ def htlc_options(args):
     deposit_group.set_defaults(action="deposit")
 
     claim_group = subparsers.add_parser('claim')
+    claim_group.add_argument('-k', '--key', action=Bytes32)
+    claim_group.add_argument('-s', '--signature', action=Bytes32)
     claim_group.add_argument('lock_id', action=PosInt256)
     claim_group.add_argument('preimage', action=Bytes20)
-    claim_group.add_argument('signature', action=Bytes20)
     claim_group.set_defaults(action="claim")
 
     refund_group = subparsers.add_parser('refund')

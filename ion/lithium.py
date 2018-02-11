@@ -7,8 +7,6 @@ from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endia
 
 from .utils import u256be
 from .merkle import merkle_tree
-from .solproxy import solproxy
-
 from .args import Bytes20, EthRpc
 
 
@@ -87,7 +85,7 @@ def lithium_options():
     parser.add_argument('--batch-size', dest='batchsize', default=32, type=int,
                         help='Maximum number of merkle roots to submit to Sodium at once')
     opt = parser.parse_args()
-    opt.sodium = solproxy(opt.rpc_to, "abi/Sodium.abi", opt.contract, opt.account)
+    opt.sodium = opt.rpc_to.proxy("abi/Sodium.abi", opt.contract, opt.account)
 
     return opt
 

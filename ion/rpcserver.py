@@ -16,7 +16,6 @@ from .utils import marshal, unmarshal, require
 from .chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path
 from .payment import payments_graphviz, SignedPayment
 from .txpool import TxPool
-from .solproxy import solproxy
 
 
 class IonRpcServer(object):
@@ -146,7 +145,7 @@ def rpcserver_options(args=None):
         if not opts.rpc:
             opts.ion_rpc = EthJsonRpc('127.0.0.1', 8545)
         # TODO: load ABI from package resources
-        opts.ion = solproxy(opts.ion_rpc, "abi/IonLink.abi", opts.ion_contract, opts.ion_account)
+        opts.ion = opts.ion_rpc.proxy("abi/IonLink.abi", opts.ion_contract, opts.ion_account)
 
     return opts
 

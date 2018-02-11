@@ -21,7 +21,7 @@ class Payment(_PaymentStruct, Marshalled):
         super(Payment, self).__init__(*args, **kwa)
 
     def seal(self, secret, prev_hash):
-        # type: (Payment, bytes, bytes) -> SignedPayment
+        # type: (bytes, bytes) -> SignedPayment
         require(len(secret) == 32)
         msg = self.hash(prev_hash)
         return SignedPayment(self, ecdsa_sign(msg, secret))
@@ -30,11 +30,9 @@ class Payment(_PaymentStruct, Marshalled):
         return keccak_256(prev_hash + self.dump()).digest()
 
     def dependency_hash(self):
-        # type: (Payment) -> bytes
         return dependency_hash(self.t, self.c, self.v, self.r)
 
     def dump(self):
-        # type: (Payment) -> bytes
         require(all([len(x) == 20 for x in [self.f, self.t, self.c]]))
         require(len(self.r) == 32, "Bad payment reference size")
         require(isinstance(self.v, (int, long)))
@@ -174,16 +172,17 @@ def payments_graphviz(payments, colours=dict()):
 
     for p in payments:
         tx_name = p.dependency_hash()[:3].encode('hex')
+        pen_width = str((float(abs(p.v)) / maxvals[p.c]) * 5)
         d.edge(p.f[:3].encode('hex'), 'tx ' + tx_name,
                weight=str(p.v), fontsize="8.0",
                label=' '.join([str(p.v), p.c[:3].encode('hex')]),
                color=colours.get(p.c, 'black'),
-               penwidth=str((float(abs(p.v)) / maxvals[p.c]) * 5))
+               penwidth=pen_width)
         d.edge('tx ' + tx_name, p.t[:3].encode('hex'),
                weight=str(p.v), fontsize="8.0",
                label=' '.join([str(p.v), p.c[:3].encode('hex')]),
                color=colours.get(p.c, 'black'),
-               penwidth=str((float(abs(p.v)) / maxvals[p.c]) * 5))
+               penwidth=pen_width)
         if p.d:
             for dep in p.d:
                 d.edge('tx ' + tx_name, 'tx ' + dep[:3].encode('hex'),

@@ -7,7 +7,7 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
-#from google.protobuf import descriptor_pb2
+from google.protobuf import descriptor_pb2
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -18,7 +18,7 @@ _sym_db = _symbol_database.Default()
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='ion/proto/chain.proto',
   package='',
-  serialized_pb=_b('\n\x15ion/proto/chain.proto\"/\n\x05\x42lock\x12\n\n\x02id\x18\x01 \x02(\r\x12\x0c\n\x04root\x18\x02 \x02(\x0c\x12\x0c\n\x04hash\x18\x03 \x02(\x0c\"9\n\x0bPaymentLink\x12\t\n\x01t\x18\x01 \x02(\x0c\x12\t\n\x01\x63\x18\x02 \x02(\x0c\x12\t\n\x01v\x18\x03 \x02(\x04\x12\t\n\x01r\x18\x04 \x03(\x0c\"Y\n\x07Payment\x12\t\n\x01\x66\x18\x01 \x02(\x0c\x12\t\n\x01t\x18\x02 \x02(\x0c\x12\t\n\x01\x63\x18\x03 \x02(\x0c\x12\t\n\x01v\x18\x04 \x02(\x04\x12\t\n\x01r\x18\x05 \x03(\x0c\x12\x17\n\x01\x64\x18\x06 \x03(\x0b\x32\x0c.PaymentLink\"1\n\x0e\x45\x63\x64saSignature\x12\t\n\x01v\x18\x01 \x02(\x0c\x12\t\n\x01r\x18\x02 \x02(\x0c\x12\t\n\x01s\x18\x03 \x02(\x0c\"K\n\rSignedPayment\x12\x13\n\x01p\x18\x01 \x02(\x0b\x32\x08.Payment\x12 \n\x05\x65\x63\x64sa\x18\x02 \x01(\x0b\x32\x0f.EcdsaSignatureH\x00\x42\x03\n\x01s\">\n\rBlockPayments\x12\x11\n\x01\x62\x18\x01 \x02(\x0b\x32\x06.Block\x12\x1a\n\x02sp\x18\x02 \x03(\x0b\x32\x0e.SignedPayment')
+  serialized_pb=_b('\n\x15ion/proto/chain.proto\"#\n\x05\x42lock\x12\x0c\n\x04prev\x18\x01 \x02(\x0c\x12\x0c\n\x04root\x18\x02 \x02(\x0c\"9\n\x0bPaymentLink\x12\t\n\x01t\x18\x01 \x02(\x0c\x12\t\n\x01\x63\x18\x02 \x02(\x0c\x12\t\n\x01v\x18\x03 \x02(\x04\x12\t\n\x01r\x18\x04 \x03(\x0c\"K\n\x07Payment\x12\t\n\x01\x66\x18\x01 \x02(\x0c\x12\t\n\x01t\x18\x02 \x02(\x0c\x12\t\n\x01\x63\x18\x03 \x02(\x0c\x12\t\n\x01v\x18\x04 \x02(\x04\x12\t\n\x01r\x18\x05 \x03(\x0c\x12\t\n\x01\x64\x18\x06 \x03(\x0c\"1\n\x0e\x45\x63\x64saSignature\x12\t\n\x01v\x18\x01 \x02(\x0c\x12\t\n\x01r\x18\x02 \x02(\x0c\x12\t\n\x01s\x18\x03 \x02(\x0c\"K\n\rSignedPayment\x12\x13\n\x01p\x18\x01 \x02(\x0b\x32\x08.Payment\x12 \n\x05\x65\x63\x64sa\x18\x02 \x01(\x0b\x32\x0f.EcdsaSignatureH\x00\x42\x03\n\x01s\">\n\rBlockPayments\x12\x11\n\x01\x62\x18\x01 \x02(\x0b\x32\x06.Block\x12\x1a\n\x02sp\x18\x02 \x03(\x0b\x32\x0e.SignedPayment')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -33,22 +33,15 @@ _BLOCK = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='id', full_name='Block.id', index=0,
-      number=1, type=13, cpp_type=3, label=2,
-      has_default_value=False, default_value=0,
+      name='prev', full_name='Block.prev', index=0,
+      number=1, type=12, cpp_type=9, label=2,
+      has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='root', full_name='Block.root', index=1,
       number=2, type=12, cpp_type=9, label=2,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='hash', full_name='Block.hash', index=2,
-      number=3, type=12, cpp_type=9, label=2,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -65,7 +58,7 @@ _BLOCK = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=25,
-  serialized_end=72,
+  serialized_end=60,
 )
 
 
@@ -115,8 +108,8 @@ _PAYMENTLINK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=74,
-  serialized_end=131,
+  serialized_start=62,
+  serialized_end=119,
 )
 
 
@@ -164,7 +157,7 @@ _PAYMENT = _descriptor.Descriptor(
       options=None),
     _descriptor.FieldDescriptor(
       name='d', full_name='Payment.d', index=5,
-      number=6, type=11, cpp_type=10, label=3,
+      number=6, type=12, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -180,8 +173,8 @@ _PAYMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=133,
-  serialized_end=222,
+  serialized_start=121,
+  serialized_end=196,
 )
 
 
@@ -224,8 +217,8 @@ _ECDSASIGNATURE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=224,
-  serialized_end=273,
+  serialized_start=198,
+  serialized_end=247,
 )
 
 
@@ -264,8 +257,8 @@ _SIGNEDPAYMENT = _descriptor.Descriptor(
       name='s', full_name='SignedPayment.s',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=275,
-  serialized_end=350,
+  serialized_start=249,
+  serialized_end=324,
 )
 
 
@@ -301,11 +294,10 @@ _BLOCKPAYMENTS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=352,
-  serialized_end=414,
+  serialized_start=326,
+  serialized_end=388,
 )
 
-_PAYMENT.fields_by_name['d'].message_type = _PAYMENTLINK
 _SIGNEDPAYMENT.fields_by_name['p'].message_type = _PAYMENT
 _SIGNEDPAYMENT.fields_by_name['ecdsa'].message_type = _ECDSASIGNATURE
 _SIGNEDPAYMENT.oneofs_by_name['s'].fields.append(

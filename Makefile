@@ -11,7 +11,7 @@ PROTOCOLS_PY=$(addsuffix _pb2.py,$(PROTOCOLS))
 
 PYLINT_IGNORE=C0330,invalid-name,line-too-long,missing-docstring,bad-whitespace,consider-using-ternary,wrong-import-position,wrong-import-order,trailing-whitespace
 
-all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) test truffle-test dist lint README.pdf
+all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) test truffle-test dist/ion lint README.pdf
 
 README.pdf: README.md
 	pandoc --toc --reference-links --number-sections --listings --template docs/eisvogel -f markdown -t latex -o $@ $<
@@ -29,6 +29,9 @@ lint: pyflakes pylint
 
 dist:
 	$(PYTHON) setup.py bdist_egg --exclude-source-files
+
+dist/ion: dist
+	$(PYTHON) -mPyInstaller ion.spec
 
 dev-yarn:
 	echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list

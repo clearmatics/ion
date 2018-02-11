@@ -1,10 +1,7 @@
 import argparse
 
-from ethereum.utils import scan_bin
-
 from .ethrpc import EthJsonRpc
-
-from .utils import require
+from .utils import require, scan_bin
 
 
 def bytes20(value):
@@ -24,7 +21,6 @@ def posint256(value):
     require( value > 0 )
     require( value <= (1<<255) )
     return value
-
 
 class BinAction(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwa):

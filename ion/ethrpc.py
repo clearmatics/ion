@@ -1,11 +1,14 @@
 import json
 import warnings
+from collections import namedtuple
 
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
-from ethereum import utils
 from ethereum.abi import encode_abi, decode_abi
+
+from .utils import require, big_endian_to_int, zpad, encode_int
+from .crypto import keccak_256
 
 
 GETH_DEFAULT_RPC_PORT = 8545
@@ -130,17 +133,67 @@ class EthJsonRpc(object):
 
     def _encode_function(self, signature, param_values):
 
-        prefix = utils.big_endian_to_int(utils.sha3(signature)[:4])
+        prefix = big_endian_to_int(keccak_256(signature)[:4])
 
         if signature.find('(') == -1:
             raise RuntimeError('Invalid function signature. Missing "(" and/or ")"...')
 
         if signature.find(')') - signature.find('(') == 1:
-            return utils.encode_int(prefix)
+            return encode_int(prefix)
 
         types = signature[signature.find('(') + 1: signature.find(')')].split(',')
         encoded_params = encode_abi(types, param_values)
-        return utils.zpad(utils.encode_int(prefix), 4) + encoded_params
+        return zpad(encode_int(prefix), 4) + encoded_params
+
+    def _solproxy_bind(self, method, address, account):
+        ins = [_['type'] for _ in method['inputs']]
+        outs = [_['type'] for _ in method['outputs']]
+        sig = method['name'] + '(' + ','.join(ins) + ')'
+        # XXX: messy...
+        if method['constant']:
+            return lambda *args, **kwa: (self.call(address, sig, args, outs, **kwa)
+                                         if len(outs) > 1 else
+                                         self.call(address, sig, args, outs, **kwa)[0])
+        if account is None:
+            # Without account, cannot call non-constant methods
+            return None
+        return lambda *args, **kwa: (self.call_with_transaction(account, address, sig, args, **kwa)
+                                     if len(outs) > 1 else
+                                     self.call_with_transaction(account, address, sig, args, **kwa)[0])
+
+    def proxy(self, abi, address, account=None):
+        # XXX: specific to Ethereum addresses, 20 octets
+        if len(address) == 20:
+            address = address.encode('hex')
+        require(len(address) == 40)
+        if account is not None:
+            if len(account) == 20:
+                account = account.encode('hex')
+            require(len(account) == 40)
+
+        if isinstance(abi, file):
+            abi = json.load(abi)
+        elif isinstance(abi, str):
+            abi = json.loads(abi)
+        require(isinstance(abi, list))
+
+        proxy = dict()
+        for method in abi:
+            if method['type'] != 'function':
+                continue
+
+            if handler is None:
+                continue
+
+            sig = "%s(%s)" % (method['name'], ','.join([i['type'] for i in method['inputs']]))
+            sig_hash = keccak_256(bytes(sig)).hexdigest()[:8]
+            handler = self._solproxy_bind(method, address, account)
+
+            # Provide an alternate, where the explicit function signature
+            proxy[method['name']] = handler
+            proxy[method['name'] + '_' + sig_hash] = handler
+
+        return namedtuple('SolProxy', proxy.keys())(*proxy.values())
 
 ################################################################################
 # high-level methods
