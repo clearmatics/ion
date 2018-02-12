@@ -2,6 +2,8 @@
 /dist
 /chaindata
 /node_modules
+/coverage
+coverage.json
 *.pyc
 docs/deps-files.dot
 docs/deps-modules.dot
