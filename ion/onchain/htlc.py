@@ -2,8 +2,8 @@ from __future__ import print_function
 import sys
 import argparse
 
-from .ethrpc import EthJsonRpc
-from .args import PosInt256, EthRpc, Bytes20, Bytes32
+from ..ethrpc import EthJsonRpc
+from ..args import PosInt256, EthRpc, Bytes20, Bytes32
 
 
 def HTL_Contract(rpc, contract, account):

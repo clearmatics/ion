@@ -1,4 +1,4 @@
-from .chain import main
+from .plasma.chain import main
 
 
 if __name__ == "__main__":

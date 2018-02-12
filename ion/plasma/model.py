@@ -1,7 +1,7 @@
 from collections import namedtuple
 
-from .utils import Marshalled, require
-from .crypto import keccak_256
+from ..utils import Marshalled, require
+from ..crypto import keccak_256
 
 
 _BlockStruct= namedtuple('Block', ('prev', 'root'))

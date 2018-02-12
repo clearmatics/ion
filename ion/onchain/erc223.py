@@ -2,8 +2,8 @@ from __future__ import print_function
 import sys
 import argparse
 
-from .ethrpc import EthJsonRpc
-from .args import Bytes20, EthRpc, PosInt256
+from ..ethrpc import EthJsonRpc
+from ..args import Bytes20, EthRpc, PosInt256
 
 
 def Token(rpc, contract, account=None):

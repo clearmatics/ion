@@ -134,11 +134,11 @@ import argparse
 from base64 import b32encode
 import msgpack
 
-from .args import Bytes32
+from ..args import Bytes32
 from .model import Block
 from .payment import payments_apply, random_payments, payments_graphviz
-from .utils import u256be, require, marshal
-from .merkle import merkle_tree
+from ..utils import u256be, require, marshal
+from ..merkle import merkle_tree
 
 
 # --------------------------------------------------------------------

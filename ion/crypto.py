@@ -1,11 +1,11 @@
 from collections import namedtuple
 
-from ethereum.utils import safe_ord, big_endian_to_int, encode_int32
+from ethereum.utils import big_endian_to_int, encode_int32
 from rlp.utils_py2 import ascii_chr
 
 from sha3 import keccak_256
 
-from .utils import Marshalled, u256be
+from .utils import Marshalled, u256be, safe_ord
 
 try:
     import coincurve

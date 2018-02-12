@@ -7,8 +7,9 @@ from collections import defaultdict, namedtuple
 
 from ethereum.utils import privtoaddr
 
-from .utils import u256be, require, Marshalled
-from .crypto import EcdsaSignature, ecdsa_sign, keccak_256
+from ..args import Bytes20, Bytes32
+from ..utils import u256be, require, Marshalled
+from ..crypto import EcdsaSignature, ecdsa_sign, keccak_256
 
 
 _SignedPaymentStruct = namedtuple('SignedPayment', ('p', 's'))
@@ -195,7 +196,6 @@ def payments_graphviz(payments, colours=dict()):
 
 
 def payment_options(args=None):
-    from .args import Bytes20, Bytes32
     parser = argparse.ArgumentParser(description="Ion: Payment utility")
 
     group = parser.add_mutually_exclusive_group(required=True)

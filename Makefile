@@ -31,6 +31,9 @@ bdist:
 	$(PYTHON) setup.py bdist_egg --exclude-source-files
 	$(PYTHON) setup.py bdist_wheel --universal
 
+dist:
+	mkdir -p dist
+
 dist/ion: dist
 	$(PYTHON) -mPyInstaller ion.spec
 
@@ -46,7 +49,7 @@ dev-nodejs:
 	ln -s /usr/bin/nodejs  /usr/bin/node
 
 dev-python:
-	$(PYTHON) -mpip install pylint pyflakes snakefood pycallgraph
+	$(PYTHON) -mpip install pylint pyflakes snakefood pycallgraph pyinstaller
 	apt install protobuf-compiler
 
 dev: dev-python dev-nodejs dev-yarn
@@ -109,15 +112,15 @@ testrpc:
 
 test-genesis:
 	rm -rf chaindata
-	$(PYTHON) -mion.chain -g -r 10
+	$(PYTHON) -mion.plasma.chain -g -r 10
 
 test-client:
-	$(PYTHON) -mion.client --inproc --test
+	$(PYTHON) -mion.rpc.client --inproc --test
 
 test-merkle:
 	$(PYTHON) -mion.merkle
 
 test-payment:
-	$(PYTHON) -mion.payment --random -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -v 1234 -j | $(PYTHON) -mion.payment -i /dev/stdin -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -m
+	$(PYTHON) -mion.plasma.payment --random -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -v 1234 -j | $(PYTHON) -mion.plasma.payment -i /dev/stdin -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -m
 
 test: test-genesis test-client test-merkle test-payment

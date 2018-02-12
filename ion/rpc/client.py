@@ -5,10 +5,11 @@ import argparse
 import pyjsonrpc
 from ethereum.utils import privtoaddr
 
-from .rpcserver import IonRpcServer
-from .model import Block
-from .utils import unmarshal, marshal
-from .payment import dependency_hash, Payment, SignedPayment
+from ..plasma.model import Block
+from ..plasma.payment import dependency_hash, Payment, SignedPayment
+from ..utils import unmarshal, marshal
+
+from .server import IonRpcServer
 
 
 class IonClient(object):
