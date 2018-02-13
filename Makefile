@@ -121,6 +121,6 @@ test-merkle:
 	$(PYTHON) -mion.merkle
 
 test-payment:
-	$(PYTHON) -mion.plasma.payment --random -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -v 1234 -j | $(PYTHON) -mion.plasma.payment -i /dev/stdin -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -m
+	$(PYTHON) -mion.plasma.payment -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -v 1234 -f json | $(PYTHON) -mion.plasma.payment -i /dev/stdin -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -f meta
 
 test: test-genesis test-client test-merkle test-payment
