@@ -2,12 +2,12 @@ from __future__ import print_function
 import os
 import sys
 import random
-import argparse
 from collections import defaultdict, namedtuple
 
+import click
 from ethereum.utils import privtoaddr
 
-from ..args import Bytes20, Bytes32
+from ..args import arg_bytes20, arg_bytes32, arg_uint256
 from ..utils import u256be, require, Marshalled
 from ..crypto import EcdsaSignature, ecdsa_sign, keccak_256
 
@@ -36,7 +36,7 @@ class Payment(_PaymentStruct, Marshalled):
     def dump(self):
         require(all([len(x) == 20 for x in [self.f, self.t, self.c]]))
         require(len(self.r) == 32, "Bad payment reference size")
-        require(isinstance(self.v, (int, long)))
+        require(isinstance(self.v, (int, long)), "Invalid paymentvalue type")
         require(self.d is None or isinstance(self.d, (tuple, list, str, bytes)))
         dependencies = ''
         if isinstance(self.d, (tuple, list)):
@@ -96,8 +96,6 @@ def payments_apply(payments):
             balances[p.c][p.f] -= p.v
         balances[p.c][p.t] += p.v
     return balances, created
-
-
 
 
 def payments_sum(payments):
@@ -195,71 +193,45 @@ def payments_graphviz(payments, colours=dict()):
 # Program entry, demonstrates payment parameters and encoding
 
 
-def payment_options(args=None):
-    parser = argparse.ArgumentParser(description="Ion: Payment utility")
-
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--random', dest='random', action='store_true',
-                       help='Sign using secret key, hex encoded')
-    group.add_argument('-s', '--secret', dest='secret', type=str, action=Bytes32,
-                       help='Sign using secret key, hex encoded')
-    group.add_argument('-i', '--input', type=argparse.FileType('r'),
-                       help='Open payment from file')
-
-    parser.add_argument('-t', '--to', dest='dest', type=str, action=Bytes20,
-                        help='Destination address, 0x...20')
-    parser.add_argument('-c', '--currency', dest='currency', type=str, action=Bytes20,
-                        help='Currency address, 0x...20')
-    parser.add_argument('-r', '--reference', dest='ref', type=str,
-                        help='Payment reference', action=Bytes32)
-    parser.add_argument('-v', '--value', dest='value', type=int,
-                        help='Payment value')
-
-    parser.add_argument('-b', '--block-hash', dest='block_hash', type=str,
-                        help='Signature block hash', action=Bytes32)
-
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-m', '--meta', dest='meta', action='store_true',
-                       help='Display extra meta information about payment')
-    group.add_argument('-j', '--json', dest='json', action='store_true',
-                       help='Output payment as JSON')
-
-    opts = parser.parse_args(args or sys.argv[1:])
-
-    if opts.random:
-        opts.secret = os.urandom(32)
-        opts.dest = opts.dest or os.urandom(20)
-        opts.currency = opts.currency or os.urandom(20)
-        opts.ref = opts.ref or os.urandom(32)
-
-    if opts.secret:
-        opts.source = privtoaddr(opts.secret)
-
-    return opts
-
-
-def main(args=None):
+@click.command()
+@click.option('--secret', '-s', metavar='BYTES32', callback=arg_bytes32)
+@click.option('--input', '-i', metavar='FILE', type=click.File('r'), required=False)
+@click.option('--from', '-f', 'source', metavar='ADDR', callback=arg_bytes20, required=False)
+@click.option('--to', '-t', 'dest', metavar='ADDR', callback=arg_bytes20, required=False)
+@click.option('--currency', '-c', metavar='ADDR', callback=arg_bytes20, required=False)
+@click.option('--reference', '-r', metavar='BYTES32', callback=arg_bytes32, required=False)
+@click.option('--value', '-v', metavar='UINT256', callback=arg_uint256)
+@click.option('--block-hash', '-b', metavar='BYTES32', callback=arg_bytes32)
+@click.option("--format", '-f', type=click.Choice(['meta', 'json']), default='meta')
+def main(secret, input, source, dest, currency, reference, value, block_hash, format):
     import json
+
+    currency = currency or os.urandom(20)
+    reference = reference or os.urandom(32)
+    block_hash = block_hash or os.urandom(32)
+    dest = dest or os.urandom(20)
+    secret = secret or os.urandom(32)
+    value = value or random.randint(1, 1000)
+
+    if secret:
+        source = privtoaddr(secret)
 
     signed_payment = None
 
-    opts = payment_options(args)
-
-    block_hash = opts.block_hash or os.urandom(32)
-
-    if opts.input:
-        data = json.load(opts.input)
+    if input:
+        data = json.load(input)
         signed_payment = SignedPayment.unmarshal(data)
         payment = signed_payment.open(block_hash)
     else:
-        payment = Payment(opts.source, opts.dest, opts.currency, opts.value, opts.ref, [])
+        payment = Payment(source, dest, currency, value, reference, [])
 
-    if opts.secret:
-        signed_payment = payment.seal(opts.secret, block_hash)
+    if secret:
+        signed_payment = payment.seal(secret, block_hash)
 
     assert payment is not None
 
-    if opts.meta:
+    if format == 'meta':
+        print("Block Hash:", block_hash.encode('hex'))
         print("Hash:", payment.hash(block_hash).encode('hex'))
         print("Dependency Hash:", payment.dependency_hash().encode('hex'))
         print("Target:", block_hash.encode('hex'))
@@ -272,7 +244,7 @@ def main(args=None):
             for d in payment.d:
                 print("\tDepends:", d.encode('hex'))
 
-    if opts.json:
+    elif format == 'json':
         print(signed_payment.tojson())
 
     return 0

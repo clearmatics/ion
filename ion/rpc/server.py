@@ -4,14 +4,13 @@ import gevent
 import gevent.monkey
 gevent.monkey.patch_all()
 
-import sys
-import argparse
+import click
 from gevent.pywsgi import WSGIServer
 from flask import Flask, request, jsonify 
 from jsonrpc2 import JsonRpc
 
 from ..ethrpc import EthJsonRpc
-from ..args import EthRpc, Bytes20
+from ..args import arg_ethrpc
 from ..utils import marshal, unmarshal, require
 from ..plasma.chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path
 from ..plasma.payment import payments_graphviz, SignedPayment
@@ -19,8 +18,8 @@ from ..plasma.txpool import TxPool
 
 
 class IonRpcServer(object):
-    def __init__(self, opts=None):
-        self._opts = opts or argparse.Namespace()
+    def __init__(self, ionlink=None):
+        self._ionlink = ionlink
         self._new_pool()
         self._webapp_init()
 
@@ -39,15 +38,12 @@ class IonRpcServer(object):
         self._pool = TxPool(block_hash)
 
     def ionlink_sync(self):
-        ion = getattr(self._opts, 'ion', None)
+        ion = self._ionlink
         if not ion:
             return False
-
         ion_latest_block = ion.LatestBlock()
         my_block = block_load(chaindata_latest_get())
-
         require( ion_latest_block == my_block.hash, "Block mismatch" )
-
         return ion.Update([my_block.root])
 
     def _jsonrpc_handler(self):
@@ -119,41 +115,30 @@ class IonRpcServer(object):
 # Program entry
 
 
-def rpcserver_options(args=None):
-    parser = argparse.ArgumentParser(description="Ion: JSON-RPC Server")
+@click.command()
+@click.option('--ion-rpc', default='127.0.0.1:8545', help='Ethereum JSON-RPC HTTP endpoint', callback=arg_ethrpc)
+@click.option('--ion-account', help='Ethereum account address')
+@click.option('--ion-contract', help='IonLink contract address')
+@click.option('--listen', help='Listen address, default: any', default='')
+@click.option('--port', help='HTTP server port', default=5000, type=int)
+def server(ion_rpc, ion_account, ion_contract, listen, port):
+    """
+    RPC server for Ion.
 
-    # Connect to uplink
-    # TODO: have ionlink options, --ion-rpc, --ion-account, --ion-contract etc.
-    parser.add_argument('--ion-rpc', dest='ion_rpc', action=EthRpc, default='127.0.0.1:8545',
-                        help='Ethereum JSON-RPC HTTP endpoint')
-    parser.add_argument('--ion-account', dest='ion_account', action=Bytes20,
-                        help='Ethereum account address, 0x...20')
-    parser.add_argument('--ion-contract', dest='ion_contract', action=Bytes20,
-                        help='IonLink contract address, 0x...20')
-
-    parser.add_argument('-p', '--port', dest='port', type=int,
-                        help='HTTP server port', default=5000)
-    parser.add_argument('-l', '--listen', dest='listen', type=str, default='',
-                        help="Listen address, default: any")
-
-    opts = parser.parse_args(args or sys.argv[1:])
-
-    if not opts.ion_contract or not opts.ion_account:
+    :type ion_rpc: EthJsonRpc
+    """
+    print(ion_rpc.net_version())
+    if not ion_contract or not ion_account:
         print("IonLink disabled")
-        opts.ionlink = None
+        ionlink = None
     else:
-        if not opts.rpc:
-            opts.ion_rpc = EthJsonRpc('127.0.0.1', 8545)
+        if not ion_rpc:
+            ion_rpc = EthJsonRpc('127.0.0.1', 8545)
         # TODO: load ABI from package resources
-        opts.ion = opts.ion_rpc.proxy("abi/IonLink.abi", opts.ion_contract, opts.ion_account)
+        ionlink = ion_rpc.proxy("abi/IonLink.abi", ion_contract, ion_account)
 
-    return opts
-
-
-def main():
-    opts = rpcserver_options()
-    server = IonRpcServer(opts)
-    gevent_server = WSGIServer((opts.listen, opts.port), server._webapp)
+    server = IonRpcServer(ionlink)
+    gevent_server = WSGIServer((listen, port), server._webapp)
     try:
         gevent_server.serve_forever()
     except KeyboardInterrupt:
@@ -162,4 +147,4 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    server(auto_envvar_prefix='ION')

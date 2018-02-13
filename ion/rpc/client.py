@@ -1,6 +1,7 @@
 import os
 import sys
-import argparse
+
+import click
 
 import pyjsonrpc
 from ethereum.utils import privtoaddr
@@ -218,29 +219,25 @@ def test_swap2(rpc_endpoint):
 # Standalone entrypoint
 
 
-def client_options():
-    parser = argparse.ArgumentParser(description="Ion Client")
-    parser.add_argument('--test', dest='test', action='store_true',
-                        help="Perform tests")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-I', '--inproc', dest='inproc', action='store_true',
-                       help="Use in-process chain")
-    group.add_argument('endpoint', nargs='?', help='RPC endpoint')
-    return parser.parse_args()
+@click.command()
+@click.option('--test', is_flag=True, help="Perform tests")
+@click.option('--inproc', is_flag=True, help="Use in-process chain")
+@click.argument('endpoint', required=False)
+def main(test, inproc, endpoint=None):
+    """
+    Connect to Ion RPC server.
 
+    :param test: Perform basic activity tests
+    :param inproc: Use in-process API
+    :param endpoint: http URL for JSON-RPC endpoint
+    """
+    if inproc:
+        endpoint = IonRpcServer()
 
-def main():
-    opts = client_options()
-
-    if opts.inproc:
-        rpc_endpoint = IonRpcServer()
-    else:
-        rpc_endpoint = opts.endpoint
-
-    if opts.test:
-        test_pay(rpc_endpoint)
-        test_swap(rpc_endpoint)
-        test_swap2(rpc_endpoint)
+    if test:
+        test_pay(endpoint)
+        test_swap(endpoint)
+        test_swap2(endpoint)
         sys.exit()
 
 if __name__ == "__main__":

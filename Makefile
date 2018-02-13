@@ -11,7 +11,7 @@ PROTOCOLS_PY=$(addsuffix _pb2.py,$(PROTOCOLS))
 
 PYLINT_IGNORE=C0330,invalid-name,line-too-long,missing-docstring,bad-whitespace,consider-using-ternary,wrong-import-position,wrong-import-order,trailing-whitespace
 
-all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) test truffle-test dist/ion lint README.pdf
+all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) lint test truffle-test dist/ion pylint
 
 README.pdf: README.md
 	pandoc --toc --reference-links --number-sections --listings --template docs/eisvogel -f markdown -t latex -o $@ $<

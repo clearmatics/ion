@@ -8,3 +8,5 @@ python-jsonrpc
 graphviz
 coincurve
 msgpack-python
+click
+click_repl

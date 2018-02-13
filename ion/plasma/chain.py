@@ -129,12 +129,12 @@ Balance format is 72 bytes:
 
 from __future__ import print_function
 import os
-import argparse
-
 from base64 import b32encode
-import msgpack
 
-from ..args import Bytes32
+import msgpack
+import click
+
+from ..args import arg_bytes32
 from .model import Block
 from .payment import payments_apply, random_payments, payments_graphviz
 from ..utils import u256be, require, marshal
@@ -295,37 +295,29 @@ def blockchain_apply(prev_hash, signed_payments):
 # Program entry
 
 
-def chain_options():
-    parser = argparse.ArgumentParser(description="Plasma Chain")
-    parser.add_argument('-b', '--block', dest='block_hash', action=Bytes32,
-                        help='Most recent block hash')
-    parser.add_argument('-g', '--genesis', dest='genesis', action='store_true',
-                        help="Create new genesis block")
-    parser.add_argument('-r', '--random', dest='random', type=int, default=0,
-                        help="Create a block of random payments")
-    parser.add_argument('payments', nargs='*', help='Payments file')
-    return parser.parse_args()
-
-
-def main():
-    opts = chain_options()
+@click.command()
+@click.option('--block', '-b', metavar="HASH", required=False, callback=arg_bytes32, help="Most recent block hash")
+@click.option('--genesis', '-g', is_flag=True, help="Create new genesis block")
+@click.option('--random', '-r', metavar='NUM', type=int, default=0, help="Create a block of random payments")
+@click.argument('payments', nargs=-1, type=click.Path(exists=True))
+def main(block, genesis, random, payments):
     if not chaindata_latest_get():
-        if not opts.genesis:
+        if not genesis:
             raise ValueError("Must create genesis block")
         block_genesis()
 
-    prev_hash= opts.block_hash
+    prev_hash = block
     if not prev_hash:
         prev_hash = chaindata_latest_get()
 
     # Create a block of random payments
-    if opts.random:
-        signed_payments = random_payments(prev_hash, opts.random)
+    if random:
+        signed_payments = random_payments(prev_hash, random)
         blockchain_apply(prev_hash, signed_payments)
         return 1
 
     # Otherwise, process payment files to create blocks
-    for payment_file in opts.payments:
+    for payment_file in payments:
         signed_payments = data_load(payment_file)
         block = blockchain_apply(prev_hash, signed_payments)
         prev_hash = block.hash

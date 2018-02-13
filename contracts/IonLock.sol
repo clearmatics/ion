@@ -20,7 +20,6 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
         public
     {
         require( address(currency) != 0 );
-        require( ion.IonLinkVersion() == keccak256("IonLink") );
 
         m_ion = ion;
 

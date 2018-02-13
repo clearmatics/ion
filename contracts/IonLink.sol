@@ -27,13 +27,6 @@ contract IonLink is IonLinkInterface
 	}
 
 
-	function IonLinkVersion ()
-	    public pure returns (bytes32)
-	{
-	    return keccak256("IonLink");
-	}
-
-
 	function Destroy ()
 		public
 	{
