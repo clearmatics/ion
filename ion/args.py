@@ -23,7 +23,7 @@ def arg_uint256(ctx, param, value):
     if value is None:
         return None
     value = int(value)
-    require( value > 0 )
+    require( value >= 0 )
     require( value <= (1<<255) )
     return value
 
