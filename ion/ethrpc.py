@@ -7,6 +7,7 @@ This file contains the public domain interface definition
 """
 
 import json
+import time
 import warnings
 from collections import namedtuple
 
@@ -94,6 +95,31 @@ def ether_to_wei(ether):
     Convert ether to wei
     '''
     return ether * 10**18
+
+
+class EthTransaction(namedtuple('_TxStruct', ('rpc', 'txid'))):
+    def receipt(self, wait=False, tick_fn=None):
+        first = True
+        while True:
+            receipt = self.rpc.eth_getTransactionReceipt(self.txid)
+            # TODO: turn into asynchronous notification / future
+            if receipt:
+                return receipt
+            if not wait:
+                break
+            try:
+                if first:
+                    if isinstance(wait, callable):
+                        wait()
+                    first = False
+                elif tick_fn:
+                    tick_fn(self)
+                time.sleep(1)
+            except KeyboardInterrupt:
+                break
+
+    def __str__(self):
+        return self.txid
 
 
 class EthJsonRpc(object):
@@ -469,7 +495,8 @@ class EthJsonRpc(object):
             params['data'] = data
         if nonce is not None:
             params['nonce'] = hex(nonce)
-        return self._call('eth_sendTransaction', [params])
+        txid = self._call('eth_sendTransaction', [params])
+        return EthTransaction(self, txid)
 
     def eth_sendRawTransaction(self, data):
         '''
@@ -571,12 +598,13 @@ class EthJsonRpc(object):
         return self._call('eth_getTransactionByBlockNumberAndIndex', [block, hex(index)])
 
     def eth_getTransactionReceipt(self, tx_hash):
+        # type: (string) -> dict
         '''
         https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_gettransactionreceipt
 
         TESTED
         '''
-        return self._call('eth_getTransactionReceipt', [tx_hash])
+        return self._call('eth_getTransactionReceipt', [str(tx_hash)])
 
     def eth_getUncleByBlockHashAndIndex(self, block_hash, index=0):
         '''

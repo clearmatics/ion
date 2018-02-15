@@ -31,23 +31,9 @@ def _dispatch_cmd(meta, rpc, method, args, sig, wait=False, commit=False):
     if not method['constant'] and any([commit, wait]):
         tx = rpc.call_with_transaction(meta['account'], meta['contract'], sig, args, result_types)
         click.echo("Tx %s" % (tx,))
-        tx_receipt = None
-        if wait:
-            first = True
-            while True:
-                tx_receipt = rpc.eth_getTransactionReceipt(tx)
-                if tx_receipt is not None:
-                    break
-                if first:
-                    click.echo("Waiting for transaction receipt")
-                    first = False
-                try:
-                    time.sleep(1)
-                except KeyboardInterrupt:
-                    click.echo("Skipped waiting for transaction receipt...")
-                    break
-        if tx_receipt:
-            click.echo("Receipt: %r" % (tx_receipt,))
+        receipt = tx.receipt(wait=lambda: click.echo("waiting for receipt..."))
+        if receipt:
+            click.echo("Receipt: %r" % (receipt,))
     else:
         result = rpc.call(meta['contract'], sig, args, result_types)
         if result:
