@@ -1,3 +1,11 @@
+"""
+For licensing information, see:
+
+https://github.com/ConsenSys/ethjsonrpc/blob/master/LICENSE
+
+This file contains the public domain interface definition
+"""
+
 import json
 import warnings
 from collections import namedtuple
@@ -86,6 +94,7 @@ def ether_to_wei(ether):
     Convert ether to wei
     '''
     return ether * 10**18
+
 
 class EthJsonRpc(object):
     '''

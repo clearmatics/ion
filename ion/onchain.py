@@ -7,7 +7,7 @@ import click
 
 from .ethrpc import EthJsonRpc
 from .args import arg_ethrpc, arg_bytes20, arg_bytes, make_uint_n, make_bytes_n
-from .crypto import keccak_256
+# from .crypto import keccak_256
 
 
 @click.group("onchain", short_help="On-chain interfaces")
@@ -59,13 +59,11 @@ def _dispatch_cmd(meta, rpc, method, args, sig, wait=False, commit=False):
 def _make_abi_cmd(method):
     argsig = "%s" % (','.join([i['type'] for i in method['inputs']]))
     sig = bytes("%s(%s)" % (method['name'], argsig))
-    sig_hash = keccak_256(sig).hexdigest()[:8]
+    # sig_hash = keccak_256(sig).hexdigest()[:8]
 
     # TODO: if there are duplicate names, suffix with signature hash / fingerprint
 
     @click.command(method['name'], help=sig, short_help=argsig)
-    @click.option('-w', 'wait', is_flag=True, help="Wait until mined")
-    @click.option('-c', 'commit', is_flag=True, help="Commit transaction")
     @click.pass_context
     def cmd(ctx, wait, commit, **kwa):
         meta = ctx.meta
@@ -74,6 +72,13 @@ def _make_abi_cmd(method):
         args = [kwa[_['name']] for _ in method['inputs']]
         _dispatch_cmd(meta, rpc, method, args, sig, wait, commit)
 
+    # non-constant methods can commit a transaction, and optionally wait until its mined
+    if not method['constant']:
+        cmd = click.option('-w', 'wait', is_flag=True, help="Wait until mined")(cmd)
+        cmd = click.option('-c', 'commit', is_flag=True, help="Commit transaction")(cmd)
+
+    # TODO: add more types
+    # TODO: add autocomplete for registered contracts
     argtypes = {
         'bytes': arg_bytes,
         'address': arg_bytes20,
