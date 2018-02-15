@@ -1,6 +1,7 @@
 import os
 import glob
 import json
+import time
 
 import click
 
@@ -20,6 +21,41 @@ def commands(ctx, rpc, contract, account=None):
     ctx.meta['account'] = account.encode('hex')
 
 
+def _dispatch_cmd(meta, rpc, method, args, sig, wait=False, commit=False):
+    result_types = [_['type'] for _ in method['outputs']]
+
+    click.echo(method['name'] + " inputs:")
+    for n, inp in enumerate(method['inputs']):
+        click.echo("\t%s %s = %r" % (inp['type'], inp['name'], args[n]))
+
+    if method['constant'] or not commit:
+        result = rpc.call(meta['contract'], sig, args, result_types)
+        if result:
+            click.echo("\noutputs:")
+            for idx, output in enumerate(method['outputs']):
+                click.echo("\t%r %r = %r" % (output['type'], output['name'], result[idx]))
+    else:
+        tx = rpc.call_with_transaction(meta['account'], meta['contract'], sig, args, result_types)
+        click.echo("Tx %s" % (tx,))
+        tx_receipt = None
+        if wait:
+            first = True
+            while True:
+                tx_receipt = rpc.eth_getTransactionReceipt(tx)
+                if tx_receipt is not None:
+                    break
+                if first:
+                    click.echo("Waiting for transaction receipt")
+                    first = False
+                try:
+                    time.sleep(1)
+                except KeyboardInterrupt:
+                    click.echo("Skipped waiting for transaction receipt...")
+                    break
+        if tx_receipt:
+            click.echo("Receipt: %r" % (tx_receipt,))
+
+
 def _make_abi_cmd(method):
     argsig = "%s" % (','.join([i['type'] for i in method['inputs']]))
     sig = bytes("%s(%s)" % (method['name'], argsig))
@@ -28,24 +64,15 @@ def _make_abi_cmd(method):
     # TODO: if there are duplicate names, suffix with signature hash / fingerprint
 
     @click.command(method['name'], help=sig, short_help=argsig)
+    @click.option('-w', 'wait', is_flag=True, help="Wait until mined")
+    @click.option('-c', 'commit', is_flag=True, help="Commit transaction")
     @click.pass_context
-    def cmd(ctx, **kwa):
+    def cmd(ctx, wait, commit, **kwa):
         meta = ctx.meta
         rpc = ctx.obj
         assert isinstance(rpc, EthJsonRpc)
-
-        args = [kwa[ _['name'] ] for _ in method['inputs']]
-        result_types = [_['type'] for _ in method['outputs']]
-
-        click.echo(sig)
-        click.echo("\nInput:")
-        for inp in method['inputs']:
-            click.echo("\t%s %s" % (inp['name'], inp['type']))
-        click.echo()
-
-        result = rpc.call(meta['contract'], sig, args, result_types)
-        for idx, output in enumerate(method['outputs']):
-            print("\t%r %r = %r" % (output['type'], output['name'], result[idx]))
+        args = [kwa[_['name']] for _ in method['inputs']]
+        _dispatch_cmd(meta, rpc, method, args, sig, wait, commit)
 
     argtypes = {
         'bytes': arg_bytes,
@@ -67,7 +94,7 @@ def _make_abi_cmd(method):
             arg_type = arg_type[:-2]
             kwa['multiple'] = True
 
-        # parse size from type
+        # parse size from type, e.g.  uint256
         without_ints = arg_type.rstrip('0123456789')
         if without_ints != arg_type:
             n = int(arg_type[len(without_ints):])
