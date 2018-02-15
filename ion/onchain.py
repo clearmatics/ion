@@ -28,13 +28,7 @@ def _dispatch_cmd(meta, rpc, method, args, sig, wait=False, commit=False):
     for n, inp in enumerate(method['inputs']):
         click.echo("\t%s %s = %r" % (inp['type'], inp['name'], args[n]))
 
-    if method['constant'] or not commit:
-        result = rpc.call(meta['contract'], sig, args, result_types)
-        if result:
-            click.echo("\noutputs:")
-            for idx, output in enumerate(method['outputs']):
-                click.echo("\t%r %r = %r" % (output['type'], output['name'], result[idx]))
-    else:
+    if not method['constant'] and any([commit, wait]):
         tx = rpc.call_with_transaction(meta['account'], meta['contract'], sig, args, result_types)
         click.echo("Tx %s" % (tx,))
         tx_receipt = None
@@ -54,6 +48,12 @@ def _dispatch_cmd(meta, rpc, method, args, sig, wait=False, commit=False):
                     break
         if tx_receipt:
             click.echo("Receipt: %r" % (tx_receipt,))
+    else:
+        result = rpc.call(meta['contract'], sig, args, result_types)
+        if result:
+            click.echo("\noutputs:")
+            for idx, output in enumerate(method['outputs']):
+                click.echo("\t%s %s = %r" % (output['type'], output['name'], result[idx]))
 
 
 def _make_abi_cmd(method):
@@ -65,9 +65,11 @@ def _make_abi_cmd(method):
 
     @click.command(method['name'], help=sig, short_help=argsig)
     @click.pass_context
-    def cmd(ctx, wait, commit, **kwa):
+    def cmd(ctx, **kwa):
         meta = ctx.meta
         rpc = ctx.obj
+        wait = kwa.get('wait', False)
+        commit = kwa.get('commit', False)
         assert isinstance(rpc, EthJsonRpc)
         args = [kwa[_['name']] for _ in method['inputs']]
         _dispatch_cmd(meta, rpc, method, args, sig, wait, commit)
