@@ -135,10 +135,11 @@ import msgpack
 import click
 
 from ..args import arg_bytes32
-from .model import Block
-from .payment import payments_apply, random_payments, payments_graphviz
 from ..utils import u256be, require, marshal
 from ..merkle import merkle_tree
+
+from .model import Block
+from .payment import payments_apply, random_payments, payments_graphviz
 
 
 # --------------------------------------------------------------------

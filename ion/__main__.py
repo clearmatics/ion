@@ -3,7 +3,7 @@ import click_repl
 
 from .rpc.__main__ import commands as rpc_commands
 from .plasma.__main__ import commands as plasma_commands
-from .onchain.__main__ import commands as onchain_commands
+from .onchain import commands as onchain_commands
 
 
 commands = click.Group('commands')

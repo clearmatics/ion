@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import sys
+import json
 import random
 from collections import defaultdict, namedtuple
 
@@ -204,8 +205,6 @@ def payments_graphviz(payments, colours=dict()):
 @click.option('--block-hash', '-b', metavar='BYTES32', callback=arg_bytes32)
 @click.option("--format", '-f', type=click.Choice(['meta', 'json']), default='meta')
 def main(secret, input, source, dest, currency, reference, value, block_hash, format):
-    import json
-
     currency = currency or os.urandom(20)
     reference = reference or os.urandom(32)
     block_hash = block_hash or os.urandom(32)

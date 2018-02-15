@@ -119,7 +119,7 @@ class EthJsonRpc(object):
         try:
             r = self.session.post(url, headers=headers, data=json.dumps(data))
         except RequestsConnectionError:
-            raise ConnectionError
+            raise ConnectionError(url)
         if r.status_code / 100 != 2:
             raise BadStatusCodeError(r.status_code)
         try:
@@ -133,7 +133,7 @@ class EthJsonRpc(object):
 
     def _encode_function(self, signature, param_values):
 
-        prefix = big_endian_to_int(keccak_256(signature)[:4])
+        prefix = big_endian_to_int(keccak_256(signature).digest()[:4])
 
         if signature.find('(') == -1:
             raise RuntimeError('Invalid function signature. Missing "(" and/or ")"...')
@@ -233,7 +233,7 @@ class EthJsonRpc(object):
         data_hex = data.encode('hex')
         response = self.eth_call(to_address=address, data=data_hex)
         # XXX: horrible hack for when RPC returns '0x0'...
-        if result_types[0] == 'uint256' and response == '0x0':
+        if (len(result_types) == 0 or result_types[0] == 'uint256') and response == '0x0':
             response = '0x' + ('0' * 64)
         return decode_abi(result_types, response[2:].decode('hex'))
 

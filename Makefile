@@ -54,9 +54,11 @@ dev-python:
 
 dev: dev-python dev-nodejs dev-yarn
 
+.PHONY: docs/deps-modules.dot
 docs/deps-modules.dot:
 	pydepgraph -p ion > $@
 
+.PHONY: docs/deps-files.dot
 docs/deps-files.dot:
 	sfood -i -r ion | sfood-graph > $@
 
