@@ -11,7 +11,7 @@ PROTOCOLS_PY=$(addsuffix _pb2.py,$(PROTOCOLS))
 
 PYLINT_IGNORE=C0330,invalid-name,line-too-long,missing-docstring,bad-whitespace,consider-using-ternary,wrong-import-position,wrong-import-order,trailing-whitespace
 
-all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) lint test truffle-test dist/ion pylint
+all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) pyflakes test truffle-test dist/ion pylint
 
 README.pdf: README.md
 	pandoc --toc --reference-links --number-sections --listings --template docs/eisvogel -f markdown -t latex -o $@ $<
@@ -122,7 +122,11 @@ test-client:
 test-merkle:
 	$(PYTHON) -mion.merkle
 
+test-onchain:
+	$(PYTHON) -mion.onchain --help > /dev/null
+	$(PYTHON) -mion.onchain Token transfer --help > /dev/null
+
 test-payment:
 	$(PYTHON) -mion.plasma.payment -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -v 1234 -f json | $(PYTHON) -mion.plasma.payment -i /dev/stdin -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -f meta
 
-test: test-genesis test-client test-merkle test-payment
+test: test-genesis test-client test-merkle test-payment test-onchain

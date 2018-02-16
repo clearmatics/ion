@@ -1,13 +1,11 @@
 import os
 import glob
 import json
-import time
 
 import click
 
 from .ethrpc import EthJsonRpc
 from .args import arg_ethrpc, arg_bytes20, arg_bytes, make_uint_n, make_bytes_n
-# from .crypto import keccak_256
 
 
 @click.group("onchain", short_help="On-chain interfaces")
@@ -15,10 +13,9 @@ from .args import arg_ethrpc, arg_bytes20, arg_bytes, make_uint_n, make_bytes_n
 @click.option('--contract', metavar="0x...20", callback=arg_bytes20, help="Contract address")
 @click.option('--account', metavar="0x...20", callback=arg_bytes20, help="Account to use for transactions")
 @click.pass_context
-def commands(ctx, rpc, contract, account=None):
+def commands(ctx, rpc, **kwa):
     ctx.obj = rpc
-    ctx.meta['contract'] = contract.encode('hex')
-    ctx.meta['account'] = account.encode('hex')
+    ctx.meta.update(kwa)
 
 
 def _dispatch_cmd(meta, rpc, method, args, sig, wait=False, commit=False):
@@ -42,7 +39,7 @@ def _dispatch_cmd(meta, rpc, method, args, sig, wait=False, commit=False):
                 click.echo("\t%s %s = %r" % (output['type'], output['name'], result[idx]))
 
 
-def _make_abi_cmd(method):
+def _make_abi_cmd(group, method):
     argsig = "%s" % (','.join([i['type'] for i in method['inputs']]))
     sig = bytes("%s(%s)" % (method['name'], argsig))
     # sig_hash = keccak_256(sig).hexdigest()[:8]
@@ -76,16 +73,16 @@ def _make_abi_cmd(method):
         'bytes': make_bytes_n,
     }
     for arg in method['inputs']:
-        kwa = dict(
-            required=True,
-            metavar=arg['type'],
-        )
+        kwa = dict(required=True)
+
+        is_option = False
 
         # is an array?
         arg_type = arg['type']
         if arg_type.endswith("[]"):
             arg_type = arg_type[:-2]
             kwa['multiple'] = True
+            is_option = True
 
         # parse size from type, e.g.  uint256
         without_ints = arg_type.rstrip('0123456789')
@@ -96,9 +93,11 @@ def _make_abi_cmd(method):
             kwa['callback'] = argtypes[arg_type]
 
         name = arg['name'].strip('_')
-        cmd = click.option('--' + name, arg['name'], **kwa)(cmd)
 
-    return cmd
+        if is_option:
+            group.add_command( click.option('--' + name, arg['name'], metavar=arg['type'], **kwa)(cmd) )
+        else:
+            group.add_command( click.argument(arg['name'], metavar=name, **kwa)(cmd) )
 
 
 def _make_abi_group(abi_file):
@@ -113,7 +112,7 @@ def _make_abi_group(abi_file):
                 continue
             if method['name'][0] == '_':
                 continue
-            group.add_command( _make_abi_cmd(method) )
+            _make_abi_cmd(group, method)
 
         return group
 

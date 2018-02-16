@@ -9,4 +9,4 @@ commands.add_command(rpc_server, "server")
 commands.add_command(rpc_client, "client")
 
 if __name__ == "__main__":
-    commands()
+    commands.main()

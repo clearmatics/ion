@@ -481,6 +481,10 @@ class EthJsonRpc(object):
 
         NEEDS TESTING
         '''
+        if len(to_address) == 20:
+            to_address = to_address.encode('hex')
+        if len(from_address) == 20:
+            from_address = from_address.encode('hex')
         params = {}
         params['from'] = from_address or self.eth_coinbase()
         if to_address is not None:
@@ -516,6 +520,10 @@ class EthJsonRpc(object):
         if isinstance(default_block, basestring):
             if default_block not in BLOCK_TAGS:
                 raise ValueError
+        if from_address is not None and len(from_address) == 20:
+            from_address = from_address.encode('hex')
+        if len(to_address) == 20:
+            to_address = to_address.encode('hex')
         obj = {}
         obj['to'] = to_address
         if from_address is not None:

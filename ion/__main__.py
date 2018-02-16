@@ -18,4 +18,4 @@ def shell():
 
 
 if __name__ == "__main__":
-    commands()
+    commands.main()

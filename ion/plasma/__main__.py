@@ -9,4 +9,4 @@ commands.add_command(payment_main, "payment")
 commands.add_command(chain_main, "chain")
 
 if __name__ == "__main__":
-    commands()
+    commands.main()

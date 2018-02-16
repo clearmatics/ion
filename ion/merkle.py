@@ -5,7 +5,9 @@ import random
 from .utils import zpad, int_to_big_endian, bit_clear, bit_test, bit_set, bytes_to_int
 from .crypto import keccak_256
 
+
 def serialize(v):
+    """Convert to value to a hashable scalar"""
     if isinstance(v, str):
         return v
     if isinstance(v, (int, long)):
@@ -37,9 +39,11 @@ def merkle_tree(items):
     hashed in pairs to form the next level of the tree until the level is
     only one item (the root).
 
-    [ [ H(0), H(1), H(2), H(3) ]                # Level 2
+    ```
+    [ [ H(0), H(1), H(2), H(3) ]                # Level 0
       [ H(H(0)||H(1)), H(H(2)||H(3)) ]          # Level 1
-      [ H(H(H(0)||H(1))||H(H(2)||H(3))) ] ]     # Level 0 (root)
+      [ H(H(H(0)||H(1))||H(H(2)||H(3))) ] ]     # Level 2 (root)
+    ```
 
     If a level has an odd number of items it is padded with an 'extra' item
     to keep the tree perfectly balanced.
@@ -66,9 +70,25 @@ def merkle_tree(items):
 
 def merkle_path(item, tree):
     """
-    Create a merkle path for the item within the tree
-    max length = height - 1
-    min length = 1
+    Given a tree and an item, return a path which can be used to
+    verify the item exists within a root.
+
+    The path for `x` is: L5, L11
+    The root is: 17, or `H(11, H(5, H(D)))`
+
+    ```
+                   |
+                   v
+     a    b   c    x       <- items
+     |    |   |    |
+    L2   R3  [L5] H(x)     <- level 0
+      \  /     \  /
+       \/       \/
+     [L11]  H(L5, H(x))    <- level 1
+        \       /
+          \   /
+    H(L11, H(L5, H(x)))    <- level 2 (root)
+    ```
     """
     item = merkle_hash(item)
     idx = tree[0].index(item)
@@ -102,9 +122,12 @@ def merkle_proof(leaf, path, root):
 
 
 def main():
+    # Create 99 trees of 1..N items
     for i in range(1, 100):
         items = range(0, i)
         tree, root = merkle_tree(items)
+
+        # Verify all items exist within the root
         random.shuffle(items)
         for item in items:
             proof = merkle_path(item, tree)
