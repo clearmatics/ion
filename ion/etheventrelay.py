@@ -1,13 +1,12 @@
-#!/usr/bin/env python
 from __future__ import print_function
 import time
-import sys
-import argparse
+
+import click
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian
 
 from .utils import u256be
 from .merkle import merkle_tree
-from .args import Bytes20, EthRpc
+from .args import arg_bytes20, arg_ethrpc
 
 
 def pack_txn(block_no, tx):
@@ -71,25 +70,6 @@ def iter_blocks(c, start=1, group=1, backlog=0, interval=1):
             raise StopIteration
 
 
-def lithium_options():
-    """Parse commandline options"""
-    parser = argparse.ArgumentParser(description='Lithium merkle tree builder')
-    parser.add_argument('--from', dest='rpc_from', action=EthRpc, required=True,
-                        help='Source Ethereum RPC address, ip:port')
-    parser.add_argument('--to', dest='rpc_to', action=EthRpc, required=True,
-                        help='Destination Ethereum RPC address, ip:port')
-    parser.add_argument('--account', dest='account', required=True, action=Bytes20,
-                        help='Ethereum account address, 0x....')
-    parser.add_argument('--contract', dest='contract', required=True, action=Bytes20,
-                        help='Sodium contract address, 0x....')
-    parser.add_argument('--batch-size', dest='batchsize', default=32, type=int,
-                        help='Maximum number of merkle roots to submit to Sodium at once')
-    opt = parser.parse_args()
-    opt.sodium = opt.rpc_to.proxy("abi/Sodium.abi", opt.contract, opt.account)
-
-    return opt
-
-
 def lithium_process_block(rpc, block_height):
     """Returns all items within the block"""
     block = rpc.eth_getBlockByNumber(block_height, False)
@@ -125,38 +105,39 @@ def lithium_process_block_group(rpc, block_group):
     return items, group_tx_count, group_log_count
 
 
-def lithium_submit(opt, batch):
+def lithium_submit(sodium, batch):
     """Submit batch of merkle roots to Sodium"""
     if not len(batch):
         return False
     start_block = batch[0][0]
     roots = [pair[1] for pair in batch]
-    opt.sodium.Update(start_block, roots)
+    sodium.Update(start_block, roots)
     return True
 
 
-def lithium_loop(opt):
-    Na = opt.sodium
+@click.command(help="Ethereum event merkle tree relay daemon")
+@click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545')
+@click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545')
+@click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Pays for Gas")
+@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="Sodium contract address")
+@click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
+def etheventrelay(rpc_from, rpc_to, account, contract, batch_size):
+    sodium = rpc_to.proxy("abi/Sodium.abi", contract, account)
     batch = []
-    for is_latest, block_group in iter_blocks(opt.rpc_from, Na.NextBlock(), Na.GroupSize()):
-        items, group_tx_count, group_log_count = lithium_process_block_group(opt.rpc_from, block_group)
+    for is_latest, block_group in iter_blocks(rpc_from, sodium.NextBlock(), sodium.GroupSize()):
+        items, group_tx_count, group_log_count = lithium_process_block_group(rpc_from, block_group)
         if len(items):
             print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
 
             _, root = merkle_tree(items)
             batch.append( (block_group[0], root) )
 
-            if is_latest or len(batch) >= opt.batchsize:
+            if is_latest or len(batch) >= batch_size:
                 print("submitting batch of", len(batch), "blocks")
-                lithium_submit(opt, batch)
+                lithium_submit(sodium, batch)
                 batch = []
     return 0
 
 
-def main():
-    opt = lithium_options()
-    return lithium_loop(opt)
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    lithium()
