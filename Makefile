@@ -46,10 +46,11 @@ dev-yarn:
 dev-nodejs:
 	curl -sL https://deb.nodesource.com/setup_8.x | bash -
 	apt install nodejs
-	ln -s /usr/bin/nodejs  /usr/bin/node
+	if [ ! -f /usr/bin/node ]; then ln -s /usr/bin/nodejs  /usr/bin/node; fi
 
 dev-python:
-	$(PYTHON) -mpip install pylint pyflakes snakefood pycallgraph pyinstaller
+	$(PYTHON) -mpip install pylint pyflakes pyinstaller
+	# $(PYTHON) -mpip install snakefood pycallgraph
 	apt install protobuf-compiler
 
 dev: dev-python dev-nodejs dev-yarn
@@ -67,6 +68,9 @@ docker-build: dist/ion
 
 docker-run:
 	docker run --rm=true -ti clearmatics/ion:latest shell
+
+shell:
+	$(PYTHON) -mion shell
 
 yarn:
 	yarn
@@ -127,6 +131,6 @@ test-onchain:
 	$(PYTHON) -mion.onchain Token transfer --help > /dev/null
 
 test-payment:
-	$(PYTHON) -mion.plasma.payment -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -v 1234 -f json | $(PYTHON) -mion.plasma.payment -i /dev/stdin -b 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 -f meta
+	$(PYTHON) -mion.plasma.payment --block-hash 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 --value 1234 --format json | $(PYTHON) -mion.plasma.payment --input /dev/stdin --block-hash 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 --format meta
 
 test: test-genesis test-client test-merkle test-payment test-onchain

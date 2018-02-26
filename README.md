@@ -5,11 +5,34 @@ multiple turing-complete blockchains. It is a sidechain and series of smart-cont
 
 ## Getting Started
 
-The development environment relies on Python 2.7, NodeJS 8.x and Yarn, the following command will install
-all required dependencies.
+Building Ion requires many components such as Python, NodeJS, Yarn, Solidity compiler, Docker etc.
+The `make dev` command will install all necessary dependencies required to develop and build Ion.
 
+All Ion functionality is available via the built-in shell,
+
+### Python
+
+```commandline
+python -mion
 ```
-make dev
+
+### Docker
+
+The small Alpine Linux container is under 30mb and contains a self-contained PyInstaller executable.
+
+```commandline
+make docker-build
+docker run -ti --rm clearmatics/ion:latest 
+```
+
+### PyInstaller
+
+The PyInstaller `ion` executable is a self-contained Python bundle which includes all necessary dependencies,
+this makes Ion easier to distribute.  
+
+```commandline
+make dist/ion
+./dist/ion
 ```
 
 ## Tests
@@ -17,12 +40,4 @@ make dev
 ```
 make testrpc &
 make test
-```
-
-## Docker
-
-This creates the docker image `clearmatics/ion:latest` 
-
-```
-make docker-build 
 ```

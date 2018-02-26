@@ -1,8 +1,21 @@
-language: python
-python:
-  - "2.7"
-  - "3.5"
-install:
-  - pip install -q -e .
-script:
-  - make
+matrix:
+  include:
+    - language: python
+      cache: pip
+      python:
+        - "2.7"
+        - "3.5"
+      services:
+        - docker
+      before_install:
+        - make dev
+      script:
+        - make docker-build
+
+    - language: node
+      node_js:
+        - "8"
+      cache:
+        yarn: true
+        directories:
+          - node_modules
