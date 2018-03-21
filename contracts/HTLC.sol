@@ -46,6 +46,8 @@ contract HTLC
 		m_ctr += 1;
 		m_locks[lock_id] = LockState(timeout, hash, recipient, msg.sender, msg.value);
 
+		OnDeposit(lock_id, recipient);
+
 		return lock_id;
 	}
 
@@ -53,6 +55,7 @@ contract HTLC
 	function Claim (uint256 lock_id, bytes32 preimage, uint8 v, bytes32 r, bytes32 s)
 		public
 	{
+		bytes32 result = keccak256("randomhash");
 		LockState storage lock = m_locks[lock_id];
 
 		require( lock.timeout >= now );
@@ -66,6 +69,8 @@ contract HTLC
 		delete m_locks[lock_id];
 
 		msg.sender.transfer(value);
+
+		OnClaim(lock_id, preimage);
 	}
 
 
