@@ -46,6 +46,8 @@ contract HTLC
 		m_ctr += 1;
 		m_locks[lock_id] = LockState(timeout, hash, recipient, msg.sender, msg.value);
 
+		OnDeposit(lock_id, recipient);
+
 		return lock_id;
 	}
 
@@ -66,6 +68,8 @@ contract HTLC
 		delete m_locks[lock_id];
 
 		msg.sender.transfer(value);
+
+		OnClaim(lock_id, preimage);
 	}
 
 
