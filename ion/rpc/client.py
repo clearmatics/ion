@@ -1,22 +1,21 @@
-import os
-import sys
-
 import click
-
+import os
 import pyjsonrpc
+import sys
 from ethereum.utils import privtoaddr
 
+from .server import IonRpcServer
+from ..args import arg_ethrpc
+from ..ethrpc import EthJsonRpc
 from ..plasma.model import Block
 from ..plasma.payment import dependency_hash, Payment, SignedPayment
 from ..utils import unmarshal, marshal
-
-from .server import IonRpcServer
 
 
 class IonClient(object):
     rpc = None  # type: IonRpcServer
 
-    def __init__(self, rpc_endpoint, secret):
+    def __init__(self, rpc_endpoint, secret, public=None):
         """
         :type rpc_endpoint: IonRpcServer | str
         :type secret: str | bytes
@@ -29,7 +28,10 @@ class IonClient(object):
             assert isinstance(rpc_endpoint, object)
             self.rpc = rpc_endpoint
         self.secret = secret
-        self.public = privtoaddr(secret)
+        if public:
+            self.public = public
+        else:
+            self.public = privtoaddr(secret)
 
     def __str__(self):
         return self.public.encode('hex')
@@ -87,20 +89,22 @@ class IonClient(object):
             out.append( dependency_hash(t, c, v, r) )
         return out
 
-    def pay(self, t, c, v, r=None, deps=None):
+    def pay(self, recipient, currency, value, r=None, deps=None):
         """
-        :type t: IonClient | str
-        :type c: IonClient | str
+        :type recipient: IonClient | str
+        :type currency: IonClient | str
         """
-        if isinstance(t, IonClient):
-            t = t.public
-        if isinstance(c, IonClient):
-            c = c.public
+        if isinstance(recipient, IonClient):
+            recipient = recipient.public
+        if isinstance(currency, IonClient):
+            currency = currency.public
         if r is None:
             r = os.urandom(32)
         deps = self._marshal_dependencies(deps)
         f = self.public
-        sp = self.payment_sign((f, t, c, v, r, deps))
+        print("Sender public = ", self.public)
+        print("Currency public = ", currency)
+        sp = self.payment_sign((f, recipient, currency, value, r, deps))
         return self.payment_submit(sp)
 
     # TODO: payment_cancel, payment_update
@@ -108,6 +112,27 @@ class IonClient(object):
     def payment_submit(self, sp):
         assert isinstance(sp, SignedPayment)
         return self.rpc.payment_submit(sp.marshal())
+
+# ------------------------------------------------------------------
+# Functional Implementation
+
+def create_client(rpc_endpoint, secret):
+    client = IonClient(rpc_endpoint, secret)
+    return client, client.public
+
+def make_payment(rpc_endpoint, secret):
+    client, public = create_client(rpc_endpoint, secret)
+
+    other_client, other_public = create_client(rpc_endpoint, os.urandom(32))
+
+    client.mint(1000)
+
+    client.pay(other_client, public, 500)
+
+    client.commit()
+
+    print(client.balance(public))
+    print(other_client.balance(public))
 
 
 # ------------------------------------------------------------------
@@ -138,6 +163,8 @@ def test_pay(rpc_endpoint):
 
     assert client_B.balance(currency_A) == 1000
     assert client_B.balance(currency_B) == 500
+
+    print "Test pay passed"
 
 
 def test_swap(rpc_endpoint):
@@ -186,6 +213,7 @@ def test_swap(rpc_endpoint):
     ])
 
     client_B.commit()
+    print "Test swap passed"
 
 
 
@@ -213,6 +241,7 @@ def test_swap2(rpc_endpoint):
 
     assert client_B.graph() is True
     client_B.commit()
+    print "Test swap 2 passed"
 
 
 # ------------------------------------------------------------------
@@ -220,25 +249,57 @@ def test_swap2(rpc_endpoint):
 
 
 @click.command()
-@click.option('--test', is_flag=True, help="Perform tests")
 @click.option('--inproc', is_flag=True, help="Use in-process chain")
 @click.argument('endpoint', required=False)
-def main(test, inproc, endpoint=None):
+def tests(inproc, endpoint=None):
     """
-    Connect to Ion RPC server.
+    Connect to Ion RPC server and perform tests.
 
-    :param test: Perform basic activity tests
     :param inproc: Use in-process API
     :param endpoint: http URL for JSON-RPC endpoint
     """
     if inproc:
         endpoint = IonRpcServer()
 
-    if test:
-        test_pay(endpoint)
-        test_swap(endpoint)
-        test_swap2(endpoint)
-        sys.exit()
+    test_pay(endpoint)
+    test_swap(endpoint)
+    test_swap2(endpoint)
+    sys.exit()
+
+
+@click.command()
+@click.option('--ion-rpc', default='127.0.0.1:8545', help='Ethereum JSON-RPC HTTP endpoint', callback=arg_ethrpc)
+@click.option('--ion-account', help='Ethereum account address')
+@click.option('--ion-contract', help='IonLink contract address')
+@click.option('--secret', help="Secret to use in transaction")
+@click.argument('endpoint', required=False)
+def main(ion_rpc, ion_account, ion_contract, secret, endpoint=None):
+    """
+    Connect to Ion RPC server and perform payments on chain.
+
+    :param inproc: Use in-process API
+    :param endpoint: http URL for JSON-RPC endpoint
+    :param secret: secret to be used in transaction
+    """
+
+    print(ion_rpc.net_version())
+    if not ion_contract or not ion_account:
+        print("IonLink disabled")
+        ionlink = None
+    else:
+        if not ion_rpc:
+            ion_rpc = EthJsonRpc('127.0.0.1', 8545)
+        # TODO: load ABI from package resources
+        ionlink = ion_rpc.proxy("abi/IonLink.abi", ion_contract, ion_account)
+
+    server = IonRpcServer(ionlink)
+
+    make_payment(server, os.urandom(32))
+
+
+commands = click.Group('commands', help="RPC Client")
+commands.add_command(tests, "test")
+commands.add_command(main, "main")
 
 if __name__ == "__main__":
-    main()
+    commands.main()

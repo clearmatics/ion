@@ -67,6 +67,10 @@ contract IonLink is IonLinkInterface
 	    return GetBlock(block_id).root;
 	}
 
+	function GetLatestBlockHash() public view returns (uint256) {
+		return GetBlock(LatestBlock).root;
+	}
+
 
     /**
     * Supplies a sequence of merkle roots which create a hash-chain

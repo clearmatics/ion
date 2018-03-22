@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import gevent
+
 import gevent.monkey
+
 gevent.monkey.patch_all()
 
 import click
@@ -41,7 +42,7 @@ class IonRpcServer(object):
         ion = self._ionlink
         if not ion:
             return False
-        ion_latest_block = ion.LatestBlock()
+        ion_latest_block = ion.GetLatestBlockHash()
         my_block = block_load(chaindata_latest_get())
         require( ion_latest_block == my_block.hash, "Block mismatch" )
         return ion.Update([my_block.root])
