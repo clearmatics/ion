@@ -51,7 +51,7 @@ class Payment(_PaymentStruct, Marshalled):
         c = '0x'+self.c.encode('hex')
         r = '0x'+self.r.encode('hex')
         v = self.v
-        d = ['0x'+dep.encode['hex'] for dep in self.d] if self.d else []
+        d = ['0x'+dep.encode('hex') for dep in self.d] if self.d else []
         dep_hash = '0x'+self.dependency_hash().encode('hex')
         return json.dumps(dict({
             'from': f ,
