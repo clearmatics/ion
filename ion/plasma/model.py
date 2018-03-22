@@ -1,3 +1,4 @@
+import json
 from collections import namedtuple
 
 from ..utils import Marshalled, require
@@ -16,3 +17,8 @@ class Block(_BlockStruct, Marshalled):
         require( len(self.prev) == 32 )
         require( len(self.root) == 32 )
         return keccak_256(self.prev + self.root).digest()
+
+    def __str__(self):
+        rootHex = '0x'+self.root.encode('hex')
+        prevHex = '0x'+self.prev.encode('hex')
+        return json.dumps(dict({'root': rootHex, 'prev': prevHex}), indent=2)

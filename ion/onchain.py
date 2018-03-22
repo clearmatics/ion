@@ -26,6 +26,7 @@ def _dispatch_cmd(meta, rpc, method, args, sig, wait=False, commit=False):
         click.echo("\t%s %s = %r" % (inp['type'], inp['name'], args[n]))
 
     if not method['constant'] and any([commit, wait]):
+        print(meta)
         tx = rpc.call_with_transaction(meta['account'], meta['contract'], sig, args, result_types)
         click.echo("Tx %s" % (tx,))
         receipt = tx.receipt(wait=lambda: click.echo("waiting for receipt..."))
