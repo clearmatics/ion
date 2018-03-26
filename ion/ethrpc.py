@@ -209,7 +209,8 @@ class EthJsonRpc(object):
         if isinstance(abi, file):
             abi = json.load(abi)
         elif isinstance(abi, str):
-            abi = json.loads(abi)
+            with open(abi) as jsonfile:
+                abi = json.load(jsonfile)
         require(isinstance(abi, list))
 
         proxy = dict()
