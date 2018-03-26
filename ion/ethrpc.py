@@ -125,7 +125,7 @@ class EthJsonRpc(object):
     Ethereum JSON-RPC client class
     '''
 
-    DEFAULT_GAS_PER_TX = 90000
+    DEFAULT_GAS_PER_TX = 900000
     DEFAULT_GAS_PRICE = 50 * 10**9  # 50 gwei
 
     def __init__(self, host='localhost', port=GETH_DEFAULT_RPC_PORT, tls=False):

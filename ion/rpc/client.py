@@ -102,8 +102,6 @@ class IonClient(object):
             r = os.urandom(32)
         deps = self._marshal_dependencies(deps)
         f = self.public
-        print("Sender public = ", self.public)
-        print("Currency public = ", currency)
         sp = self.payment_sign((f, recipient, currency, value, r, deps))
         return self.payment_submit(sp)
 
@@ -131,8 +129,34 @@ def make_payment(rpc_endpoint, secret):
 
     client.commit()
 
-    print(client.balance(public))
-    print(other_client.balance(public))
+    print("Payment success")
+
+
+def print_ion_history_tree(rpc_endpoint):
+    blocks = rpc_endpoint.ionlink_fetch_tree()
+
+    latest = blocks['latest']
+
+    while long(latest, 16) != 0:
+        block = blocks[latest]
+
+        print("==================== Block Hash ====================")
+        print(latest)
+
+        print("\n==================== Block Root ====================")
+        print(block['root'])
+
+        print("\n================== Block Previous ==================")
+        print(block['prev'])
+
+        latest = block['prev']
+
+        if long(latest, 16) != 0:
+            print("                                                              ||")
+            print("                                                              ||")
+            print("                                                              ||")
+            print("                                                              ||")
+            print("                                                              \\/")
 
 
 # ------------------------------------------------------------------
@@ -296,10 +320,37 @@ def main(ion_rpc, ion_account, ion_contract, secret, endpoint=None):
 
     make_payment(server, os.urandom(32))
 
+@click.command()
+@click.option('--ion-rpc', default='127.0.0.1:8545', help='Ethereum JSON-RPC HTTP endpoint', callback=arg_ethrpc)
+@click.option('--ion-account', help='Ethereum account address')
+@click.option('--ion-contract', help='IonLink contract address')
+@click.argument('endpoint', required=False)
+def tree(ion_rpc, ion_account, ion_contract, endpoint=None):
+    """
+    Connect to Ion RPC server and perform payments on chain.
+
+    :param inproc: Use in-process API
+    :param endpoint: http URL for JSON-RPC endpoint
+    """
+
+    print(ion_rpc.net_version())
+    if not ion_contract or not ion_account:
+        print("IonLink disabled")
+        ionlink = None
+    else:
+        if not ion_rpc:
+            ion_rpc = EthJsonRpc('127.0.0.1', 8545)
+        # TODO: load ABI from package resources
+        ionlink = ion_rpc.proxy("abi/IonLink.abi", ion_contract, ion_account)
+
+    server = IonRpcServer(ionlink)
+    print_ion_history_tree(server)
+
 
 commands = click.Group('commands', help="RPC Client")
 commands.add_command(tests, "test")
 commands.add_command(main, "main")
+commands.add_command(tree, "get_tree")
 
 if __name__ == "__main__":
     commands.main()

@@ -237,6 +237,7 @@ def block_genesis():
     payments_save(block_hash , list())
     balances_save(block_hash , dict())
     chaindata_latest_set(block_hash)
+    return block_hash
 
 
 def block_seal(prev_hash, signed_payments, balances):
