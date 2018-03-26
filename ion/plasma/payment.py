@@ -45,6 +45,23 @@ class Payment(_PaymentStruct, Marshalled):
             dependencies = ''.join(self.d)
         return ''.join([self.f, self.t, self.c, u256be(self.v), self.r, dependencies])
 
+    def __str__(self):
+        f = '0x'+self.f.encode('hex')
+        t = '0x'+self.t.encode('hex')
+        c = '0x'+self.c.encode('hex')
+        r = '0x'+self.r.encode('hex')
+        v = self.v
+        d = ['0x'+dep.encode('hex') for dep in self.d] if self.d else []
+        dep_hash = '0x'+self.dependency_hash().encode('hex')
+        return json.dumps(dict({
+            'from': f ,
+            'to': t,
+            'currency': c,
+            'reference': r,
+            'value': v,
+            'dependency_hash': dep_hash,
+            'depends': d
+            }),indent=2)
 
 class SignedPayment(_SignedPaymentStruct, Marshalled):
     def __init__(self, *args, **kwa):
@@ -73,6 +90,9 @@ class SignedPayment(_SignedPaymentStruct, Marshalled):
             raise ValueError("Invalid signature,")
         return self.p
 
+    def __str__(self):
+        # the signature might be badly shown
+        return '['+str(self.p)+', 0x'+str(self.s.dump().encode('hex'))+']'
 
 # --------------------------------------------------------------------
 # Payment functions

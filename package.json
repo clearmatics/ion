@@ -5,8 +5,7 @@
   "repository": "https://github.com/clearmatics/ion.git",
   "author": "opensource@clearmatics.com",
   "license": "LGPL-3.0+",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "ganache-cli": "^6.0.0",
     "json-bigint-string": "^1.0.0",

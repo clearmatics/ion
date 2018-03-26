@@ -2,7 +2,7 @@
 """
 # Minimal Plasma Chain
 
-This is a minimal 'plasma chain', it's a fast payment network 
+This is a minimal 'plasma chain', it's a fast payment network
 which can be used to create and exchange tokens across multiple
 block-chains.
 
@@ -23,7 +23,7 @@ The signed message (and transaction ID) is the following:
 
     H(prev-blockhash || from || to || currency || value || ref || deps)
 
-Because each signed payment is only valid for one-block it must 
+Because each signed payment is only valid for one-block it must
 be re-signed and re-broadcast until the payment is accepted by
 the network.
 
@@ -38,7 +38,7 @@ The dependency hash is:
 
     H(to || currency || value || ref)
 
-The from address and the other payments dependencies are excluded from the 
+The from address and the other payments dependencies are excluded from the
 dependency hash so that only the forward facing direction of the graph is
 verified.
 
@@ -139,7 +139,7 @@ from ..utils import u256be, require, marshal
 from ..merkle import merkle_tree
 
 from .model import Block
-from .payment import payments_apply, random_payments, payments_graphviz
+from .payment import payments_apply, random_payments, payments_graphviz, SignedPayment, Payment
 
 
 # --------------------------------------------------------------------
@@ -160,7 +160,8 @@ block_save = lambda n, d: chaindata_save(n, 'block', d.marshal())
 block_load = lambda n: Block.unmarshal(chaindata_load(n, 'block'))
 diff_save = lambda n, d: chaindata_save(n, 'diff', d)
 payments_save = lambda n, d: chaindata_save(n, 'payments', map(marshal, d))
-payments_load = lambda n, d: chaindata_save(n, 'payments', map(marshal, d))
+#payments_load = lambda n, d: chaindata_save(n, 'payments', map(marshal, d))
+payments_load = lambda n: chaindata_load(n, 'payments')
 balances_save = lambda n, d: chaindata_save(n, 'balances', d)
 balances_load = lambda n: chaindata_load(n, 'balances')
 
@@ -295,13 +296,35 @@ def blockchain_apply(prev_hash, signed_payments):
 # --------------------------------------------------------------------
 # Program entry
 
+import json
+
+# this just cleans up to make it look nice when printing
+def clean_balances_dict(balances_dict):
+    clean_keys = dict(('0x'+k.encode('hex'), \
+            clean_balances_dict(balances_dict[k]) if type(balances_dict[k]) is dict else balances_dict[k]) \
+            for k in balances_dict.keys())
+    return clean_keys
+
+def print_block(block_hash):
+        latest_path = chaindata_path(block_hash, 'block')
+        if os.path.exists(latest_path):
+            block = Block.unmarshal(data_load(latest_path))
+            print('====== BLOCK HASH: ',block.hash.encode('hex'), ' ======')
+            signed_payment_arr = [SignedPayment.unmarshal(sign_pay) for sign_pay in payments_load(block.hash)]
+            print("======== Latest block ========\n", block)
+            print("======== Payments ========")
+            [print(s_pay) for s_pay in signed_payment_arr]
+            print("======== Balances ========\n", json.dumps(clean_balances_dict(balances_load(block.hash)),indent=2))
+            return block
+
 
 @click.command()
 @click.option('--block', '-b', metavar="HASH", required=False, callback=arg_bytes32, help="Most recent block hash")
 @click.option('--genesis', '-g', is_flag=True, help="Create new genesis block")
 @click.option('--random', '-r', metavar='NUM', type=int, default=0, help="Create a block of random payments")
 @click.argument('payments', nargs=-1, type=click.Path(exists=True))
-def main(block, genesis, random, payments):
+@click.option('--latest', '-l', is_flag=True, help="Print latest state")
+def main(block, genesis, random, payments, latest):
     if not chaindata_latest_get():
         if not genesis:
             raise ValueError("Must create genesis block")
@@ -322,6 +345,16 @@ def main(block, genesis, random, payments):
         signed_payments = data_load(payment_file)
         block = blockchain_apply(prev_hash, signed_payments)
         prev_hash = block.hash
+
+
+    # doart3 print latest state
+    if latest:
+        last_block_hash = chaindata_latest_get()
+        block = print_block(last_block_hash)
+        while block:
+            print('\n\n')
+            block = print_block(block.prev)
+
     return 1
 
 
