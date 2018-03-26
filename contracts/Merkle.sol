@@ -1,4 +1,4 @@
-pragma solidity ^0.4.16;
+pragma solidity ^0.4.18;
 
 library Merkle
 {
@@ -45,7 +45,7 @@ library Merkle
                 node = Hash(item, node);
             }
         }
-        
+
         return node == root;
     }
 }
