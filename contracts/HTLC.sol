@@ -64,6 +64,8 @@ contract HTLC
 
 		OnDeposit(lock_id, receiver);
 
+		OnDeposit(lock_id, recipient);
+
 		return lock_id;
 	}
 

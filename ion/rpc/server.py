@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import gevent
+
 import gevent.monkey
+
 gevent.monkey.patch_all()
 
 import click
@@ -12,7 +13,7 @@ from jsonrpc2 import JsonRpc
 from ..ethrpc import EthJsonRpc
 from ..args import arg_ethrpc
 from ..utils import marshal, unmarshal, require
-from ..plasma.chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path
+from ..plasma.chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path, block_genesis
 from ..plasma.payment import payments_graphviz, SignedPayment
 from ..plasma.txpool import TxPool
 
@@ -34,7 +35,11 @@ class IonRpcServer(object):
 
     def _new_pool(self, block_hash=None):
         block_hash = block_hash or chaindata_latest_get()
-        require( block_hash is not None, "Must specify block hash" )
+        if block_hash is None:
+            print("No plasma blocks exist yet. Create genesis block.")
+            block_hash = block_genesis()
+            print("Syncing genesis block...")
+            self.ionlink_sync()
         self._pool = TxPool(block_hash)
 
     def ionlink_sync(self):
@@ -42,9 +47,35 @@ class IonRpcServer(object):
         if not ion:
             return False
         ion_latest_block = ion.LatestBlock()
+
         my_block = block_load(chaindata_latest_get())
-        require( ion_latest_block == my_block.hash, "Block mismatch" )
-        return ion.Update([my_block.root])
+        prev_hash = my_block.prev.encode('hex')
+        prev_hash = long(prev_hash, 16)
+
+        if ion_latest_block != 0:
+            if ion_latest_block != prev_hash:
+                raise BlockMismatchException("Block Mismatch")
+
+        return ion.Update(my_block.root)
+
+    def ionlink_fetch_tree(self):
+        ion = self._ionlink
+        if not ion:
+            return False
+        ion_latest_block = ion.LatestBlock()
+
+        blocks = {'latest': format(ion_latest_block, "02x")}
+
+        if ion_latest_block != 0:
+            while ion_latest_block != 0:
+                ion_block_root = ion.GetRoot(ion_latest_block)
+                ion_block_prev = ion.GetPrevious(ion_latest_block)
+
+                blocks[format(ion_latest_block, "02x")] = {'root': format(ion_block_root, "02x"), 'prev': format(ion_block_prev, "02x")}
+
+                ion_latest_block = ion_block_prev
+
+        return blocks
 
     def _jsonrpc_handler(self):
         print("Request is", request.json)
@@ -110,6 +141,9 @@ class IonRpcServer(object):
         signed_payments = payments_load(block_no)
         return any([sp.p.r == ref for sp in signed_payments])
 
+
+class BlockMismatchException(Exception):
+    pass
 
 # --------------------------------------------------------------------
 # Program entry

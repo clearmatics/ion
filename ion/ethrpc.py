@@ -7,18 +7,16 @@ This file contains the public domain interface definition
 """
 
 import json
+import requests
 import time
 import warnings
 from collections import namedtuple
-
-import requests
+from ethereum.abi import encode_abi, decode_abi
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
-from ethereum.abi import encode_abi, decode_abi
 
-from .utils import require, big_endian_to_int, zpad, encode_int
 from .crypto import keccak_256
-
+from .utils import require, big_endian_to_int, zpad, encode_int
 
 GETH_DEFAULT_RPC_PORT = 8545
 ETH_DEFAULT_RPC_PORT = 8545
@@ -127,7 +125,7 @@ class EthJsonRpc(object):
     Ethereum JSON-RPC client class
     '''
 
-    DEFAULT_GAS_PER_TX = 90000
+    DEFAULT_GAS_PER_TX = 900000
     DEFAULT_GAS_PRICE = 50 * 10**9  # 50 gwei
 
     def __init__(self, host='localhost', port=GETH_DEFAULT_RPC_PORT, tls=False):
@@ -168,7 +166,7 @@ class EthJsonRpc(object):
 
     def _encode_function(self, signature, param_values):
 
-        prefix = big_endian_to_int(keccak_256(signature).digest()[:4])
+        prefix = big_endian_to_int(keccak_256(signature.encode('utf-8')).digest()[:4])
 
         if signature.find('(') == -1:
             raise RuntimeError('Invalid function signature. Missing "(" and/or ")"...')

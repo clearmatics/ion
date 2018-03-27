@@ -16,6 +16,8 @@ class Block(_BlockStruct, Marshalled):
     def hash(self):
         require( len(self.prev) == 32 )
         require( len(self.root) == 32 )
+        if long(self.prev.encode('hex'), 16) == 0:
+            return keccak_256(self.root).digest()
         return keccak_256(self.prev + self.root).digest()
 
     def __str__(self):
