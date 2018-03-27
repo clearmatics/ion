@@ -10,7 +10,7 @@ const should = require('chai')
 const Token = artifacts.require("Token");
 
 contract('Token', (accounts) => {
-	let token;
+  	let token;
     let token_owner;
 
     beforeEach(async function() {
@@ -20,7 +20,9 @@ contract('Token', (accounts) => {
     it("should return the correct totalSupply after construction", async function()
     {
         const totalSupply = await token.totalSupply();
+        // console.log("before", totalSupply)
         totalSupply.should.be.bignumber.equal(new BigNumber(0));
+        // console.log("after", totalSupply)
     });
 
 

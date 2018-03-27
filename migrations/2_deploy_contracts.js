@@ -14,9 +14,9 @@ module.exports = async (deployer) => {
     await deployer.deploy(IonLink, 0);
 
     let ionlink_deployed = await IonLink.deployed();
-    console.log("IonLink address", ionlink_deployed.address);
+    // console.log("IonLink address", ionlink_deployed.address);
 
     await deployer.deploy(IonLock, Token.address, ionlink_deployed.address);
     let ionlock_deployed = await IonLock.deployed();
-    console.log("IonLock address", ionlock_deployed.address);
+    // console.log("IonLock address", ionlock_deployed.address);
 };
