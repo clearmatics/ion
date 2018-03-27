@@ -95,11 +95,12 @@ def merkle_path(item, tree):
 
     path = []
     for level in tree[:-1]:
+        print(idx)
         if (idx % 2) == 0:
             path.append(bit_set(level[idx+1], 0xFF))
         else:
             path.append(level[idx-1])
-        idx = idx // 2
+        idx = idx >> 2
     return path
 
 
