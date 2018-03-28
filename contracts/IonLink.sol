@@ -45,14 +45,14 @@ contract IonLink is IonLinkInterface
 	}
 
 
-    function GetTime( uint256 block_id )
+  function GetTime( uint256 block_id )
 	    public view returns (uint256)
 	{
 	    return GetBlock(block_id).time;
 	}
 
 
-    function GetPrevious( uint256 block_id )
+  function GetPrevious( uint256 block_id )
 	    public view returns (uint256)
 	{
 	    return GetBlock(block_id).prev;
@@ -65,11 +65,11 @@ contract IonLink is IonLinkInterface
 	    return GetBlock(block_id).root;
 	}
 
-    /**
-    * Supplies a sequence of merkle roots which create a hash-chain
-    *
-    *   hash = H(hash, root)
-    */
+  /**
+  * Supplies a sequence of merkle roots which create a hash-chain
+  *
+  *   hash = H(hash, root)
+  */
 	function Update( uint256 _new_block_root )
 		public
 	{

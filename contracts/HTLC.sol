@@ -10,7 +10,6 @@ contract HTLC
 	event OnClaim( uint256 lock_id, bytes32 preimage, uint256 timeout );
 	event OnRecover( address receiver, address lockreceiver, address msgsender );
 	event OnVerification( address verified );
-	event Test( uint256 lock_id, uint256 timeout );
 
 	uint256 constant MAX_TIMEOUT = 60 * 60 * 24;
 
@@ -63,8 +62,6 @@ contract HTLC
 		m_locks[lock_id] = LockState(timeout, hash, receiver, msg.sender, msg.value);
 
 		OnDeposit(lock_id, receiver);
-
-		OnDeposit(lock_id, recipient);
 
 		return lock_id;
 	}

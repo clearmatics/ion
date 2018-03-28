@@ -104,9 +104,9 @@ const createMerkle = (items) => {
 }
 
 
-contract.only('Sodium', (accounts) => {
+contract('Sodium', (accounts) => {
 
-  it.only('test JS Merkle', async () => {
+  it('test JS Merkle', async () => {
     const merkleRoot = createMerkle(["1","2","3","4","5","6","7"])
     //console.log(JSON.stringify(merkleRoot,2,2))
   })

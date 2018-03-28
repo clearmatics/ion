@@ -8,10 +8,15 @@ const should = require('chai')
     .should();
 
 const assert = require('assert');
-
 const HTLC = artifacts.require("HTLC");
 
 const crypto = require('crypto')
+
+const gasPrice = 100000000000 // truffle fixed gas price
+const txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
+const txLoggedArgs = txReceipt => txReceipt.logs[0].args
+const txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
+const oneFinney = web3.toWei(1, 'finney')
 
 // Format required for sending bytes through eth client:
 //  - hex string representation
@@ -40,12 +45,6 @@ const newSecretHashPair = () => {
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-const gasPrice = 100000000000 // truffle fixed gas price
-const txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
-const txLoggedArgs = txReceipt => txReceipt.logs[0].args
-const txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
-const oneFinney = web3.toWei(1, 'finney')
 
 
 contract('HTLC', (accounts) => {

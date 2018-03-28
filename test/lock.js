@@ -10,7 +10,7 @@ contract('IonLock', (accounts) => {
     beforeEach(async function() {
     	token_obj = await Token.new();
     	link_obj = await IonLink.new(0);
-		lock_obj = await IonLock.new(token_obj.address, link_obj.address);
+			lock_obj = await IonLock.new(token_obj.address, link_obj.address);
     });
 
     it('works', async () => {
