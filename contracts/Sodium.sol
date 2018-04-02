@@ -83,6 +83,7 @@ contract Sodium is Sodium_Interface
 	}
 
 
+  event Test(bool bitTest,uint256 node);
 	function Verify( uint256 block_no, uint256 leaf_hash, uint256[] proof )
 		public view
 		returns (bool)
@@ -92,5 +93,18 @@ contract Sodium is Sodium_Interface
 		require( uint256(merkle_root) != 0 );
 
 		return Merkle.Verify( merkle_root, leaf_hash, proof );
+	}
+
+  event HashEvent(bool bitTest, uint256 rawHash,uint256 a,uint256 b,uint result);
+
+	function Verify2( uint256 block_no, uint256 leaf_hash, uint256[] proof )
+		public //view
+		returns (bool)
+	{
+		uint256 merkle_root = GetMerkleRoot(block_no);
+
+		require( uint256(merkle_root) != 0 );
+
+		return Merkle.Verify2( merkle_root, leaf_hash, proof );
 	}
 }

@@ -1,9 +1,11 @@
+const BN = require('bignumber.js')
+
 const merkle = require('./merkle')
 const Sodium = artifacts.require("Sodium");
 
-contract('Sodium', (accounts) => {
+contract.only('Sodium', (accounts) => {
 
-  it('test JS Merkle', async () => {
+  it.only('test JS Merkle', () => {
 
     const testData = ["1","2","3","4","5","6","7"]
 
@@ -38,7 +40,8 @@ contract('Sodium', (accounts) => {
       '5587813875922595628752214729735723034111050560116231646359963981668986135460'
     ]
 
-    assert.deepEqual(tree,expectedTree)
+    const treeStr = [tree[0].map(i => i.map(j => j.toString(10))),tree[1].toString(10)]
+    assert.deepEqual(treeStr,expectedTree)
 
     const expectedPaths = [
       [
@@ -79,15 +82,116 @@ contract('Sodium', (accounts) => {
     ]
 
     const path = testData.map(value => merkle.pathMerkle(value,tree[0]))
-    assert.deepEqual(path,expectedPaths)
+    assert.deepEqual(path.map(i => i.map(j => j.toString(10))),expectedPaths, 'paths badly created')
 
-    testData.forEach((leaf,idx) => assert(merkle.proofMerkle(leaf,path[idx],tree[1])))
-    testData.forEach((leaf,idx) => assert(!merkle.proofMerkle('10',path[idx],tree[1])))
+    const proof = testData.reduce((prev,leaf,idx) => (merkle.proofMerkle(leaf,path[idx],tree[1]) && prev), true)
+    const negProof = testData.reduce((prev,leaf,idx) => !(merkle.proofMerkle('10',path[idx],tree[1]) && prev),true)
+    assert(proof && negProof,'proof failed')
+    //testData.forEach((leaf,idx) => assert(merkle.proofMerkle(leaf,path[idx],tree[1]), 'proof failed'))
+    //testData.forEach((leaf,idx) => assert(!merkle.proofMerkle('10',path[idx],tree[1]), 'proof failed'))
 
     // console.log(JSON.stringify(tree,2,2))
   })
 
-  it('works', async () => {
+  it.only('data test', async () => {
+    const sodium = await Sodium.deployed();
+
+    const testData = ["1","2","3","4","5","6","7"]
+    const tree = merkle.createMerkle(testData)
+    const path = testData.map(value => merkle.pathMerkle(value,tree[0]))
+
+    console.log(path.length)
+    console.log(merkle.proofMerkle(testData[0],path[0],tree[1],false,true))
+
+    testData.forEach((leaf,idx) => assert(merkle.proofMerkle(leaf,path[idx],tree[1])))
+
+    const leafHash = merkle.rawDataMerkleHash(testData[0])
+    const rootArg = tree[1]
+
+    const nextBlock = await sodium.NextBlock()
+    //console.log('0x'+nextBlock.toString(16))
+    const receiptUpdate = await sodium.Update(nextBlock,[rootArg])
+    //console.log(receiptUpdate)
+    //const valid = await sodium.Verify(nextBlock.toString(),leafArg,pathArg)
+    const valid = await sodium.Verify(nextBlock,leafHash,path[0])
+
+    /*
+    const valid = await sodium.Verify2(nextBlock,leafHash,path[0])
+    valid.logs.map(l=>{
+      //console.log(l.event,Object.keys(l.args).map(k=>[k,l.args[k].toString(16)]))
+      if(l.event === 'HashEvent') {
+        const aHex = l.args.a.toString(16).padStart(64,'0')
+        const bHex = l.args.b.toString(16).padStart(64,'0')
+        const abHex = new BN('0x' + aHex + bHex)
+        const expectedResult = l.args.result.toString(16)
+        const bitSet = l.args.bitSet
+        console.log('Contract: a:',aHex,'b:',bHex,'result:',expectedResult)
+        console.log('Truffle:',merkle.merkleHash(abHex).toString(16))
+      }
+    });
+    path[0].map((p,idx)=> console.log('p('+idx+'):',p.toString(16)))
+    console.log('leaf:',leafHash.toString(16))
+    console.log('root:',rootArg.toString(16))
+    //console.log(valid.map(v => '>> 0x'+v.toString(16)))
+    */
+     console.log(valid)
+    assert(valid,'Sodium.verify() failed!')
+  })
+
+  /*
+   *
+   * expected = [ '0x673620737675e2755ce8269a99904022d15da8d5843f5aec205cd243ff80240a',
+  '0x228f6de7a6bb38a9720976366c195e4fe678de171770eaed2adbc6e1f45fecbd',
+  '0x60f539fe715f17c20861225c41494f3196f57de3d586dc95865a4a5fa9bb5722',
+  '0x1a792cf089bfa56eae57ffe87e9b22f9c9bfe52c1ac300ea1f43f4ab53b4b794' ]
+   *
+   *> web3Utils.soliditySha3(path[0],leaf)
+'0x673620737675e2755ce8269a99904022d15da8d5843f5aec205cd243ff80240a'
+>  web3Utils.soliditySha3(path[1],expected[0])
+'0xa28f6de7a6bb38a9720976366c195e4fe678de171770eaed2adbc6e1f45fecbd'
+> cutBit(new BN(web3Utils.soliditySha3(path[1],expected[0])),0xFF).toString(16)
+'228f6de7a6bb38a9720976366c195e4fe678de171770eaed2adbc6e1f45fecbd'
+> cutBit(new BN(web3Utils.soliditySha3(expected[1],cutBit(path[2],0xFF))),0xFF).toString(16)
+'60f539fe715f17c20861225c41494f3196f57de3d586dc95865a4a5fa9bb5722'
+> cutBit(new BN(web3Utils.soliditySha3(expected[2],cutBit(path[3],0xFF))),0xFF).toString(16)
+'1a792cf089bfa56eae57ffe87e9b22f9c9bfe52c1ac300ea1f43f4ab53b4b794'
+   *
+   */
+
+  it('check harry\'s data with js merkle implementation',async () => {
+
+    const expected = {
+      root: "0x1a792cf089bfa56eae57ffe87e9b22f9c9bfe52c1ac300ea1f43f4ab53b4b794",
+      leaf: "0x2584db4a68aa8b172f70bc04e2e74541617c003374de6eb4b295e823e5beab01",
+      path: [
+        "0x1ab0c6948a275349ae45a06aad66a8bd65ac18074615d53676c09b67809099e0"
+        ,"0x093fd25755220b8f497d65d2538c01ed279c131f63e42b2942867f2bd6622486"
+        ,"0xb1d101d9a9d27c3a8ed9d1b6548626eacf3d19546306117eb8af547d1e97189e"
+        ,"0xcb431dd627bc8dcfd858eae9304dc71a8d3f34a8de783c093188bb598eeafd04"
+      ]
+    }
+
+    const obj = await Sodium.deployed();
+    const nextBlock = await obj.NextBlock()
+    const receiptUpdate = await obj.Update(nextBlock.toString(),[expected.root])
+    const expectedHashResult = await obj.Verify2(nextBlock.toString(),expected.leaf,expected.path)
+
+    //console.log('Event:',expectedHashResult.logs.map(l=>l.args.bitTest+', '+l.args.node.toString(16)))
+    console.log('Event:',expectedHashResult.logs.map(l => l.event + ': ' + Object.keys(l.args).map(k => k+': '+l.args[k].toString(16))))
+
+    /*
+    expectedHashResult
+      .map(v => new BN(v))
+      .filter(v => !v.equals(0))
+      .map((v,idx) => console.log(idx+':','0x'+v.toString(16)))
+      */
+
+    const valid = merkle.proofMerkle(new BN(expected.leaf),expected.path.map(p => new BN(p)),new BN(expected.root),true)
+    assert(valid,'data is not valid in JS merkle implementation')
+
+  })
+
+  it('harry data test', async () => {
     const obj = await Sodium.deployed();
 
     const root = "0x1a792cf089bfa56eae57ffe87e9b22f9c9bfe52c1ac300ea1f43f4ab53b4b794"
@@ -99,12 +203,13 @@ contract('Sodium', (accounts) => {
       ,"0xcb431dd627bc8dcfd858eae9304dc71a8d3f34a8de783c093188bb598eeafd04"
     ]
     const nextBlock = await obj.NextBlock()
-    // console.log(nextBlock.toString())
+    //console.log('0x'+nextBlock.toString(16))
 
     const receiptUpdate = await obj.Update(nextBlock.toString(),[root])
-    // console.log(receiptUpdate)
+    //console.log(receiptUpdate)
 
     const valid = await obj.Verify(nextBlock.toString(),leafHash,path)
-    // console.log(valid)
+    //console.log(valid)
+    assert(valid)
   });
 });
