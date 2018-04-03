@@ -14,19 +14,6 @@ const randomArr = () => {
 }
 
 contract.only('IonLink', (accounts) => {
-  /*
-  //	let obj;
-
-  beforeEach(async function() {
-    //obj = await IonLink.new(0);
-  });
-
-  it('works', async () => {
-    //console.log("Obj address", obj.address);
-  });
-  */
-
-  // TODO: verify GetRoot() works
   it('GetRoot', async () => {
     //const ionLink = await IonLink.new(10);
     const ionLink = await IonLink.deployed();
@@ -59,7 +46,6 @@ contract.only('IonLink', (accounts) => {
     assert.equal(tree5[1].toString(16),previousRoot.toString(16),'previous root is wrong')
   })
 
-// TODO: verify Update() works with multiple items in-sequence
   it('Update', async () => {
     //const ionLink = await IonLink.new(10);
     const ionLink = await IonLink.deployed();
@@ -80,7 +66,6 @@ contract.only('IonLink', (accounts) => {
     assert(valid,'IonLink.verify() failed!')
   })
 
-// TODO: verify that same roots applied twice result in different hashes
   it('duplicate root', async () => {
     //const ionLink = await IonLink.new(10);
     const ionLink = await IonLink.deployed();
