@@ -2,6 +2,8 @@
 
 const BigNumber = web3.BigNumber;
 
+const utils = require('./helpers/utils.js')
+
 const should = require('chai')
     .use(require('chai-as-promised'))
     .use(require('chai-bignumber')(BigNumber))
@@ -9,42 +11,6 @@ const should = require('chai')
 
 const assert = require('assert');
 const HTLC = artifacts.require("HTLC");
-
-const crypto = require('crypto')
-
-const gasPrice = 100000000000 // truffle fixed gas price
-const txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
-const txLoggedArgs = txReceipt => txReceipt.logs[0].args
-const txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
-const oneFinney = web3.toWei(1, 'finney')
-
-// Format required for sending bytes through eth client:
-//  - hex string representation
-//  - prefixed with 0x
-const bufToStr = b => '0x' + b.toString('hex')
-
-const sha256 = x =>
-  crypto
-    .createHash('sha256')
-    .update(x)
-    .digest()
-
-const random32 = () => crypto.randomBytes(32)
-
-const isSha256Hash = hashStr => /^0x[0-9a-f]{64}$/i.test(hashStr)
-
-const newSecretHashPair = () => {
-  const secret = random32()
-  const hash = sha256(secret)
-  return {
-    secret: bufToStr(secret),
-    hash: bufToStr(hash),
-  }
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 
 contract('HTLC', (accounts) => {
@@ -61,18 +27,18 @@ contract('HTLC', (accounts) => {
 
     it("Deposit(): Testing the depositing of funds", async function()
     {
-        const hashPair = newSecretHashPair()
+        const hashPair = utils.newSecretHashPair()
         const timeout = date + 10;
         const txReceipt = await htlc.Deposit(
           timeout,
           hashPair.hash,
           receiver,
           {
-            value: oneFinney,
+            value: utils.oneFinney,
             from: sender
           }
         )
-        const logArgs = txLoggedArgs(txReceipt)
+        const logArgs = utils.txLoggedArgs(txReceipt)
 
         assert.equal(logArgs.lock_id.toNumber(), 0);
         assert.equal(logArgs.receiver, receiver);
@@ -81,20 +47,20 @@ contract('HTLC', (accounts) => {
 
     it("Claim(): Should send receiver funds when they give the correct preimage", async function()
     {
-        const hashPair = newSecretHashPair()
+        const hashPair = utils.newSecretHashPair()
         const timeout = date + 10;
         const newContractTx = await htlc.Deposit(
           timeout,
           hashPair.hash,
           receiver,
           {
-            value: oneFinney,
+            value: utils.oneFinney,
             from: sender
           }
         )
 
         const receiverBalBefore = web3.eth.getBalance(receiver)
-        const contractArgs = txLoggedArgs(newContractTx)
+        const contractArgs = utils.txLoggedArgs(newContractTx)
 
         // Posit a claim
         var sig = web3.eth.sign(receiver, hashPair.secret).slice(2)
@@ -113,10 +79,10 @@ contract('HTLC', (accounts) => {
           }
         )
         const expectedBal = receiverBalBefore
-          .plus(oneFinney)
-          .minus(txGas(claimTx))
+          .plus(utils.oneFinney)
+          .minus(utils.txGas(claimTx))
 
-        const logArgs = txLoggedArgs(claimTx)
+        const logArgs = utils.txLoggedArgs(claimTx)
         const currentBal = web3.eth.getBalance(receiver)
         assert.equal(logArgs.verified, receiver)
         assert.equal(currentBal.c[0], expectedBal.c[0]) // check gas cost
@@ -126,23 +92,23 @@ contract('HTLC', (accounts) => {
 
     it("Refund(): Should return sender funds when they give the correct preimage", async function()
     {
-        const hashPair = newSecretHashPair()
+        const hashPair = utils.newSecretHashPair()
         const timeout = date + 2;
         const newContractTx = await htlc.Deposit(
           timeout,
           hashPair.hash,
           receiver,
           {
-            value: oneFinney,
+            value: utils.oneFinney,
             from: sender
           }
         )
 
         const senderBalBefore = web3.eth.getBalance(sender)
-        const contractArgs = txLoggedArgs(newContractTx)
+        const contractArgs = utils.txLoggedArgs(newContractTx)
 
         // Wait sometime to ensure timeout is passed
-        await sleep(3000)
+        await utils.sleep(3000)
 
         // Posit a claim
         var sig = web3.eth.sign(sender, hashPair.secret).slice(2)
@@ -161,10 +127,10 @@ contract('HTLC', (accounts) => {
           }
         )
         const expectedBal = senderBalBefore
-          .plus(oneFinney)
-          .minus(txGas(refundTx))
+          .plus(utils.oneFinney)
+          .minus(utils.txGas(refundTx))
 
-        const logArgs = txLoggedArgs(refundTx)
+        const logArgs = utils.txLoggedArgs(refundTx)
         const currentBal = web3.eth.getBalance(sender)
         assert.equal(logArgs.verified, sender)
         assert.equal(currentBal.c[0], expectedBal.c[0]) // check gas cost
@@ -181,7 +147,7 @@ contract('HTLC', (accounts) => {
       var v = web3.toDecimal(sig.slice(128, 130)) + 27
 
       var result = await htlc.Verify(h, v, r, s)
-      const logArgs = txLoggedArgs(result)
+      const logArgs = utils.txLoggedArgs(result)
 
       assert.equal(logArgs.verified, receiver)
     })

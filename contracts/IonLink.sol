@@ -5,6 +5,7 @@ import "./IonCompatible.sol";
 
 contract IonLink is IonLinkInterface
 {
+
 	struct IonBlock
 	{
 	    uint256 root;
@@ -74,7 +75,6 @@ contract IonLink is IonLinkInterface
 		public
 	{
 		require( msg.sender == Owner);
-
 		uint256 prev_hash = LatestBlock;
 		uint256 new_block_hash;
 

@@ -64,7 +64,7 @@ contract Sodium is Sodium_Interface
 
 		for( uint256 i = 0; i < merkle_roots.length; i++ )
 		{
-		    // XXX: prevent overflow
+	    // XXX: prevent overflow
 			uint256 block_no = start_block + (i * GroupSize());
 
 			if( m_roots[block_no] == 0 )

@@ -198,6 +198,7 @@ class EthJsonRpc(object):
         # XXX: specific to Ethereum addresses, 20 octets
         if len(address) == 20:
             address = address.encode('hex')
+            print(address)
         require(len(address) == 40)
         if account is not None:
             if len(account) == 20:

@@ -34,4 +34,4 @@ const sleep = ms => {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-module.exports = {newSecretHashPair, oneFinney, sleep}
+module.exports = {bufToStr, newSecretHashPair, oneFinney, random32, sha256, sleep, txGas, txLoggedArgs}
