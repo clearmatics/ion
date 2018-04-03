@@ -12,7 +12,7 @@ const randomArr = () => {
 }
 
 
-contract.only('Sodium', (accounts) => {
+contract('Sodium', (accounts) => {
 
   it('data test', async () => {
     const sodium = await Sodium.deployed();

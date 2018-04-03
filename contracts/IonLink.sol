@@ -73,7 +73,6 @@ contract IonLink is IonLinkInterface
 	    return LatestBlock;
 	}
 
-
     /**
     * Supplies a sequence of merkle roots which create a hash-chain
     *
@@ -90,7 +89,7 @@ contract IonLink is IonLinkInterface
 		{
 		    uint256 block_hash = uint256(keccak256(prev_hash, in_state[i]));
 
-		    IonBlock storage blk = GetBlock(block_hash);
+		    IonBlock storage blk = m_blocks[block_hash];//GetBlock(block_hash);
 
 		    blk.root = in_state[i];
 
