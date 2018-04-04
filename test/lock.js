@@ -1,4 +1,5 @@
 const Web3Utils = require('web3-utils');
+const web3Abi = require('web3-eth-abi');
 const crypto = require('crypto');
 
 const merkle = require('./merkle')
@@ -15,7 +16,7 @@ const randomArr = () => {
   return result
 }
 
-contract.only('IonLock', (accounts) => {
+contract('IonLock', (accounts) => {
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)))
 
   it('tokenFallback is called by Token.transfer', async () => {
@@ -121,10 +122,98 @@ contract.only('IonLock', (accounts) => {
     ionMintEventObj.stopWatching()
     ionTransferEventObj.stopWatching()
 
-    assert(ref) //check that ref has something
+    assert(ref,'reference is empty!') //check that ref has something
 
     // hash details to be added to IonLink
     const reference = ref
+    const valueHex = '0x'+Web3Utils.toBN(value).toString(16).padStart(64,'0') // make an hex that is good to sha3 in solidity uint256 -> 64 bytes
+    const lockAddr = ionLock.address
+    const tokenAddr = token.address
+    const withdrawReceiver = accounts[1]
+
+    //concat the arguments of sh3 in solidity (in the same way solidity does)
+    const joinedArgs = '0x' + [withdrawReceiver,lockAddr,tokenAddr,valueHex,reference].map(el=>el.slice(2)).join('')
+
+    //const hashData = Web3Utils.soliditySha3(withdrawReceiver,lockAddr,tokenAddr,value,reference) //it is the same
+    const hashData = Web3Utils.sha3(joinedArgs)
+    //console.log([withdrawReceiver,lockAddr,tokenAddr,value,reference],hashData)
+    //console.log( joinedArgs,hashData2)
+
+    // submit hashdata to IonLink
+    const leaf = joinedArgs // joined args need to be added to the random leafs of the tree
+    const testData = randomArr()
+    testData[0] = leaf
+    const tree = merkle.createMerkle(testData)
+    const treeExtra = merkle.createMerkle(randomArr()) // IonLink needs 2 roots min to update
+
+    const leafHash = merkle.merkleHash(leaf)
+    const path = merkle.pathMerkle(leaf,tree[0])
+    const rootArg = [treeExtra[1],tree[1]]
+
+    const receiptUpdate = await ionLink.Update(rootArg)
+    const latestBlock = await ionLink.GetLatestBlock()
+    const valid = await ionLink.Verify(latestBlock,leafHash,path)
+    assert(valid,'leaf not found in tree')
+
+    // withdraw from ionlock
+    const receiptWithdraw = await ionLock.Withdraw(value,reference,latestBlock,path,{ from: withdrawReceiver })
+
+    const balanceOwner = await token.balanceOf(owner)
+    const balanceReceiver = await token.balanceOf(withdrawReceiver)
+
+    assert.equal(balanceOwner,totalSupply - value, 'sender balance wrong!')
+    assert.equal(balanceReceiver,value, 'receiver balance wrong!')
+  })
+
+
+  // using the overloaded function is a problem for truffle so it is better to have a different test for that
+  it('withdraw with reference', async () => {
+    const token = await Token.new();
+    const ionLink = await IonLink.new(0);
+		const ionLock = await IonLock.new(token.address, ionLink.address);
+
+    const owner = accounts[0]
+    const totalSupply = 1000
+    const value = 10 // value transferred
+    const rawRef = 'Hello world!'
+
+    const receiptMint = await token.mint(totalSupply)
+
+    //const receiptTansfer1 = await token.transfer(ionLock.address,value)
+    const overloadedTransferAbi = {
+      "constant": false,
+      "inputs": [
+        { "name": "_to", "type": "address" },
+        { "name": "_value", "type": "uint256" },
+        { "name": "_data", "type": "bytes" }
+      ],
+      "name": "transfer",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+    const transferMethodTransactionData = web3Abi.encodeFunctionCall( overloadedTransferAbi, [ ionLock.address,value,Web3Utils.toHex(rawRef) ]);
+    const receiptTansfer1 = await web3.eth.sendTransaction({from: owner, to: token.address, data: transferMethodTransactionData, value: 0});
+
+    // get reference from events
+    const ionMintEventObj = ionLock.IonMint()
+    const ionTransferEventObj = ionLock.IonTransfer()
+    let ref
+    try {
+      const ionMintEvent = await watchEvent(ionMintEventObj)
+      const ionTransferEvent = await watchEvent(ionTransferEventObj)
+      assert.equal(ionTransferEvent.args.ref,Web3Utils.sha3(rawRef),'ref different than expected after transfer!')
+
+    } catch (err) {
+      console.log('event error:', err)
+      assert.fail('event error:' + err)
+    }
+    ionMintEventObj.stopWatching()
+    ionTransferEventObj.stopWatching()
+
+    // hash details to be added to IonLink
+    const reference = Web3Utils.sha3(rawRef) //hash our reference
     const valueHex = '0x'+Web3Utils.toBN(value).toString(16).padStart(64,'0') // make an hex that is good to sha3 in solidity uint256 -> 64 bytes
     const lockAddr = ionLock.address
     const tokenAddr = token.address
