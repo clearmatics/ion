@@ -37,7 +37,7 @@ contract.only('Fluoride', (accounts) => {
         console.log("  Fluoride address:", fluoride.address);
     });
 
-    it.only("TestStart_OnAbyA(): Deposit from Alice on blockchain A", async function()
+    it("Start_OnAbyA(): Deposit from Alice on blockchain A", async function()
     {
         // Fix all the variables to pass in...
         const a_contract = fluoride.address
@@ -60,7 +60,7 @@ contract.only('Fluoride', (accounts) => {
         const abc_hash = utils.soliditySha3(ab_hash, b_addr)
         const c_sig = web3.eth.sign(a_addr, abc_hash)
 
-        const txReceipt = await fluoride.Start_OnAbyA2(
+        const txReceipt = await fluoride.Start_OnAbyA(
           a_contract,
           a_expire,
           token_a,
@@ -72,6 +72,49 @@ contract.only('Fluoride', (accounts) => {
           c_sig,
           {
             from: a_addr
+          }
+        )
+        const logArgs = helpers.txLoggedArgs(txReceipt)
+
+        assert.equal(logArgs.a_addr, a_addr)
+        assert.equal(logArgs.b_addr, b_addr)
+    });
+
+    it.only("Start_OnBbyB(): Deposit from Bob on blockchain B", async function()
+    {
+        // Fix all the variables to pass in...
+        const a_contract = token.address
+        const a_state = utils.soliditySha3("fake state of a")
+        const a_hash = utils.soliditySha3(a_contract, a_state)
+        const a_sig = web3.eth.sign(a_addr, a_hash)
+
+
+        const b_contract = fluoride.address
+        const b_expire = date + 60;
+        const token_b = token.address;
+        const b_amount = 100;
+
+        const meta_hash = utils.soliditySha3(b_expire, token_b, b_amount)
+        const b_hash = utils.soliditySha3(b_contract, meta_hash)
+
+        const ab_hash = utils.soliditySha3(a_hash, a_addr, b_hash)
+        const b_sig = web3.eth.sign(b_addr, ab_hash)
+
+        const abc_hash = utils.soliditySha3(ab_hash, b_addr)
+        const c_sig = web3.eth.sign(a_addr, abc_hash)
+
+        const txReceipt = await fluoride.Start_OnBbyB(
+          a_contract,
+          a_state,
+          a_sig,
+          b_contract,
+          b_expire,
+          token_b,
+          b_amount,
+          b_sig,
+          c_sig,
+          {
+            from: b_addr
           }
         )
         const logArgs = helpers.txLoggedArgs(txReceipt)

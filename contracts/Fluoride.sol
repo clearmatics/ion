@@ -43,7 +43,7 @@ contract Fluoride is ERC223ReceivingContract
 	}
 
 
-	event OnDeposit( bytes32 trade_id );
+	event OnDeposit( bytes32 trade_id, address a_addr, address b_addr );
 
 	event OnCancel( bytes32 trade_id );
 
@@ -142,7 +142,7 @@ contract Fluoride is ERC223ReceivingContract
 	/**
 	* Deposit by Alice on Alice's chain
 	*/
-	function Start_OnAbyA2( address a_contract, uint a_expire, address a_token, uint256 a_amount, bytes a_sig, address b_contract, bytes32 b_state, bytes b_sig, bytes c_sig )
+	function Start_OnAbyA( address a_contract, uint a_expire, address a_token, uint256 a_amount, bytes a_sig, address b_contract, bytes32 b_state, bytes b_sig, bytes c_sig )
 		public returns (bytes32)
 	{
 		require( a_contract == address(this) );
@@ -158,27 +158,6 @@ contract Fluoride is ERC223ReceivingContract
 			b_sig,
 			c_sig	);
 
-		OnVerification(a_addr, b_addr);
-	}
-
-	function Start_OnAbyA( address a_contract, uint a_expire, address a_token, uint256 a_amount, bytes a_sig, address b_contract, bytes32 b_state, bytes b_sig, bytes c_sig )
-		public returns (bytes32)
-	{
-		require( a_contract == address(this) );
-		require( getcodesize(a_token) > 0 );
-
-		bytes32 trade_id;
-		address a_addr;
-		address b_addr;
-		bytes32 a_hash = keccak256(a_contract, keccak256(a_expire, a_token, a_amount));
-		bytes32 b_hash = keccak256(b_contract, b_state);
-		(trade_id, a_addr, b_addr) = VerifyTradeAgreement(
-			a_hash,
-			a_sig,
-			b_hash,
-			b_sig,
-			c_sig );
-
 		m_exchanges[trade_id] = Data({
 			state: State.StartedA,
 			owner: msg.sender,
@@ -187,9 +166,9 @@ contract Fluoride is ERC223ReceivingContract
 			expire: a_expire,
 			counterparty_contract: b_contract,
 			counterparty: b_addr
-		});
+			});
 
-		OnDeposit(trade_id);
+		OnDeposit(trade_id, a_addr, b_addr);
 	}
 
 
@@ -225,7 +204,7 @@ contract Fluoride is ERC223ReceivingContract
 			counterparty: a_addr
 		});
 
-		OnDeposit(trade_id);
+		OnDeposit(trade_id, a_addr, b_addr);
 	}
 
 
