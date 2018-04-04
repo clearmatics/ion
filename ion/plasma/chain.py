@@ -128,19 +128,17 @@ Balance format is 72 bytes:
 
 
 from __future__ import print_function
+
+import click
+import msgpack
 import os
 from base64 import b32encode
 
-import msgpack
-import click
-
-from ..args import arg_bytes32
-from ..utils import u256be, require, marshal
-from ..merkle import merkle_tree
-
 from .model import Block
-from .payment import payments_apply, random_payments, payments_graphviz, SignedPayment, Payment
-
+from .payment import payments_apply, random_payments, payments_graphviz, SignedPayment
+from ..args import arg_bytes32
+from ..merkle import merkle_tree
+from ..utils import u256be, require, marshal
 
 # --------------------------------------------------------------------
 # Data persistence load/save
@@ -181,7 +179,29 @@ def chaindata_latest_get():
         return Block.unmarshal(data_load(latest_path)).hash
     return None
 
+def find_block(block_hash):
+    latest_path = chaindata_path("", 'latest')
+    while os.path.exists(latest_path):
+        block = Block.unmarshal(data_load(latest_path))
+        if block.hash.encode('hex') == block_hash:
+            return block
+        latest_path = chaindata_path(block.prev, 'block')
 
+    raise BlockNotFoundException("Block not found")
+
+def find_next_block(block_hash):
+    latest_path = chaindata_path("", 'latest')
+    print("FINDING NEXT BLOCK OF ", block_hash.encode('hex'))
+    while os.path.exists(latest_path):
+        block = Block.unmarshal(data_load(latest_path))
+        if block.prev == block_hash:
+            return block
+        latest_path = chaindata_path(block.prev, 'block')
+
+    raise BlockNotFoundException("Block not found")
+
+class BlockNotFoundException(Exception):
+    pass
 # --------------------------------------------------------------------
 # Balance difference and aggregate balance functions
 
