@@ -57,25 +57,27 @@ contract.only('Fluoride', (accounts) => {
 
         const b_sig = web3.eth.sign(b_addr, ab_hash)
 
-        const txReceipt = await fluoride.VerifyTest(
+        const abc_hash = utils.soliditySha3(ab_hash, b_addr)
+        const c_sig = web3.eth.sign(a_addr, abc_hash)
+
+        const txReceipt = await fluoride.Start_OnAbyA2(
           a_contract,
           a_expire,
           token_a,
           a_amount,
           a_sig,
-          // b_contract,
-          // b_state,
-          // b_sig,
+          b_contract,
+          b_state,
+          b_sig,
+          c_sig,
           {
             from: a_addr
           }
         )
         const logArgs = helpers.txLoggedArgs(txReceipt)
-        // console.log(logArgs.meta)
-        // console.log(a_addr)
-        // console.log(logArgs.a_addr)
+
         assert.equal(logArgs.a_addr, a_addr)
-        // assert.equal(logArgs.b_addr, a_addr)
+        assert.equal(logArgs.b_addr, b_addr)
     });
 
 });

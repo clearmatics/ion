@@ -142,24 +142,23 @@ contract Fluoride is ERC223ReceivingContract
 	/**
 	* Deposit by Alice on Alice's chain
 	*/
-	function VerifyTest( address a_contract, uint a_expire, address a_token, uint256 a_amount, bytes a_sig )
+	function Start_OnAbyA2( address a_contract, uint a_expire, address a_token, uint256 a_amount, bytes a_sig, address b_contract, bytes32 b_state, bytes b_sig, bytes c_sig )
 		public returns (bytes32)
 	{
 		require( a_contract == address(this) );
 		require( getcodesize(a_token) > 0 );
 
-		bytes32 a_hash = keccak256(a_contract, keccak256(a_expire, a_token, a_amount));
-		address a_addr = ECVerify.ecrecovery(a_hash, a_sig);
+		bytes32 trade_id;
+		address a_addr;
+		address b_addr;
+		(trade_id, a_addr, b_addr) = VerifyTradeAgreement(
+			keccak256(a_contract, keccak256(a_expire, a_token, a_amount)),
+			a_sig,
+			keccak256(b_contract, b_state),
+			b_sig,
+			c_sig	);
 
-		// Counterparty confirms signed message from Initiator
-		// b_hash includes fingerprint of all info
-		/* bytes32 b_hash = keccak256(b_contract, b_state);
-		bytes32 ab_hash = keccak256(a_hash, a_addr, b_hash);
-		address b_addr = ECVerify.ecrecovery(ab_hash, b_sig); */
-
-		/* TestAddress( a_hash, a_expire, a_token, a_amount, a_addr ); */
-		OnVerification(a_addr, a_addr);
-		/* OnVerification(a_addr, b_addr); */
+		OnVerification(a_addr, b_addr);
 	}
 
 	function Start_OnAbyA( address a_contract, uint a_expire, address a_token, uint256 a_amount, bytes a_sig, address b_contract, bytes32 b_state, bytes b_sig, bytes c_sig )
