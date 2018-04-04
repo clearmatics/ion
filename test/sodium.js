@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const randomHex = () => crypto.randomBytes(32).toString('hex');
 const randomArr = () => {
   const result = []
-  const size =5// (Math.floor(Math.random() * 10) + 1);
+  const size =(Math.floor(Math.random() * 10) + 1);
   for(let i = size; 0 < i; i-- )
     result.push(randomHex())
   return result
