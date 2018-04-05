@@ -1,54 +1,82 @@
-// TODO: merkle tree library for javascript
-//       must be compatible with the Python implementation
+const crypto = require('crypto');
+
+const merkle = require('./merkle')
 
 const IonLink = artifacts.require("IonLink");
 const utils = require('./helpers/utils.js')
 
+const randomHex = () => crypto.randomBytes(32).toString('hex');
+const randomArr = () => {
+  const result = []
+  const size =(Math.floor(Math.random() * 10) + 1);
+  for(let i = size; 0 < i; i-- )
+    result.push(randomHex())
+  return result
+}
+
 contract('IonLink', (accounts) => {
-  	let link;
+  it('GetRoot', async () => {
+    //const ionLink = await IonLink.new(10);
+    const ionLink = await IonLink.deployed();
 
-    beforeEach(async function() {
-		link = await IonLink.new(0);
-    });
+    const testData1 = randomArr()
+    const tree1 = merkle.createMerkle(testData1)
+    const testData2 = randomArr()
+    const tree2 = merkle.createMerkle(testData2)
+    const testData3 = randomArr()
+    const tree3 = merkle.createMerkle(testData3)
 
-    const sender = accounts[0]
+    const rootArr1 = [tree1[1],tree2[1],tree3[1]]
+    const receipt1 = await ionLink.Update(rootArr1)
 
-    it('works', async () => {
-        console.log("Obj address", link.address);
-    });
+    const testData4 = randomArr()
+    const tree4 = merkle.createMerkle(testData4)
+    const testData5 = randomArr()
+    const tree5 = merkle.createMerkle(testData5)
+    const testData6 = randomArr()
+    const tree6 = merkle.createMerkle(testData6)
 
-		it("Update(): determine whether a new block can be added", async function()
-		{
+    const rootArr2 = [tree4[1],tree5[1],tree6[1]]
+    const receipt2 = await ionLink.Update(rootArr2)
 
-      const test = 1234
-			const txReceipt = await link.Update(
-				test,
-        {
-          from: sender
-        }
-			)
+    const latestBlock = await ionLink.GetLatestBlock()
+    const previousBlock = await ionLink.GetPrevious(latestBlock)
+    const latestRoot = await ionLink.GetRoot(latestBlock)
+    const previousRoot = await ionLink.GetRoot(previousBlock)
+    assert.equal(tree6[1].toString(16),latestRoot.toString(16),'latest root is wrong')
+    assert.equal(tree5[1].toString(16),previousRoot.toString(16),'previous root is wrong')
+  })
 
+  it('Update', async () => {
+    //const ionLink = await IonLink.new(10);
+    const ionLink = await IonLink.deployed();
 
-      const receipt = utils.txLoggedArgs(txReceipt)
-      console.log(txReceipt.logs[0].args)
-      const out = txReceipt.logs[1].args
-      console.log(out)
+    const testData1 = randomArr()
+    const tree1 = merkle.createMerkle(testData1)
+    const testData2 = randomArr()
+    const tree2 = merkle.createMerkle(testData2)
 
-      // const root = await link.GetRoot(
-      //   1,
-      //   {
-      //     from: sender
-      //   }
-      // )
-      // console.log(root)
+    const leaf = testData2[0]
+    const leafHash = merkle.merkleHash(leaf)
+    const path = merkle.pathMerkle(leaf,tree2[0])
+    const rootArg = [tree1[1],tree2[1]]
 
+    const receiptUpdate = await ionLink.Update(rootArg)
+    const latestBlock = await ionLink.GetLatestBlock()
+    const valid = await ionLink.Verify(latestBlock,leafHash,path)
+    assert(valid,'IonLink.verify() failed!')
+  })
 
-      // latestBlock = await link.LatestBlock.call()
+  it('duplicate root', async () => {
+    //const ionLink = await IonLink.new(10);
+    const ionLink = await IonLink.deployed();
 
-		});
+    const testData = randomArr()
+    const tree = merkle.createMerkle(testData)
 
-
-    // TODO: verify Update() works with multiple items in-sequence
-
-    // TODO: verify that same roots applied twice result in different hashes
+    const receiptUpdate = await ionLink.Update([tree[1],tree[1]])
+    const latestBlock = await ionLink.GetLatestBlock()
+    const previousBlock = await ionLink.GetPrevious(latestBlock)
+    assert.notEqual(latestBlock.toString(16),previousBlock.toString(16),'submitted smae root 2x should have different hashes!')
+  })
 });

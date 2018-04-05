@@ -82,7 +82,6 @@ contract Sodium is Sodium_Interface
 		LatestBlock = latest_block;
 	}
 
-
 	function Verify( uint256 block_no, uint256 leaf_hash, uint256[] proof )
 		public view
 		returns (bool)
