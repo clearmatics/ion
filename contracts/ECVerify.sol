@@ -43,7 +43,7 @@ library ECVerify {
 
             // NOTE: we can reuse the request memory because we deal with
             //       the return code
-            ret := staticcall(3000, 1, size, 128, size, 32)
+            ret := call(3000, 1, 0, size, 128, size, 32)
             addr := mload(size)
         }
 
@@ -69,12 +69,12 @@ library ECVerify {
             // Here we are loading the last 32 bytes. We exploit the fact that
             // 'mload' will pad with zeroes if we overread.
             // There is no 'mload8' to do this, but that would be nicer.
-            v := byte(0, mload(add(sig, 96)))
+            /* v := byte(0, mload(add(sig, 96))) */
 
             // Alternative solution:
             // 'byte' is not working due to the Solidity parser, so lets
             // use the second best option, 'and'
-            // v := and(mload(add(sig, 65)), 255)
+            v := and(mload(add(sig, 65)), 255)
         }
 
         // albeit non-transactional signatures are not specified by the YP, one would expect it
@@ -87,7 +87,14 @@ library ECVerify {
 
         require (v == 27 || v == 28);
 
+        /* prefix might be needed for geth only
+         * https://github.com/ethereum/go-ethereum/issues/3731
+         */
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        hash = keccak256(prefix, hash);
+        /* hash = sha3(prefix, hash); */
+
         return safer_ecrecover(hash, v, r, s);
+        /* return ecrecover(hash, v, r, s); */
     }
 }
-
