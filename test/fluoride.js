@@ -2,6 +2,7 @@
 
 const BigNumber = web3.BigNumber;
 const utils = require('web3-utils');
+const web3Abi = require('web3-eth-abi');
 const helpers = require('./helpers/utils.js')
 
 const should = require('chai')
@@ -32,13 +33,21 @@ contract.only('Fluoride', (accounts) => {
     const b_addr = accounts[2]
     const date = Math.floor(Date.now() / 1000);
 
+
     it('Check that contracts have deployed correctly...', async () => {
         console.log("  Sodium address:", sodium.address);
         console.log("  Fluoride address:", fluoride.address);
+        console.log("  Token address:", token.address);
     });
 
-    it("Start_OnAbyA(): Deposit from Alice on blockchain A", async function()
+
+    it.only("Start_OnAbyA(): Deposit from Alice on blockchain A", async function()
     {
+        // Mint some token and give some CCY to Alice
+        await token.mint(500)
+        await token.transfer(a_addr, 250)
+        const initialBalance = await token.balanceOf(a_addr)
+
         // Fix all the variables to pass in...
         const a_contract = fluoride.address
         const a_expire = date + 60;
@@ -74,13 +83,51 @@ contract.only('Fluoride', (accounts) => {
             from: a_addr
           }
         )
-        const logArgs = helpers.txLoggedArgs(txReceipt)
+        let logArgs = helpers.txLoggedArgs(txReceipt)
 
         assert.equal(logArgs.a_addr, a_addr)
         assert.equal(logArgs.b_addr, b_addr)
+
+        const input = logArgs.trade_id
+
+        // This allows us to use the overloaded transfer from Token.sol
+        const overloadedTransferAbi = {
+          "constant": false,
+          "inputs": [
+            { "name": "_to", "type": "address" },
+            { "name": "_value", "type": "uint256" },
+            { "name": "_data", "type": "bytes" }
+          ],
+          "name": "transfer",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+
+        const tokenTxReceipt = web3Abi.encodeFunctionCall(
+          overloadedTransferAbi,
+          [
+            fluoride.address,
+            a_amount,
+            input
+          ]
+        );
+
+         const transferReceipt = await web3.eth.sendTransaction(
+           {
+             from: a_addr,
+             to: token.address,
+             data: tokenTxReceipt,
+             value: 0
+           }
+         );
+         const depositBalance = await token.balanceOf(a_addr)
+         assert.equal(initialBalance - a_amount, depositBalance)
+
     });
 
-    it.only("Start_OnBbyB(): Deposit from Bob on blockchain B", async function()
+    it("Start_OnBbyB(): Deposit from Bob on blockchain B", async function()
     {
         // Fix all the variables to pass in...
         const a_contract = token.address
@@ -118,6 +165,9 @@ contract.only('Fluoride', (accounts) => {
           }
         )
         const logArgs = helpers.txLoggedArgs(txReceipt)
+
+        const input = logArgs.trade_id
+        console.log(input)
 
         assert.equal(logArgs.a_addr, a_addr)
         assert.equal(logArgs.b_addr, b_addr)

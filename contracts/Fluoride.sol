@@ -51,7 +51,7 @@ contract Fluoride is ERC223ReceivingContract
 
 	event OnTimeout( bytes32 trade_id );
 
-	event TestAddress( bytes32 meta, uint a_expire, address a_token, uint256 a_amount, address a_addr );
+	event Test( bytes32 meta );
 
 	event OnVerification( address a_addr, address b_addr );
 
@@ -66,6 +66,36 @@ contract Fluoride is ERC223ReceivingContract
 		m_sodium = sodium_address;
 	}
 
+	function tokenFallbackTest(address _from, uint _value, bytes32 trade_id)
+		public
+	{
+
+		// Load exchange, must be in correct state
+		Data storage trade = m_exchanges[trade_id];
+
+		State state = trade.state;
+		require( state == State.StartedA || state == State.StartedB );
+
+		// XXX: is it necessary to check _from when tx.origin is also checked?
+		// Is it necessary to check either?
+		require( trade.owner == tx.origin );
+		require( _from == trade.owner );
+
+		// The value *must* be checked
+		require( _value == trade.amount );
+		// As must the ERC-223 token
+		/* require( trade.token == msg.sender ); */
+
+		// Transition from Started to Deposited after recieving the funds
+		if( state == State.StartedA ) {
+			trade.state = State.DepositedA;
+		}
+		else if( state == State.StartedB ) {
+			trade.state = State.DepositedB;
+		}
+		Test(trade_id);
+
+	}
 
 	function tokenFallback(address _from, uint _value, bytes _data)
 		public
@@ -73,10 +103,16 @@ contract Fluoride is ERC223ReceivingContract
 		// Load _data bytes into trade_id
 		bytes32 trade_id;
 		require( _data.length == 32 );
-		assembly {
+
+		// TODO: get this nice assembly crap to function
+		/* assembly {
 			let ret := staticcall(3000, 4, add(_data, 32), 32, trade_id, 32)
 			switch ret case 0 { invalid }
-		}
+		} */
+		// Solution to the assembly stuff above for the meantime...
+		for (uint i = 0; i < 32; i++) {
+	    trade_id |= bytes32(_data[0 + i] & 0xFF) >> (i * 8);
+	  }
 
 		// Load exchange, must be in correct state
 		Data storage trade = m_exchanges[trade_id];
