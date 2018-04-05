@@ -7,16 +7,18 @@
   "license": "LGPL-3.0+",
   "dependencies": {},
   "devDependencies": {
-    "ganache-cli": "^6.0.0",
-    "json-bigint-string": "^1.0.0",
-    "truffle": "^4.0.0",
-    "solidity-coverage": "^0.4.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
-    "chai-bignumber": "^2.0.2"
+    "chai-bignumber": "^2.0.2",
+    "ganache-cli": "^6.0.0",
+    "json-bigint-string": "^1.0.0",
+    "solidity-coverage": "^0.4.0",
+    "truffle": "^4.0.0",
+    "web3-eth-abi": "^1.0.0-beta.33",
+    "web3-utils": "^1.0.0-beta.33"
   },
   "scripts": {
-    "testrpc": "ganache-cli --gasLimit 0xFFFFFFF",
+    "testrpc": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 0 --network-id 1234",
     "test": "truffle test",
     "coverage": "solidity-coverage"
   }
