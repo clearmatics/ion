@@ -1,13 +1,19 @@
 from __future__ import print_function
-import time
 
 import click
-from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian
+import time
+from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian, keccak
 
-from .utils import u256be
-from .merkle import merkle_tree
 from .args import arg_bytes20, arg_ethrpc
+from .merkle import merkle_tree
+from .utils import u256be
 
+on_deposit_signature = keccak.new(digest_bits=256).update('OnDeposit(bytes32)').hexdigest()
+on_withdraw_signature = keccak.new(digest_bits=256).update('OnWithdraw(bytes32)').hexdigest()
+on_cancel_signature = keccak.new(digest_bits=256).update('OnCancel(bytes32)').hexdigest()
+on_timeout_signature = keccak.new(digest_bits=256).update('OnTimeout(bytes32)').hexdigest()
+
+event_signatures = [on_deposit_signature, on_withdraw_signature, on_cancel_signature, on_timeout_signature]
 
 def pack_txn(block_no, tx):
     """
@@ -47,14 +53,14 @@ def pack_log(block_no, log):
     ])]
 
 
-def iter_blocks(c, start=1, group=1, backlog=0, interval=1):
+def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
     """Iterate through the block numbers"""
-    obh = min(start, max(1, c.eth_blockNumber() - backlog))
+    obh = min(start, max(1, rpc.eth_blockNumber() - backlog))
     obh -= obh % group
     blocks = []
     is_latest = False
     while True:
-        bh = c.eth_blockNumber()
+        bh = rpc.eth_blockNumber()
         for i in range(obh, bh):
             if i == (bh - 1):
                 is_latest = True
@@ -67,6 +73,7 @@ def iter_blocks(c, start=1, group=1, backlog=0, interval=1):
         try:
             time.sleep(interval)
         except KeyboardInterrupt:
+            print("Stopped by Keyboard interrupt")
             raise StopIteration
 
 
@@ -81,19 +88,23 @@ def lithium_process_block(rpc, block_height):
             tx = rpc.eth_getTransactionByHash(tx_hash)
             if tx['to'] is None:
                 continue
-            items.append(pack_txn(block_height, tx))
+            packed_txns = pack_txn(block_height, tx)
+            items.append(packed_txns)
             tx_count += 1
             receipt = rpc.eth_getTransactionReceipt(tx_hash)
             if len(receipt['logs']):
                 for log_entry in receipt['logs']:
-                    log_items = pack_log(block_height, log_entry)
-                    items += log_items
-                    log_count += len(log_items)
+                    if log_entry['topics'][0][2:] in event_signatures:
+                        print("Found relevant event")
+                        log_items = pack_log(block_height, log_entry)
+                        items += log_items
+                        log_count += len(log_items)
     return items, tx_count, log_count
 
 
 def lithium_process_block_group(rpc, block_group):
     """Process a group of blocks, returning the packed events and transactions"""
+    print("Processing block group")
     items = []
     group_tx_count = 0
     group_log_count = 0
@@ -124,6 +135,7 @@ def lithium_submit(sodium, batch):
 def etheventrelay(rpc_from, rpc_to, account, contract, batch_size):
     sodium = rpc_to.proxy("abi/Sodium.abi", contract, account)
     batch = []
+    print("Starting block iterator")
     for is_latest, block_group in iter_blocks(rpc_from, sodium.NextBlock(), sodium.GroupSize()):
         items, group_tx_count, group_log_count = lithium_process_block_group(rpc_from, block_group)
         if len(items):
