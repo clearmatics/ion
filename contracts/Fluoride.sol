@@ -175,6 +175,31 @@ contract Fluoride is ERC223ReceivingContract
 	}
 
 
+	function VerifyTradeAgreement2( bytes32 a_hash, bytes a_sig, bytes32 b_hash, bytes b_sig, bytes c_sig )
+		internal constant
+		returns (bytes32, address, address)
+	{
+		// Initiator sends signed message to Counterparty
+		var a_addr = ECVerify.ecrecovery(a_hash, a_sig);
+
+		// Counterparty confirms signed message from Initiator
+		// b_hash includes fingerprint of all info
+		var ab_hash = keccak256(a_hash, a_addr, b_hash);
+		var b_addr = ECVerify.ecrecovery(ab_hash, b_sig);
+
+		// Closer accepts Counterparty offer
+		var abc_hash = keccak256(ab_hash, b_addr);
+		var c_addr = ECVerify.ecrecovery(abc_hash, c_sig);
+
+		var trade_id = keccak256(abc_hash, c_sig);
+
+		require( c_addr == a_addr );
+
+		// Initiator and Closer must be the same
+		return (trade_id, a_addr, b_addr);
+	}
+
+
 	/**
 	* Deposit by Alice on Alice's chain
 	*/
@@ -223,14 +248,14 @@ contract Fluoride is ERC223ReceivingContract
 		bytes32 trade_id;
 		address a_addr;
 		address b_addr;
-		(trade_id, a_addr, b_addr) = VerifyTradeAgreement(
+		(trade_id, a_addr, b_addr) = VerifyTradeAgreement2(
 			keccak256(a_contract, a_state),
 			a_sig,
 			keccak256(b_contract, keccak256(b_expire, b_token, b_amount)),
 			b_sig,
 			c_sig );
 
-		m_exchanges[trade_id] = Data({
+		/* m_exchanges[trade_id] = Data({
 			state: State.StartedB,
 			owner: msg.sender,
 			token: ERC223(b_token),
@@ -238,7 +263,7 @@ contract Fluoride is ERC223ReceivingContract
 			expire: b_expire,
 			counterparty_contract: a_contract,
 			counterparty: a_addr
-		});
+		}); */
 
 		OnDeposit(trade_id, a_addr, b_addr);
 	}
