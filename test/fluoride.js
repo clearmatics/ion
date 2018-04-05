@@ -18,58 +18,114 @@ const Token = artifacts.require("Token");
 const Fluoride = artifacts.require("Fluoride");
 
 contract.only('Fluoride', (accounts) => {
-  	let sodium;
-  	let token;
-    let fluoride;
+  	let a_sodium;
+  	let a_token;
+    let a_fluoride;
+  	let b_sodium;
+  	let b_token;
+    let b_fluoride;
 
     // Annoyingly two copies of each need to be deployed so they can interact...
     beforeEach(async function() {
-  		sodium = await Sodium.new();
-      token = await Token.new();
-      fluoride = await Fluoride.new(sodium.address);
+  		a_sodium = await Sodium.new();
+      a_token = await Token.new();
+      a_fluoride = await Fluoride.new(a_sodium.address);
+  		b_sodium = await Sodium.new();
+      b_token = await Token.new();
+      b_fluoride = await Fluoride.new(b_sodium.address);
     });
 
-    const a_addr = accounts[1]
-    const b_addr = accounts[2]
+    const a_Alice = accounts[1]
+    const a_Bob = accounts[2]
+    const b_Alice = accounts[3]
+    const b_Bob = accounts[4]
     const date = Math.floor(Date.now() / 1000);
 
 
     it('Check that contracts have deployed correctly...', async () => {
-        console.log("  Sodium address:", sodium.address);
-        console.log("  Fluoride address:", fluoride.address);
-        console.log("  Token address:", token.address);
+        console.log("  Sodium address chain a:", a_sodium.address);
+        console.log("  Fluoride address chain a:", a_fluoride.address);
+        console.log("  Token address chain a:", a_token.address);
+        console.log("  Sodium address chain b:", b_sodium.address);
+        console.log("  Fluoride address chain b:", b_fluoride.address);
+        console.log("  Token address chain b:", b_token.address);
     });
 
-
-    it.only("Start_OnAbyA(): Deposit from Alice on blockchain A", async function()
+    it("Perform Start_OnAbyA then Start_OnBbyB", async function()
     {
-        // Mint some token and give some CCY to Alice
-        await token.mint(500)
-        await token.transfer(a_addr, 250)
-        const initialBalance = await token.balanceOf(a_addr)
+        // Fix all the variables to pass in...
+        const a_contract = a_token.address
+        const a_state = utils.soliditySha3("fake state of a")
+        const a_hash = utils.soliditySha3(a_contract, a_state)
+        const a_sig = web3.eth.sign(a_Alice, a_hash)
+
+
+        const b_contract = a_fluoride.address
+        const b_expire = date + 60;
+        const token_b = a_token.address;
+        const b_amount = 100;
+
+        const meta_hash = utils.soliditySha3(b_expire, token_b, b_amount)
+        const b_hash = utils.soliditySha3(b_contract, meta_hash)
+
+        const ab_hash = utils.soliditySha3(a_hash, a_Alice, b_hash)
+        const b_sig = web3.eth.sign(b_Bob, ab_hash)
+
+        const abc_hash = utils.soliditySha3(ab_hash, b_Bob)
+        const c_sig = web3.eth.sign(a_Alice, abc_hash)
+
+        const txReceipt = await a_fluoride.Start_OnBbyB(
+          a_contract,
+          a_state,
+          a_sig,
+          b_contract,
+          b_expire,
+          token_b,
+          b_amount,
+          b_sig,
+          c_sig,
+          {
+            from: b_Bob
+          }
+        )
+        const logArgs = helpers.txLoggedArgs(txReceipt)
+
+        const input = logArgs.trade_id
+
+        assert.equal(logArgs.a_addr, a_Alice)
+        assert.equal(logArgs.b_addr, b_Bob)
+    });
+
+    it("Start_OnAbyA(): Deposit from Alice on blockchain A, then deposit",
+      async function()
+    {
+        // Mint some a_token and give some CCY to Alice
+        await a_token.mint(500)
+        await a_token.transfer(a_Alice, 250)
+        const initialBalance = await a_token.balanceOf(a_Alice)
 
         // Fix all the variables to pass in...
-        const a_contract = fluoride.address
+        const a_contract = a_fluoride.address
         const a_expire = date + 60;
-        const token_a = token.address;
+        const token_a = a_token.address;
         const a_amount = 100;
 
         const meta_hash = utils.soliditySha3(a_expire, token_a, a_amount)
         const a_hash = utils.soliditySha3(a_contract, meta_hash)
 
-        const a_sig = web3.eth.sign(a_addr, a_hash)
+        const a_sig = web3.eth.sign(a_Alice, a_hash)
 
         const b_state = utils.soliditySha3("fake state of b")
-        const b_contract = token.address
+        const b_contract = a_token.address
         const b_hash = utils.soliditySha3(b_contract, b_state)
-        const ab_hash = utils.soliditySha3(a_hash, a_addr, b_hash)
+        const ab_hash = utils.soliditySha3(a_hash, a_Alice, b_hash)
 
-        const b_sig = web3.eth.sign(b_addr, ab_hash)
+        const b_sig = web3.eth.sign(b_Bob, ab_hash)
 
-        const abc_hash = utils.soliditySha3(ab_hash, b_addr)
-        const c_sig = web3.eth.sign(a_addr, abc_hash)
+        const abc_hash = utils.soliditySha3(ab_hash, b_Bob)
+        const c_sig = web3.eth.sign(a_Alice, abc_hash)
 
-        const txReceipt = await fluoride.Start_OnAbyA(
+        const txReceipt = await a_fluoride.Start_OnAbyA(
           a_contract,
           a_expire,
           token_a,
@@ -80,15 +136,15 @@ contract.only('Fluoride', (accounts) => {
           b_sig,
           c_sig,
           {
-            from: a_addr
+            from: a_Alice
           }
         )
         let logArgs = helpers.txLoggedArgs(txReceipt)
 
-        assert.equal(logArgs.a_addr, a_addr)
-        assert.equal(logArgs.b_addr, b_addr)
+        assert.equal(logArgs.a_addr, a_Alice)
+        assert.equal(logArgs.b_addr, b_Bob)
 
-        const input = logArgs.trade_id
+        const tradeId = logArgs.trade_id
 
         // This allows us to use the overloaded transfer from Token.sol
         const overloadedTransferAbi = {
@@ -108,21 +164,21 @@ contract.only('Fluoride', (accounts) => {
         const tokenTxReceipt = web3Abi.encodeFunctionCall(
           overloadedTransferAbi,
           [
-            fluoride.address,
+            a_fluoride.address,
             a_amount,
-            input
+            tradeId
           ]
         );
 
-         const transferReceipt = await web3.eth.sendTransaction(
+        const transferReceipt = await web3.eth.sendTransaction(
            {
-             from: a_addr,
-             to: token.address,
+             from: a_Alice,
+             to: a_token.address,
              data: tokenTxReceipt,
              value: 0
            }
          );
-         const depositBalance = await token.balanceOf(a_addr)
+         const depositBalance = await a_token.balanceOf(a_Alice)
          assert.equal(initialBalance - a_amount, depositBalance)
 
     });
@@ -130,27 +186,27 @@ contract.only('Fluoride', (accounts) => {
     it("Start_OnBbyB(): Deposit from Bob on blockchain B", async function()
     {
         // Fix all the variables to pass in...
-        const a_contract = token.address
+        const a_contract = a_token.address
         const a_state = utils.soliditySha3("fake state of a")
         const a_hash = utils.soliditySha3(a_contract, a_state)
-        const a_sig = web3.eth.sign(a_addr, a_hash)
+        const a_sig = web3.eth.sign(a_Alice, a_hash)
 
 
-        const b_contract = fluoride.address
+        const b_contract = a_fluoride.address
         const b_expire = date + 60;
-        const token_b = token.address;
+        const token_b = a_token.address;
         const b_amount = 100;
 
         const meta_hash = utils.soliditySha3(b_expire, token_b, b_amount)
         const b_hash = utils.soliditySha3(b_contract, meta_hash)
 
-        const ab_hash = utils.soliditySha3(a_hash, a_addr, b_hash)
-        const b_sig = web3.eth.sign(b_addr, ab_hash)
+        const ab_hash = utils.soliditySha3(a_hash, a_Alice, b_hash)
+        const b_sig = web3.eth.sign(b_Bob, ab_hash)
 
-        const abc_hash = utils.soliditySha3(ab_hash, b_addr)
-        const c_sig = web3.eth.sign(a_addr, abc_hash)
+        const abc_hash = utils.soliditySha3(ab_hash, b_Bob)
+        const c_sig = web3.eth.sign(a_Alice, abc_hash)
 
-        const txReceipt = await fluoride.Start_OnBbyB(
+        const txReceipt = await a_fluoride.Start_OnBbyB(
           a_contract,
           a_state,
           a_sig,
@@ -161,16 +217,15 @@ contract.only('Fluoride', (accounts) => {
           b_sig,
           c_sig,
           {
-            from: b_addr
+            from: b_Bob
           }
         )
         const logArgs = helpers.txLoggedArgs(txReceipt)
 
         const input = logArgs.trade_id
-        console.log(input)
 
-        assert.equal(logArgs.a_addr, a_addr)
-        assert.equal(logArgs.b_addr, b_addr)
+        assert.equal(logArgs.a_addr, a_Alice)
+        assert.equal(logArgs.b_addr, b_Bob)
     });
 
 });
