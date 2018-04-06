@@ -262,6 +262,8 @@ contract Fluoride is ERC223ReceivingContract
 	{
 		Data storage trade = m_exchanges[trade_id];
 		//require( trade.state == State.StartedA ); // TODO: Does this check need to exist?!
+		require( trade.state == State.DepositedB || trade.state == State.DepositedA );
+		require( trade.expire > block.timestamp );
 
 		// TODO: create hash of event to expect from other contract
 		// TODO: insert the Topic name between contract and trade id
