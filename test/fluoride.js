@@ -18,8 +18,9 @@ const Sodium = artifacts.require("Sodium");
 const Token = artifacts.require("Token");
 const Fluoride = artifacts.require("Fluoride");
 
+
 contract.only('Fluoride', (accounts) => {
-  	let a_sodium;
+    let a_sodium;
   	let a_token;
     let a_fluoride;
   	let b_sodium;
@@ -258,123 +259,36 @@ contract.only('Fluoride', (accounts) => {
         const bobDepBalance = await b_token.balanceOf(b_Bob)
         assert.equal(initialBalance - b_amount, bobDepBalance)
 
-        console.log("================================================================================")
-        console.log("First prove sodium is functioning...")
-        console.log("================================================================================")
-        // Create a random block
-        const testData1 = helpers.randomArr()
-        const tree1 = merkle.createMerkle(testData1)
-        const testData2 = helpers.randomArr()
-        const tree2 = merkle.createMerkle(testData2)
-        const testData3 = helpers.randomArr()
-        const tree3 = merkle.createMerkle(testData3)
-        const rootArr1 = [tree1[1],tree2[1],tree3[1]]
-        console.log("Random merkle tree:\n", rootArr1)
-        console.log("Test tree:\n", tree2[1])
-        console.log("Tree data:\n", testData2)
 
-        const groupSize = await b_sodium.GroupSize()
+        // Perform updates to sodium
+        const expectEventA = helpers.joinHex([b_contract/*, topic*/,b_tradeId])
+        const expectEventB = helpers.joinHex([a_contract/*, topic*/,a_tradeId])
 
-        const nextBlock1 = await b_sodium.NextBlock()
-        console.log("Block number 1:\n", nextBlock1)
+        // First for blockchain A
+        const testDataA = [expectEventA,"2","3","4","5","6","7"]
+        const treeA = merkle.createMerkle(testDataA)
+        const pathA = testDataA.map(value => merkle.pathMerkle(value,treeA[0]))
 
-        const receiptUpdate1 = await b_sodium.Update(nextBlock1,rootArr1)
-        console.log("Update Blockchain:")
+        const leafHashA = merkle.merkleHash(testDataA[0])
+        const rootArgA = treeA[1]
 
-        const nextBlock2 = await b_sodium.NextBlock()
-        console.log("Block number 2:\n", nextBlock2)
+        const nextBlockA = await a_sodium.NextBlock()
+        const receiptUpdateA = await a_sodium.Update(nextBlockA,[rootArgA])
+        const validA = await a_sodium.Verify(nextBlockA,leafHashA,pathA[0])
+        assert(validA,'a_sodium.verify() failed!')
 
-        const blocksSubmitted = (nextBlock2.toString(10) - nextBlock1.toString(10))/groupSize
-        assert.equal(blocksSubmitted,rootArr1.length,'blocks submitted number wrong')
-        console.log("Blocks submitted:\n", blocksSubmitted)
+        // First for blockchain B
+        const testDataB = [expectEventB,"2","3","4","5","6","7"]
+        const treeB = merkle.createMerkle(testDataB)
+        const pathB = testDataB.map(value => merkle.pathMerkle(value,treeB[0]))
 
-        console.log("Verify that rootArr1 is in the merkle tree:\n")
+        const leafHashB = merkle.merkleHash(testDataB[0])
+        const rootBrgB = treeB[1]
 
-        const blockNumber = nextBlock2 - (2 * groupSize)
-        console.log("Block number:\n", blockNumber)
-
-        const leafHash = merkle.merkleHash(testData2[0])
-        console.log("Verify testData2 is in merkletree:\n", testData2[0])
-        console.log("leaf hash:\n", leafHash)
-        const path = merkle.pathMerkle(testData2[0], tree2[0])
-        console.log("Merkle path:\n", path)
-        console.log("Comprising of:\n")
-        console.log("testData2[0]:\n", testData2[0])
-        console.log("tree2[0]:\n", tree2[0])
-
-        const valid = await b_sodium.Verify(blockNumber,leafHash,path)
-        console.log("Verification result:\n", valid)
-        console.log("Which was passed:")
-        console.log("BlockNumber:\n", blockNumber)
-        console.log("leafHash:\n", leafHash)
-        console.log("path:\n", path)
-        assert(valid,'Sodium.verify() failed!')
-
-
-        console.log("================================================================================")
-        console.log("Verfiy that transaction is in the block...")
-        console.log("================================================================================")
-
-        // Hash details to be used in sodium
-        const reference = utils.sha3(b_tradeId)
-        const valueHex = '0x' + utils.toBN(b_amount).toString(16).padStart(64,'0') // make an hex that is good to sha3 in solidity uint256 -> 64 bytes
-        const lockAddr = b_sodium.address
-        const tokenAddr = b_token.address
-        const withdrawReceiver = b_Bob
-
-        //concat the arguments of sha3 in solidity (in the same way solidity does)
-        const joinedArgs = '0x' + [a_contract, b_tradeId].map(el=>el.slice(2)).join('')
-
-        const hashData = utils.sha3(joinedArgs)
-        console.log("Transaction data to be verified:\n", hashData)
-
-        // submit hashdata to IonLink
-        const leaf = joinedArgs // joined args need to be added to the random leafs of the tree
-        const testData6 = helpers.randomArr()
-        testData6[0] = leaf
-        console.log("Transaction leaf:\n", leaf)
-
-        console.log("Create more a new root:")
-        const tree6 = merkle.createMerkle(testData6)
-        const testData4 = helpers.randomArr()
-        const tree4 = merkle.createMerkle(testData4) // IonLink needs 2 roots min to update
-        const testData5 = helpers.randomArr()
-        const tree5 = merkle.createMerkle(testData5) // IonLink needs 2 roots min to update
-        const rootArr2 = [tree4[1],tree5[1],tree6[1]]
-        console.log("Random merkle tree:\n", rootArr2)
-        console.log("Test tree:\n", tree6[1])
-        console.log("Tree data:\n", testData6)
-
-        const nextBlock3 = await b_sodium.NextBlock()
-        console.log("Block number 3:\n", nextBlock3)
-
-        const receiptUpdate2 = await b_sodium.Update(nextBlock2,rootArr2)
-        console.log("Update Blockchain:")
-
-        const nextBlock4 = await b_sodium.NextBlock()
-        console.log("Block number 4:\n", nextBlock4)
-
-        console.log("Verify that rootArr2 is in the merkle tree:\n")
-
-        const blockNumber2 = nextBlock4 - (2 * groupSize)
-        console.log("Block number2:\n", blockNumber2)
-
-        const leafHash2 = merkle.merkleHash(leaf)
-        console.log("Verify testData6 is in merkletree:\n", testData6[0])
-        console.log("leaf hash2:\n", leafHash2)
-        const path2 = merkle.pathMerkle(testData6[0],tree6[0])
-        console.log("Merkle path:\n", path)
-        console.log("Comprising of:\n")
-        console.log("testData6[0]:\n", testData6[0])
-        console.log("tree6[0]:\n", tree6[0])
-
-        const valid2 = await b_sodium.Verify(blockNumber2,leafHash2,path2)
-        console.log("Verification result:\n", valid2)
-        console.log("Which was passed:")
-        console.log("BlockNumber:\n", blockNumber2)
-        console.log("leafHash2:\n", leafHash2)
-        console.log("path:\n", path2)
-        assert(valid2,'Sodium.verify() failed!')
+        const nextBlockB = await b_sodium.NextBlock()
+        const receiptUpdateB = await b_sodium.Update(nextBlockB,[rootBrgB])
+        const validB = await b_sodium.Verify(nextBlockB,leafHashB,pathB[0])
+        assert(validB,'b_sodium.verify() failed!')
 
 
     });

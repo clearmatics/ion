@@ -1,15 +1,14 @@
 const crypto = require('crypto')
 
-const gasPrice = 100000000000 // truffle fixed gas price
-const txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
-const txLoggedArgs = txReceipt => txReceipt.logs[0].args
-const txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
-const oneFinney = web3.toWei(1, 'finney')
-
 // Format required for sending bytes through eth client:
 //  - hex string representation
 //  - prefixed with 0x
 const bufToStr = b => '0x' + b.toString('hex')
+
+const gasPrice = 100000000000 // truffle fixed gas price
+const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('')
+const oneFinney = web3.toWei(1, 'finney')
+
 
 const sha256 = x =>
   crypto
@@ -44,4 +43,8 @@ const sleep = ms => {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-module.exports = {bufToStr, newSecretHashPair, oneFinney, random32, randomArr, randomHex, sha256, sleep, txGas, txLoggedArgs}
+const txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
+const txLoggedArgs = txReceipt => txReceipt.logs[0].args
+const txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
+
+module.exports = {bufToStr, joinHex, newSecretHashPair, oneFinney, random32, randomArr, randomHex, sha256, sleep, txGas, txLoggedArgs}
