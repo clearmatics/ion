@@ -6,7 +6,8 @@ import "./Sodium_Interface.sol";
 contract Sodium is Sodium_Interface
 {
 	mapping(uint256 => uint256) internal m_roots;
-	uint256 LatestBlock;
+
+	uint256 public LatestBlock;
 	address Owner;
 
 
@@ -51,6 +52,11 @@ contract Sodium is Sodium_Interface
 		return m_roots[ block_no - (block_no % GroupSize()) ];
 	}
 
+	function GetLatestBlock()
+	    public view returns (uint256)
+	{
+	    return LatestBlock;
+	}
 
 	function Update( uint256 start_block, uint256[] merkle_roots )
 		public

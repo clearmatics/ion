@@ -16,14 +16,21 @@ const toggleBit = (n,b,bitValue) => {
   const bnRes = new BN(resStr,2)
   return bnRes
 }
+
+
 const bitTest = (n,b) => {
   //b += 1
   const resStr = n.toString(2).padStart(b,'0')
   const idx = resStr.length - b
   return Number(resStr[idx]) === 1
 }
+
+
 const bitClear = (n,b) => toggleBit(n,b,'0')
+
+
 const bitSet = (n,b) => toggleBit(n,b,'1')
+
 
 const toHex = n => {
   let nHex = n.toString(16)
@@ -33,16 +40,23 @@ const toHex = n => {
     nHex = '0x' + nHex.padStart(64*2,'0')
   return nHex
 }
+
+
 const joinHex2BN = (a,b) => new BN('0x' + toHex(a) + toHex(b).substring(2))
 
+
 const hash = n => new BN(Web3Utils.sha3(Web3Utils.isBigNumber(n) ? toHex(n) : n))
+
+
 const merkleHash = n => bitClear(hash(n), 0xFF)
+
 
 const treeLevel = items => items.reduce((prev,el, idx, arr) => {
   if(idx % 2)
     return prev.concat(merkleHash(joinHex2BN(arr[idx-1],el)))
   return prev
 } , [])
+
 
 const createMerkle = (items) => {
   const extraHash = merkleHash('merkle-tree-extra')
@@ -60,6 +74,7 @@ const createMerkle = (items) => {
   return [tree.sort(l => 1)].concat(root)
 }
 
+
 const pathMerkle = (leaf,tree) => {
   const leafHash = merkleHash(leaf)
   let idx = tree[0].findIndex(h => h.equals(leafHash))
@@ -75,6 +90,7 @@ const pathMerkle = (leaf,tree) => {
 
   return result
 }
+
 
 const proofMerkle = (leaf, path, root, hashLeaf,debug) => {
   const leafHash = hashLeaf ? leaf : merkleHash(leaf)
@@ -95,6 +111,7 @@ const proofMerkle = (leaf, path, root, hashLeaf,debug) => {
     }, leafHash)
   return (result.equals(root))
 }
+
 
 const merkle = {
   createMerkle,

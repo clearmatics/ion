@@ -254,7 +254,7 @@ contract Fluoride is ERC223ReceivingContract
 
 		// TODO: create hash of event to expect from other contract
 		// TODO: insert the Topic name between contract and trade id
-		var expect_event = keccak256(trade.counterparty_contract, /* topic id, unknown yet */ trade_id);
+		var expect_event = keccak256(trade.counterparty_contract, trade_id);
 
 		require( m_sodium.Verify( block_no, uint256(expect_event), proof ) );
 

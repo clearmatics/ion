@@ -4,6 +4,7 @@ const BigNumber = web3.BigNumber;
 const utils = require('web3-utils');
 const web3Abi = require('web3-eth-abi');
 const helpers = require('./helpers/utils.js')
+const merkle = require('./merkle')
 
 const should = require('chai')
     .use(require('chai-as-promised'))
@@ -120,13 +121,17 @@ contract.only('Fluoride', (accounts) => {
 
     });
 
-    it("Start_OnAbyA(): Deposit from Alice on blockchain A, then deposit",
+
+    it.only("Start_OnAbyA(): Deposit from Alice on blockchain A, then deposit",
       async function()
     {
         // Mint some a_token and give some CCY to Alice
         await a_token.mint(500)
         await a_token.transfer(a_Alice, 250)
+        await b_token.mint(500)
+        await b_token.transfer(b_Bob, 250)
         const initialBalance = await a_token.balanceOf(a_Alice)
+        const bobInitBalance = await b_token.balanceOf(b_Bob)
 
         // Setup the contract for Alice on A
         const a_contract = a_fluoride.address
@@ -211,12 +216,13 @@ contract.only('Fluoride', (accounts) => {
           "type": "function"
         }
 
+        // Transfer funds to appropriate escrow on chain A
         const tokenTxReceipt = web3Abi.encodeFunctionCall(
           overloadedTransferAbi,
           [
             a_fluoride.address,
             a_amount,
-            b_tradeId
+            a_tradeId
           ]
         );
 
@@ -226,10 +232,150 @@ contract.only('Fluoride', (accounts) => {
              to: a_token.address,
              data: tokenTxReceipt,
              value: 0
-           }
-         );
-         const depositBalance = await a_token.balanceOf(a_Alice)
-         assert.equal(initialBalance - a_amount, depositBalance)
+          }
+        );
+        const depositBalance = await a_token.balanceOf(a_Alice)
+        assert.equal(initialBalance - a_amount, depositBalance)
+
+        // Transfer funds to appropriate escrow on chain B
+        const b_tokenTxReceipt = web3Abi.encodeFunctionCall(
+          overloadedTransferAbi,
+          [
+            b_fluoride.address,
+            b_amount,
+            b_tradeId
+          ]
+        );
+
+        const b_transferReceipt = await web3.eth.sendTransaction(
+          {
+            from: b_Bob,
+            to: b_token.address,
+            data: b_tokenTxReceipt,
+            value: 0
+          }
+        );
+        const bobDepBalance = await b_token.balanceOf(b_Bob)
+        assert.equal(initialBalance - b_amount, bobDepBalance)
+
+        console.log("================================================================================")
+        console.log("First prove sodium is functioning...")
+        console.log("================================================================================")
+        // Create a random block
+        const testData1 = helpers.randomArr()
+        const tree1 = merkle.createMerkle(testData1)
+        const testData2 = helpers.randomArr()
+        const tree2 = merkle.createMerkle(testData2)
+        const testData3 = helpers.randomArr()
+        const tree3 = merkle.createMerkle(testData3)
+        const rootArr1 = [tree1[1],tree2[1],tree3[1]]
+        console.log("Random merkle tree:\n", rootArr1)
+        console.log("Test tree:\n", tree2[1])
+        console.log("Tree data:\n", testData2)
+
+        const groupSize = await b_sodium.GroupSize()
+
+        const nextBlock1 = await b_sodium.NextBlock()
+        console.log("Block number 1:\n", nextBlock1)
+
+        const receiptUpdate1 = await b_sodium.Update(nextBlock1,rootArr1)
+        console.log("Update Blockchain:")
+
+        const nextBlock2 = await b_sodium.NextBlock()
+        console.log("Block number 2:\n", nextBlock2)
+
+        const blocksSubmitted = (nextBlock2.toString(10) - nextBlock1.toString(10))/groupSize
+        assert.equal(blocksSubmitted,rootArr1.length,'blocks submitted number wrong')
+        console.log("Blocks submitted:\n", blocksSubmitted)
+
+        console.log("Verify that rootArr1 is in the merkle tree:\n")
+
+        const blockNumber = nextBlock2 - (2 * groupSize)
+        console.log("Block number:\n", blockNumber)
+
+        const leafHash = merkle.merkleHash(testData2[0])
+        console.log("Verify testData2 is in merkletree:\n", testData2[0])
+        console.log("leaf hash:\n", leafHash)
+        const path = merkle.pathMerkle(testData2[0], tree2[0])
+        console.log("Merkle path:\n", path)
+        console.log("Comprising of:\n")
+        console.log("testData2[0]:\n", testData2[0])
+        console.log("tree2[0]:\n", tree2[0])
+
+        const valid = await b_sodium.Verify(blockNumber,leafHash,path)
+        console.log("Verification result:\n", valid)
+        console.log("Which was passed:")
+        console.log("BlockNumber:\n", blockNumber)
+        console.log("leafHash:\n", leafHash)
+        console.log("path:\n", path)
+        assert(valid,'Sodium.verify() failed!')
+
+
+        console.log("================================================================================")
+        console.log("Verfiy that transaction is in the block...")
+        console.log("================================================================================")
+
+        // Hash details to be used in sodium
+        const reference = utils.sha3(b_tradeId)
+        const valueHex = '0x' + utils.toBN(b_amount).toString(16).padStart(64,'0') // make an hex that is good to sha3 in solidity uint256 -> 64 bytes
+        const lockAddr = b_sodium.address
+        const tokenAddr = b_token.address
+        const withdrawReceiver = b_Bob
+
+        //concat the arguments of sha3 in solidity (in the same way solidity does)
+        const joinedArgs = '0x' + [a_contract, b_tradeId].map(el=>el.slice(2)).join('')
+
+        const hashData = utils.sha3(joinedArgs)
+        console.log("Transaction data to be verified:\n", hashData)
+
+        // submit hashdata to IonLink
+        const leaf = joinedArgs // joined args need to be added to the random leafs of the tree
+        const testData6 = helpers.randomArr()
+        testData6[0] = leaf
+        console.log("Transaction leaf:\n", leaf)
+
+        console.log("Create more a new root:")
+        const tree6 = merkle.createMerkle(testData6)
+        const testData4 = helpers.randomArr()
+        const tree4 = merkle.createMerkle(testData4) // IonLink needs 2 roots min to update
+        const testData5 = helpers.randomArr()
+        const tree5 = merkle.createMerkle(testData5) // IonLink needs 2 roots min to update
+        const rootArr2 = [tree4[1],tree5[1],tree6[1]]
+        console.log("Random merkle tree:\n", rootArr2)
+        console.log("Test tree:\n", tree6[1])
+        console.log("Tree data:\n", testData6)
+
+        const nextBlock3 = await b_sodium.NextBlock()
+        console.log("Block number 3:\n", nextBlock3)
+
+        const receiptUpdate2 = await b_sodium.Update(nextBlock2,rootArr2)
+        console.log("Update Blockchain:")
+
+        const nextBlock4 = await b_sodium.NextBlock()
+        console.log("Block number 4:\n", nextBlock4)
+
+        console.log("Verify that rootArr2 is in the merkle tree:\n")
+
+        const blockNumber2 = nextBlock4 - (2 * groupSize)
+        console.log("Block number2:\n", blockNumber2)
+
+        const leafHash2 = merkle.merkleHash(leaf)
+        console.log("Verify testData6 is in merkletree:\n", testData6[0])
+        console.log("leaf hash2:\n", leafHash2)
+        const path2 = merkle.pathMerkle(testData6[0],tree6[0])
+        console.log("Merkle path:\n", path)
+        console.log("Comprising of:\n")
+        console.log("testData6[0]:\n", testData6[0])
+        console.log("tree6[0]:\n", tree6[0])
+
+        const valid2 = await b_sodium.Verify(blockNumber2,leafHash2,path2)
+        console.log("Verification result:\n", valid2)
+        console.log("Which was passed:")
+        console.log("BlockNumber:\n", blockNumber2)
+        console.log("leafHash2:\n", leafHash2)
+        console.log("path:\n", path2)
+        assert(valid2,'Sodium.verify() failed!')
+
 
     });
 

@@ -68,7 +68,7 @@ contract('IonLock', (accounts) => {
     //console.log('ionLink.address',ionLink.address)
     //console.log('ionLock.address',ionLock.address)
     //const receiptTansfer = await token.transfer(accounts[1],1)
-    const receiptTansfer1 = await token.transfer(ionLock.address,value)
+    const receiptTransfer1 = await token.transfer(ionLock.address,value)
 
     const ionMintEventObj = ionLock.IonMint()
     const ionTransferEventObj = ionLock.IonTransfer()
@@ -104,7 +104,7 @@ contract('IonLock', (accounts) => {
 
     const receiptMint = await token.mint(totalSupply)
 
-    const receiptTansfer1 = await token.transfer(ionLock.address,value)
+    const receiptTransfer1 = await token.transfer(ionLock.address,value)
 
     // get reference from events
     const ionMintEventObj = ionLock.IonMint()
@@ -179,7 +179,7 @@ contract('IonLock', (accounts) => {
 
     const receiptMint = await token.mint(totalSupply)
 
-    //const receiptTansfer1 = await token.transfer(ionLock.address,value)
+    //const receiptTransfer1 = await token.transfer(ionLock.address,value)
     const overloadedTransferAbi = {
       "constant": false,
       "inputs": [
@@ -193,8 +193,22 @@ contract('IonLock', (accounts) => {
       "stateMutability": "nonpayable",
       "type": "function"
     }
-    const transferMethodTransactionData = web3Abi.encodeFunctionCall( overloadedTransferAbi, [ ionLock.address,value,Web3Utils.toHex(rawRef) ]);
-    const receiptTansfer1 = await web3.eth.sendTransaction({from: owner, to: token.address, data: transferMethodTransactionData, value: 0});
+    const transferMethodTransactionData = web3Abi.encodeFunctionCall(
+      overloadedTransferAbi,
+      [
+        ionLock.address,
+        value,
+        Web3Utils.toHex(rawRef)
+      ]
+    );
+    const receiptTransfer1 = await web3.eth.sendTransaction(
+      {
+        from: owner,
+        to: token.address,
+        data: transferMethodTransactionData,
+        value: 0
+      }
+    );
 
     // get reference from events
     const ionMintEventObj = ionLock.IonMint()

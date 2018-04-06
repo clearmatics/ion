@@ -19,6 +19,16 @@ const sha256 = x =>
 
 const random32 = () => crypto.randomBytes(32)
 
+const randomHex = () => crypto.randomBytes(32).toString('hex');
+
+const randomArr = () => {
+  const result = []
+  const size =(Math.floor(Math.random() * 10) + 1);
+  for(let i = size; 0 < i; i-- )
+    result.push(randomHex())
+  return result
+}
+
 const isSha256Hash = hashStr => /^0x[0-9a-f]{64}$/i.test(hashStr)
 
 const newSecretHashPair = () => {
@@ -34,4 +44,4 @@ const sleep = ms => {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-module.exports = {bufToStr, newSecretHashPair, oneFinney, random32, sha256, sleep, txGas, txLoggedArgs}
+module.exports = {bufToStr, newSecretHashPair, oneFinney, random32, randomArr, randomHex, sha256, sleep, txGas, txLoggedArgs}
