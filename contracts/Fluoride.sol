@@ -66,7 +66,16 @@ contract Fluoride is ERC223ReceivingContract
 		m_sodium = sodium_address;
 	}
 
+  function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
+    bytes32 out;
 
+    for (uint i = 0; i < 32; i++) {
+      out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
+    }
+    return out;
+  }
+
+  event OnTokenTransfer(address _from, uint _value, bytes _data, bytes32 trade_id, string side, address owner);
 	function tokenFallback(address _from, uint _value, bytes _data)
 		public
 	{
@@ -74,15 +83,20 @@ contract Fluoride is ERC223ReceivingContract
 		bytes32 trade_id;
 		require( _data.length == 32 );
 
-		// TODO: get this nice assembly crap to function
-		/* assembly {
-			let ret := staticcall(3000, 4, add(_data, 32), 32, trade_id, 32)
-			switch ret case 0 { invalid }
-		} */
-		// Solution to the assembly stuff above for the meantime...
-		for (uint i = 0; i < 32; i++) {
-	    trade_id |= bytes32(_data[0 + i] & 0xFF) >> (i * 8);
-	  }
+    /*
+		assembly {
+			//let ret := staticcall(3000, 4, add(_data, 32), 32, trade_id, 32)
+			//switch ret case 0 { invalid }
+      //let x := mload(0x40)
+      //mstore(x,)
+      //trade_id := x
+			//let ret := staticcall(3000, 4, x, 32, trade_id, 32)
+			//switch ret case 0 { invalid }
+      //codecopy(trade_id,_data,32)
+      calldatacopy(trade_id,calldata(_data),32)
+		}
+    */
+    trade_id = bytesToBytes32(_data,0);
 
 		// Load exchange, must be in correct state
 		Data storage trade = m_exchanges[trade_id];
@@ -107,6 +121,7 @@ contract Fluoride is ERC223ReceivingContract
 		else if( state == State.StartedB ) {
 			trade.state = State.DepositedB;
 		}
+    OnTokenTransfer( _from, _value, _data, trade_id, "OUT",trade.owner);
 	}
 
 
@@ -241,6 +256,9 @@ contract Fluoride is ERC223ReceivingContract
 	}
 
 
+  // TODO: THE WITHDRAW FUNCTION IS NOT FINiSHED!
+  // IT DOES NOT  VERIFY IF ANY OF THE SIGNATURES WERE CREATED OR ANYTHING
+  // THE FIRST REQUIRE CHECKS IF A HAS STARTED, IT SHOULD CHECK IF A DEPOSITED
 	/**
 	* Withdraw by Bob on Alice's chain
 	*
@@ -261,7 +279,7 @@ contract Fluoride is ERC223ReceivingContract
 
 		require( m_sodium.Verify( block_no, uint256(expect_event), proof ) );
 
-		delete m_exchanges[trade_id];
+		//delete m_exchanges[trade_id]; // TODO: delete failing!
 
 		OnWithdraw(trade_id);
 

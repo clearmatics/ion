@@ -1,318 +1,274 @@
-'use strict';
-
-const BigNumber = web3.BigNumber;
-const utils = require('web3-utils');
+const web3Utils = require('web3-utils')
 const web3Abi = require('web3-eth-abi');
-const helpers = require('./helpers/utils.js')
-const merkle = require('./merkle')
 
-const should = require('chai')
-    .use(require('chai-as-promised'))
-    .use(require('chai-bignumber')(BigNumber))
-    .should();
+const merkle = require('./merkle');
 
-const assert = require('assert');
-
-// We need to have some sodium stuff so depploy this also
-const Sodium = artifacts.require("Sodium");
 const Token = artifacts.require("Token");
+const Sodium = artifacts.require("Sodium");
 const Fluoride = artifacts.require("Fluoride");
 
-
 contract('Fluoride', (accounts) => {
-    let a_sodium
-    let a_token
-    let a_fluoride
-    let b_sodium
-    let b_token
-    let b_fluoride
-    // Annoyingly two copies of each need to be deployed so they can interact...
-    beforeEach(async function() {
-  		a_sodium = await Sodium.new();
-      a_token = await Token.new();
-      a_fluoride = await Fluoride.new(a_sodium.address);
-  		b_sodium = await Sodium.new();
-      b_token = await Token.new();
-      b_fluoride = await Fluoride.new(b_sodium.address);
-    });
+  const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('')
+  const generateState = (expire,tokenAddr,amount) => web3Utils.sha3(joinHex([expire, tokenAddr, amount]))
 
-    const Alice = accounts[1]
-    const Bob = accounts[2]
-    const date = Math.floor(Date.now() / 1000);
+  it('startA startB', async () => {
+    const token = await Token.new();
+    const sodium = await Sodium.new();
+		const fluoride = await Fluoride.new(sodium.address);
 
+    const fluorideAddrA = fluoride.address
+    const fluorideAddrB = fluoride.address
 
-    it('Check that contracts have deployed correctly...', async () => {
-        console.log("  Sodium address chain a:", a_sodium.address);
-        console.log("  Fluoride address chain a:", a_fluoride.address);
-        console.log("  Token address chain a:", a_token.address);
-        console.log("  Sodium address chain b:", b_sodium.address);
-        console.log("  Fluoride address chain b:", b_fluoride.address);
-        console.log("  Token address chain b:", b_token.address);
-    });
+    const unixTimestamp = Math.round((new Date()).getTime() / 1000)
+    const expireHex = min => '0x' + web3Utils.toHex(unixTimestamp + min).slice(2).padStart(64,'0')
 
-    it("Perform Start_OnAbyA then Start_OnBbyB", async function()
-    {
-        // Setup the contract for Alice on A
-        const a_contract = a_fluoride.address
-        const a_expire = date + 60;
-        const token_a = a_token.address;
-        const a_amount = 100;
+    const expireA = expireHex(60) // need to add some proper time to here
+    const expireB = expireHex(60) // need to add some proper time to here
 
-        const a_state = utils.soliditySha3(a_expire, token_a, a_amount)
-        const a_hash = utils.soliditySha3(a_contract, a_state)
+    const tokenA = token.address
+    const tokenB = token.address
 
-        const a_sig = web3.eth.sign(Alice, a_hash)
+    const amountA = '0x' + web3Utils.toHex(100).slice(2).padStart(64,'0')
+    const amountB = '0x' + web3Utils.toHex(100).slice(2).padStart(64,'0')
 
-        // Setup the contract for Bob on B
-        const b_contract = b_fluoride.address
-        const b_expire = date + 60;
-        const token_b = b_token.address;
-        const b_amount = 100;
+    const addrA = accounts[0]
+    const addrB = accounts[1]
 
-        const b_state = utils.soliditySha3(b_expire, token_b, b_amount)
-        const b_hash = utils.soliditySha3(b_contract, b_state)
+    const stateA = generateState(expireA, tokenA, amountA)
+    const stateB = generateState(expireB, tokenB, amountB)
 
-        const b_sig = web3.eth.sign(Bob, b_hash)
+    const hashA = web3Utils.sha3(joinHex([fluorideAddrA,stateA]))
+    const hashB = web3Utils.sha3(joinHex([fluorideAddrB,stateB]))
 
-        const ab_hash = utils.soliditySha3(a_hash, Alice, b_hash)
-        const ab_sig = web3.eth.sign(Bob, ab_hash)
+    const sigA = web3.eth.sign(addrA,hashA)
 
-        const abc_hash = utils.soliditySha3(ab_hash, Bob)
-        const ac_sig = web3.eth.sign(Alice, abc_hash)
-        const bc_sig = web3.eth.sign(Alice, abc_hash)
+    const hashAB = web3Utils.sha3(joinHex([hashA,addrA,hashB]))
+    const sigB = web3.eth.sign(addrB,hashAB)
 
-        const txReceiptA = await a_fluoride.Start_OnAbyA(
-          a_contract,
-          a_expire,
-          token_a,
-          a_amount,
-          a_sig,
-          b_contract,
-          b_state,
-          ab_sig,
-          ac_sig,
-          {
-            from: Alice
-          }
-        )
-        let logArgs = helpers.txLoggedArgs(txReceiptA)
-        assert.equal(logArgs.a_addr, Alice)
-        assert.equal(logArgs.b_addr, Bob)
+    const hashABC = web3Utils.sha3(joinHex([hashAB,addrB]))
+    const sigC = web3.eth.sign(addrA,hashABC)
 
-        const txReceiptB = await b_fluoride.Start_OnBbyB(
-          a_contract,
-          a_state,
-          a_sig,
-          b_contract,
-          b_expire,
-          token_b,
-          b_amount,
-          ab_sig,
-          bc_sig,
-          {
-            from: Bob
-          }
-        )
-        logArgs = helpers.txLoggedArgs(txReceiptB)
-        assert.equal(logArgs.a_addr, Alice)
-        assert.equal(logArgs.b_addr, Bob)
-
-    });
+    assert.equal(hashABC,web3Utils.soliditySha3(hashAB,addrB),'hashing badly when compared with solidity')
 
 
-    it("Start_OnAbyA(): Deposit from Alice on blockchain A, then deposit",
-      async function()
-    {
-        // Mint some a_token and give some CCY to Alice
-        await a_token.mint(500)
-        await a_token.transfer(Alice, 250)
-        await b_token.mint(500)
-        await b_token.transfer(Bob, 250)
-        const initialBalance = await a_token.balanceOf(Alice)
-        const bobInitBalance = await b_token.balanceOf(Bob)
+    // the two start functions should be done on different chains?
+    const receiptStartOnAbyA = await fluoride.Start_OnAbyA(
+      fluorideAddrA, expireA, tokenA, amountA, sigA,
+      fluorideAddrB, stateB, sigB, sigC)
+    const tradeIdA = receiptStartOnAbyA.logs.find(l => l.event === 'OnDeposit').args.trade_id
 
-        // Setup the contract for Alice on A
-        const a_contract = a_fluoride.address
-        const a_expire = date + 60;
-        const token_a = a_token.address;
-        const a_amount = 100;
+    const receiptStartOnBbyB = await fluoride.Start_OnBbyB(
+      fluorideAddrA, stateA, sigA,
+      fluorideAddrB, expireB, tokenB, amountB, sigB, sigC)
+    const tradeIdB = receiptStartOnBbyB.logs.find(l => l.event === 'OnDeposit').args.trade_id
+    assert.equal(tradeIdA,tradeIdB,'tradeIds are different')
+  })
 
-        const a_state = utils.soliditySha3(a_expire, token_a, a_amount)
-        const a_hash = utils.soliditySha3(a_contract, a_state)
+  it('withdraw', async () => {
+    // ChainA A -PAY-> B
+    // ChainB B -PAY-> A
+    const tokenA = await Token.new();
+    const sodiumA = await Sodium.new();
+		const fluorideA = await Fluoride.new(sodiumA.address);
+    const tokenB = await Token.new();
+    const sodiumB = await Sodium.new();
+		const fluorideB = await Fluoride.new(sodiumB.address);
 
-        const a_sig = web3.eth.sign(Alice, a_hash)
+    const fluorideAddrA = fluorideA.address
+    const fluorideAddrB = fluorideB.address
 
-        // Setup the contract for Bob on B
-        const b_contract = b_fluoride.address
-        const b_expire = date + 60;
-        const token_b = b_token.address;
-        const b_amount = 100;
+    const unixTimestamp = Math.round((new Date()).getTime() / 1000)
 
-        const b_state = utils.soliditySha3(b_expire, token_b, b_amount)
-        const b_hash = utils.soliditySha3(b_contract, b_state)
+    const expireA = '0x' + web3Utils.toHex(unixTimestamp + 60).slice(2).padStart(64,'0') // need to add some proper time to here
+    const expireB = '0x' + web3Utils.toHex(unixTimestamp + 60).slice(2).padStart(64,'0') // need to add some proper time to here
 
-        const b_sig = web3.eth.sign(Bob, b_hash)
+    const tokenAddrA = tokenA.address
+    const tokenAddrB = tokenB.address
 
-        const ab_hash = utils.soliditySha3(a_hash, Alice, b_hash)
-        const ab_sig = web3.eth.sign(Bob, ab_hash)
+    const intAmountA = 123
+    const intAmountB = 93
 
-        const abc_hash = utils.soliditySha3(ab_hash, Bob)
-        const ac_sig = web3.eth.sign(Alice, abc_hash)
-        const bc_sig = web3.eth.sign(Alice, abc_hash)
+    const amountA = '0x' + web3Utils.toHex(intAmountA).slice(2).padStart(64,'0')
+    const amountB = '0x' + web3Utils.toHex(intAmountB).slice(2).padStart(64,'0')
 
-        const txReceiptA = await a_fluoride.Start_OnAbyA(
-          a_contract,
-          a_expire,
-          token_a,
-          a_amount,
-          a_sig,
-          b_contract,
-          b_state,
-          ab_sig,
-          ac_sig,
-          {
-            from: Alice
-          }
-        )
-        let logArgs = helpers.txLoggedArgs(txReceiptA)
-        const a_tradeId = logArgs.trade_id
-        assert.equal(logArgs.a_addr, Alice)
-        assert.equal(logArgs.b_addr, Bob)
+    const addrA = accounts[1]
+    const addrB = accounts[2]
 
-        const txReceiptB = await b_fluoride.Start_OnBbyB(
-          a_contract,
-          a_state,
-          a_sig,
-          b_contract,
-          b_expire,
-          token_b,
-          b_amount,
-          ab_sig,
-          bc_sig,
-          {
-            from: Bob
-          }
-        )
-        logArgs = helpers.txLoggedArgs(txReceiptB)
-        const b_tradeId = logArgs.trade_id
-        assert.equal(logArgs.a_addr, Alice)
-        assert.equal(logArgs.b_addr, Bob)
+    const stateA = generateState(expireA, tokenAddrA, amountA)
+    const stateB = generateState(expireB, tokenAddrB, amountB)
 
+    const hashA = web3Utils.sha3(joinHex([fluorideAddrA,stateA]))
+    const hashB = web3Utils.sha3(joinHex([fluorideAddrB,stateB]))
 
-        // This allows us to use the overloaded transfer from Token.sol
-        const overloadedTransferAbi = {
-          "constant": false,
-          "inputs": [
-            { "name": "_to", "type": "address" },
-            { "name": "_value", "type": "uint256" },
-            { "name": "_data", "type": "bytes" }
-          ],
-          "name": "transfer",
-          "outputs": [],
-          "payable": false,
-          "stateMutability": "nonpayable",
-          "type": "function"
-        }
+    const sigA = web3.eth.sign(addrA,hashA)
 
-        // Transfer funds to appropriate escrow on chain A
-        const tokenTxReceipt = web3Abi.encodeFunctionCall(
-          overloadedTransferAbi,
-          [
-            a_fluoride.address,
-            a_amount,
-            a_tradeId
-          ]
-        );
-        const transferReceipt = await web3.eth.sendTransaction(
-           {
-             from: Alice,
-             to: a_token.address,
-             data: tokenTxReceipt,
-             value: 0
-          }
-        );
-        const depositBalance = await a_token.balanceOf(Alice)
-        assert.equal(initialBalance - a_amount, depositBalance)
+    const hashAB = web3Utils.sha3(joinHex([hashA,addrA,hashB]))
+    const sigB = web3.eth.sign(addrB,hashAB)
 
-        // Transfer funds to appropriate escrow on chain B
-        const b_tokenTxReceipt = web3Abi.encodeFunctionCall(
-          overloadedTransferAbi,
-          [
-            b_fluoride.address,
-            b_amount,
-            b_tradeId
-          ]
-        );
-        const b_transferReceipt = await web3.eth.sendTransaction(
-          {
-            from: Bob,
-            to: b_token.address,
-            data: b_tokenTxReceipt,
-            value: 0
-          }
-        );
-        const bobDepBalance = await b_token.balanceOf(Bob)
-        assert.equal(initialBalance - b_amount, bobDepBalance)
+    const hashABC = web3Utils.sha3(joinHex([hashAB,addrB]))
+    const sigC = web3.eth.sign(addrA,hashABC)
 
+    // the two start functions should be done on different chains?
+    const receiptStartOnAbyA = await fluorideA.Start_OnAbyA(
+      fluorideAddrA, expireA, tokenAddrA, amountA, sigA,
+      fluorideAddrB, stateB, sigB, sigC, { from: addrA })
 
-        // Perform updates to sodium
-        const expectEventA = helpers.joinHex([b_contract/*, topic*/,b_tradeId])
-        const expectEventB = helpers.joinHex([a_contract/*, topic*/,a_tradeId])
+    const receiptStartOnBbyB = await fluorideB.Start_OnBbyB(
+      fluorideAddrA, stateA, sigA,
+      fluorideAddrB, expireB, tokenAddrB, amountB, sigB, sigC, { from: addrB })
+    const tradeId = receiptStartOnAbyA.logs.find(l => l.event === 'OnDeposit').args.trade_id
 
-        // First for blockchain A
-        const testDataA = [expectEventA,"2","3","4","5","6","7"]
-        const treeA = merkle.createMerkle(testDataA)
-        const pathA = testDataA.map(value => merkle.pathMerkle(value,treeA[0]))
+    // mint and transfer token
+    const tokenOwner = accounts[0]
+    const totalSupply = 1000
 
-        const leafHashA = merkle.merkleHash(testDataA[0])
-        const rootArgA = treeA[1]
+    const receiptMintA = await tokenA.mint(totalSupply,{ from: tokenOwner })
+    const receiptTansferA = await tokenA.transfer(addrA,totalSupply/2,{ from: tokenOwner })
+    const receiptMintB = await tokenB.mint(totalSupply,{ from: tokenOwner })
+    const receiptTansferB = await tokenB.transfer(addrB,totalSupply/2,{ from: tokenOwner })
 
-        const a_nextBlock = await a_sodium.NextBlock()
-        const a_receiptUpdate = await a_sodium.Update(a_nextBlock, [rootArgA])
-        const validA = await a_sodium.Verify(a_nextBlock, leafHashA, pathA[0])
-        assert(validA,'a_sodium.verify() failed!')
+    const tokenABalA0 = await tokenA.balanceOf(addrA)
+    const tokenABalB0 = await tokenA.balanceOf(addrB)
+    const tokenBBalA0 = await tokenB.balanceOf(addrA)
+    const tokenBBalB0 = await tokenB.balanceOf(addrB)
 
-        // First for blockchain B
-        const testDataB = [expectEventB,"2","3","4","5","6","7"]
-        const treeB = merkle.createMerkle(testDataB)
-        const pathB = testDataB.map(value => merkle.pathMerkle(value,treeB[0]))
+    //transfer value to contract on each chain
+    const overloadedTransferAbi = {
+      "constant": false,
+      "inputs": [
+        { "name": "_to", "type": "address" },
+        { "name": "_value", "type": "uint256" },
+        { "name": "_data", "type": "bytes" }
+      ],
+      "name": "transfer",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+    const transferMethodTransactionDataA = web3Abi
+      .encodeFunctionCall( overloadedTransferAbi, [ fluorideAddrA,intAmountA, tradeId ]);
+    const transferMethodTransactionDataB = web3Abi
+      .encodeFunctionCall( overloadedTransferAbi, [ fluorideAddrB,intAmountB, tradeId ]);
+    const receiptPayA = await web3.eth
+      .sendTransaction({from: addrA, to: tokenA.address, data: transferMethodTransactionDataA, value: 0});
+    const receiptPayB = await web3.eth
+      .sendTransaction({from: addrB, to: tokenB.address, data: transferMethodTransactionDataB, value: 0});
 
-        const leafHashB = merkle.merkleHash(testDataB[0])
-        const rootBrgB = treeB[1]
+    const tokenABalA1 = await tokenA.balanceOf(addrA)
+    const tokenABalB1 = await tokenA.balanceOf(addrB)
+    const tokenBBalA1 = await tokenB.balanceOf(addrA)
+    const tokenBBalB1 = await tokenB.balanceOf(addrB)
 
-        const b_nextBlock = await b_sodium.NextBlock()
-        const receiptUpdateB = await b_sodium.Update(b_nextBlock,[rootBrgB])
-        const validB = await b_sodium.Verify(b_nextBlock,leafHashB,pathB[0])
-        assert(validB,'b_sodium.verify() failed!')
+    // UPDATE SODIUM (this should be done by event relay/lithium)
+    const expectEventA = joinHex([fluorideAddrB/*, topic*/,tradeId])
+    const expectEventB = joinHex([fluorideAddrA/*, topic*/,tradeId])
 
-        // Now perform the withdrawal of escrowed funds
-        const a_receiptWithDraw = await a_fluoride.Withdraw(
-          a_tradeId,
-          a_nextBlock,
-          pathA[0],
-          {
-            from: Bob
-          }
-        )
-        // const b_receiptWithDraw = await b_fluoride.Withdraw(
-        //   b_tradeId,
-        //   b_nextBlock,
-        //   pathB[0],
-        //   {
-        //     from: Alice
-        //   }
-        // )
-        //
-        // const a_balanceWithdrawA = await a_token.balanceOf(Alice)
-        // const a_balanceWithdrawB = await a_token.balanceOf(Bob)
-        // const b_balanceWithdrawA = await b_token.balanceOf(Alice)
-        // const b_balanceWithdrawB = await b_token.balanceOf(Bob)
-        // console.log(a_balanceWithdrawA)
-        // console.log(a_balanceWithdrawB)
-        // console.log(b_balanceWithdrawA)
-        // console.log(b_balanceWithdrawB)
+    const testDataA = [expectEventA,"2","3","4","5","6","7"]
+    const treeA = merkle.createMerkle(testDataA)
+    const pathA = testDataA.map(value => merkle.pathMerkle(value,treeA[0]))
+
+    const leafHashA = merkle.merkleHash(testDataA[0])
+    const rootArgA = treeA[1]
+
+    const nextBlockA = await sodiumA.NextBlock()
+    const receiptUpdateA = await sodiumA.Update(nextBlockA,[rootArgA])
+    const validA = await sodiumA.Verify(nextBlockA,leafHashA,pathA[0])
+    assert(validA,'SodiumA.verify() failed!')
+
+    const testDataB = [expectEventB,"2","3","4","5","6","7"]
+    const treeB = merkle.createMerkle(testDataB)
+    const pathB = testDataB.map(value => merkle.pathMerkle(value,treeB[0]))
+
+    const leafHashB = merkle.merkleHash(testDataB[0])
+    const rootArgB = treeB[1]
+
+    const nextBlockB = await sodiumB.NextBlock()
+    const receiptUpdateB = await sodiumB.Update(nextBlockB,[rootArgB])
+    const validB = await sodiumB.Verify(nextBlockB,leafHashB,pathB[0])
+    assert(validB,'SodiumB.verify() failed!')
+
+    // WITHDRAW VALUE
+    const receiptWithDrawA = await fluorideA.Withdraw(tradeId, nextBlockA, pathA[0], { from: addrB })
+    const receiptWithDrawB = await fluorideB.Withdraw(tradeId, nextBlockB, pathB[0], { from: addrA })
+
+    const tokenABalA2 = await tokenA.balanceOf(addrA)
+    const tokenABalB2 = await tokenA.balanceOf(addrB)
+    const tokenBBalA2 = await tokenB.balanceOf(addrA)
+    const tokenBBalB2 = await tokenB.balanceOf(addrB)
+
+    // asserts about the state of the tokens
+
+    /*
+    console.log('TokenA Balance A',
+      'Initial:',tokenABalA0.toString(10),
+      'Deposit:',tokenABalA1.toString(10),
+      'Withdraw:',tokenABalA2.toString(10))
+    console.log('TokenA Balance B',
+      'Initial:',tokenABalB0.toString(10),
+      'Deposit:',tokenABalB1.toString(10),
+      'Withdraw:',tokenABalB2.toString(10))
+    console.log('TokenB Balance A',
+      'Initial:',tokenBBalA0.toString(10),
+      'Deposit:',tokenBBalA1.toString(10),
+      'Withdraw:',tokenBBalA2.toString(10))
+    console.log('TokenB Balance B',
+      'Initial:',tokenBBalB0.toString(10),
+      'Deposit:',tokenBBalB1.toString(10),
+      'Withdraw:',tokenBBalB2.toString(10))
+      */
+
+    assert(tokenABalA0 == totalSupply/2)
+    assert(tokenBBalA0 == 0)
+    assert(tokenABalB0 == 0)
+    assert(tokenBBalB0 == totalSupply/2)
+
+    assert(tokenABalA1 == ((totalSupply/2) - intAmountA))
+    assert(tokenBBalA1 == 0)
+    assert(tokenABalB1 == 0)
+    assert(tokenBBalB1 == ((totalSupply/2) - intAmountB))
+
+    assert(tokenABalA2 == ((totalSupply/2) - intAmountA))
+    assert(tokenBBalA2 == intAmountB)
+    assert(tokenABalB2 == intAmountA)
+    assert(tokenBBalB2 == ((totalSupply/2) - intAmountB))
 
 
-    });
+    /*
+    console.log('tokenOwner:',tokenOwner)
+    console.log('addrA:',addrA)
+    console.log('addrB:',addrB)
+    console.log('addrA:',addrA)
+    console.log('tokenA:',tokenA)
+    console.log('amountA:',amountA)
+    console.log('expireA:',expireA)
+    console.log('stateA:',stateA)
+    console.log('hashA:',hashA)
+    console.log('hashB:',hashB)
+    console.log('hashAB:',hashAB)
+    console.log('hashABC:',hashABC)
+    */
+    //fluoride.Start_OnBbyB(fluorideAddrB, expireB, tokenB, amountB, sigB, fluorideAddrA, stateB, sigA, sigC)
 
+    // fluoride.Start_OnAbyA(
+    //     address a_contract, uint a_expire, address a_token, uint256 a_amount, bytes a_sig,
+    //     address b_contract, bytes32 b_state, bytes b_sig,
+    //     bytes c_sig )
+    //     a_hash = keccak256(a_contract, keccak256(a_expire, a_token, a_amount))
+    //     b_hash = keccak256(b_contract, b_state)
+    //
+    // fluoride.Start_OnBbyB(
+    //     address a_contract, bytes32 a_state, bytes a_sig,
+    //     address b_contract, uint256 b_expire, address b_token, uint256 b_amount, bytes b_sig,
+    //     bytes c_sig )
+		//     a_hash = keccak256(a_contract, a_state),
+		//     b_hash = keccak256(b_contract, keccak256(b_expire, b_token, b_amount)),
+
+    //const tradeAgreeResult = await fluoride.VerifyTradeAgreement(hashA,sigA,hashB,sigB,sigC)
+
+    // assert.fail('reached the END!!! this is here to check EVENTS')
+  })
+
+  // TODO: TEST CANCEL
+  // TODO: TEST REFUND
 });
