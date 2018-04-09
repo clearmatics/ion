@@ -16,6 +16,16 @@ module.exports = {
       network_id: "*", // Match any network id
       gas: 0xFFFFFFF,
       gasprice: 0x1
+    },
+    testnet1: {
+      host: "localhost",
+      port: 8546,
+      network_id: "*" // Match any network id
+    },
+    testnet2: {
+      host: "localhost",
+      port: 8547,
+      network_id: "*" // Match any network id
     }
   },
   mocha: {

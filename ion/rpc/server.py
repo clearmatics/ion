@@ -6,16 +6,16 @@ import gevent.monkey
 gevent.monkey.patch_all()
 
 import click
-from gevent.pywsgi import WSGIServer
-from flask import Flask, request, jsonify 
+from flask import Flask, request, jsonify
 from jsonrpc2 import JsonRpc
 
 from ..ethrpc import EthJsonRpc
 from ..args import arg_ethrpc
 from ..utils import marshal, unmarshal, require
-from ..plasma.chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path, block_genesis
+from ..plasma.chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path, block_genesis, find_block, find_next_block, BlockNotFoundException
 from ..plasma.payment import payments_graphviz, SignedPayment
 from ..plasma.txpool import TxPool
+from .api import PlasmaIonRESTAPI
 
 
 class IonRpcServer(object):
@@ -36,9 +36,8 @@ class IonRpcServer(object):
     def _new_pool(self, block_hash=None):
         block_hash = block_hash or chaindata_latest_get()
         if block_hash is None:
-            print("No plasma blocks exist yet. Create genesis block.")
+            print("No plasma blocks exist yet. Creating genesis block.")
             block_hash = block_genesis()
-            print("Syncing genesis block...")
             self.ionlink_sync()
         self._pool = TxPool(block_hash)
 
@@ -48,15 +47,36 @@ class IonRpcServer(object):
             return False
         ion_latest_block = ion.LatestBlock()
 
-        my_block = block_load(chaindata_latest_get())
-        prev_hash = my_block.prev.encode('hex')
-        prev_hash = long(prev_hash, 16)
+        # plasma_latest_block = block_load(chaindata_latest_get())
+        # working_block = block_load(chaindata_get_next_block_from(ion_latest_block))
+        # print(working_block)
+        # print(plasma_latest_block)
 
+        # latest_path = chaindata_path(ion_latest_block, 'block')
+
+        synced_blocks = 0
         if ion_latest_block != 0:
-            if ion_latest_block != prev_hash:
-                raise BlockMismatchException("Block Mismatch")
+            try:
+                print("Finding last ion block in plasma chain")
+                ion_block = find_block(format(ion_latest_block, "02x"))
+                print("LAST ION BLOCK ", ion_block.hash.encode('hex'))
+                print("Finding next block in plasma chain")
+                block_to_sync = find_next_block(ion_block.hash)
+                while block_to_sync:
+                    print("Syncing block root...... 0x",block_to_sync.root.encode('hex'))
+                    ion.Update(block_to_sync.root)
+                    synced_blocks += 1
+                    block_to_sync = find_next_block(block_to_sync.hash)
+            except BlockNotFoundException:
+                print("No blocks left to sync")
 
-        return ion.Update(my_block.root)
+        else:
+            print("Syncing Genesis Block")
+            latest_plasma_block = block_load(chaindata_latest_get())
+            ion.Update(latest_plasma_block.root)
+            synced_blocks += 1
+
+        return synced_blocks > 0
 
     def ionlink_fetch_tree(self):
         ion = self._ionlink
@@ -66,14 +86,13 @@ class IonRpcServer(object):
 
         blocks = {'latest': format(ion_latest_block, "02x")}
 
-        if ion_latest_block != 0:
-            while ion_latest_block != 0:
-                ion_block_root = ion.GetRoot(ion_latest_block)
-                ion_block_prev = ion.GetPrevious(ion_latest_block)
+        while ion_latest_block != 0:
+            ion_block_root = ion.GetRoot(ion_latest_block)
+            ion_block_prev = ion.GetPrevious(ion_latest_block)
 
-                blocks[format(ion_latest_block, "02x")] = {'root': format(ion_block_root, "02x"), 'prev': format(ion_block_prev, "02x")}
+            blocks[format(ion_latest_block, "02x")] = {'root': format(ion_block_root, "02x"), 'prev': format(ion_block_prev, "02x")}
 
-                ion_latest_block = ion_block_prev
+            ion_latest_block = ion_block_prev
 
         return blocks
 
@@ -120,7 +139,7 @@ class IonRpcServer(object):
         balances = balances_load(prev_hash)
         pruned_payments = self._pool.prune(balances)
         block = blockchain_apply(prev_hash, pruned_payments)
-        self.ionlink_sync()
+        # self.ionlink_sync()
         self._new_pool(block.hash)
         return block.marshal()
 
@@ -153,9 +172,9 @@ class BlockMismatchException(Exception):
 @click.option('--ion-rpc', default='127.0.0.1:8545', help='Ethereum JSON-RPC HTTP endpoint', callback=arg_ethrpc)
 @click.option('--ion-account', help='Ethereum account address')
 @click.option('--ion-contract', help='IonLink contract address')
-@click.option('--listen', help='Listen address, default: any', default='')
+@click.option('--host', help='REST host address, default: any', default='')
 @click.option('--port', help='HTTP server port', default=5000, type=int)
-def server(ion_rpc, ion_account, ion_contract, listen, port):
+def server(ion_rpc, ion_account, ion_contract, host, port):
     """
     RPC server for Ion.
 
@@ -172,9 +191,10 @@ def server(ion_rpc, ion_account, ion_contract, listen, port):
         ionlink = ion_rpc.proxy("abi/IonLink.abi", ion_contract, ion_account)
 
     server = IonRpcServer(ionlink)
-    gevent_server = WSGIServer((listen, port), server._webapp)
+
+    restAPI = PlasmaIonRESTAPI(server, host, port)
     try:
-        gevent_server.serve_forever()
+        restAPI.serve_endpoints()
     except KeyboardInterrupt:
         pass
     return 0
