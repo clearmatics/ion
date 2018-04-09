@@ -19,7 +19,7 @@ const Token = artifacts.require("Token");
 const Fluoride = artifacts.require("Fluoride");
 
 
-contract.only('Fluoride', (accounts) => {
+contract('Fluoride', (accounts) => {
     let a_sodium
     let a_token
     let a_fluoride
@@ -120,7 +120,7 @@ contract.only('Fluoride', (accounts) => {
     });
 
 
-    it.only("Start_OnAbyA(): Deposit from Alice on blockchain A, then deposit",
+    it("Start_OnAbyA(): Deposit from Alice on blockchain A, then deposit",
       async function()
     {
         // Mint some a_token and give some CCY to Alice
