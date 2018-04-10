@@ -268,7 +268,7 @@ contract('IonLock', (accounts) => {
     assert.equal(balanceReceiver,value, 'receiver balance wrong!')
   })
 
-  it.only('withdraw different chains with reference', async () => {
+  it('withdraw different chains with reference', async () => {
     const token = await Token.new();
     const ionLink = await IonLink.new(0);
 		const ionLock = await IonLock.new(token.address, ionLink.address);
