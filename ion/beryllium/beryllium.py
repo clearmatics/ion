@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+
+'''
+
+Beryllium: Merkle root verification, notarisation and relay
+
+Receives merkle roots from Lithium, verifies the merkle tree and sends notarised information to Sodium.
+
+
+'''
+
 from __future__ import print_function
 
 import gevent.monkey
@@ -13,15 +23,95 @@ from ..ethrpc import EthJsonRpc
 from ..args import arg_ethrpc
 from ..utils import marshal, unmarshal, require
 from ion.beryllium.plasma.chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path, block_genesis, find_block, find_next_block, BlockNotFoundException
-from ion.beryllium.plasma.payment import payments_graphviz, SignedPayment
-from ion.beryllium.plasma.txpool import TxPool
-from ion.beryllium.api import PlasmaIonRESTAPI
+from ion.beryllium.plasma import payments_graphviz, SignedPayment
+from ion.beryllium.plasma import TxPool
+from .api import PlasmaIonRESTAPI
 
+class Beryllium(object):
+    def __init__(self, ionlink=None):
+        self.ionRpc = IonRpcServer(ionlink)
+        self.plasma = PlasmaChain()
+
+
+    def submit_roots(self, lithium_roots):
+        for root in lithium_roots:
+            # TODO: Submit entire tree instead of just roots to plasma
+            pass
+
+
+class PlasmaChain(object):
+    def __init__(self):
+        self._new_pool()
+
+    def _new_pool(self, block_hash=None):
+        block_hash = block_hash or chaindata_latest_get()
+        if block_hash is None:
+            print("No plasma blocks exist yet. Creating genesis block.")
+            block_hash = block_genesis()
+            self.ionlink_sync()
+        self._pool = TxPool(block_hash)
+
+    def graph(self):
+        g = payments_graphviz(self._pool.payments)
+        g.render(chaindata_path('txpool', 'graphviz'))
+        return True
+
+    def block_get(self, block_no):
+        """Retrieve information about a specific block
+        :rtype: .model.Block
+        """
+        return block_load(block_no).marshal()
+
+    def block_get_latest(self):
+        """Lookup the latest block number, perform `block_get` on it"""
+        latest = chaindata_latest_get()
+        require( latest is not None, "No latest block" )
+        return self.block_get(latest)
+
+    def block_hash(self):
+        return marshal(self._pool.target)
+
+    def balance(self, currency, holder, block_hash=None):
+        currency = unmarshal(currency)
+        holder = unmarshal(holder)
+        if block_hash is None:
+            block_hash = chaindata_latest_get()
+        # XXX: this is slow, loads whole balances dict!
+        balances = balances_load(block_hash)
+        require( currency in balances, "Unknown currency" )
+        return balances[currency].get(holder, 0)
+
+    def block_commit(self):
+        """Whatever is in the payment list, commit it to a block"""
+        # then call `blockchain_apply` on the payments
+        prev_hash = chaindata_latest_get()
+        balances = balances_load(prev_hash)
+        pruned_payments = self._pool.prune(balances)
+        block = blockchain_apply(prev_hash, pruned_payments)
+        # self.ionlink_sync()
+        self._new_pool(block.hash)
+        return block.marshal()
+
+    def payment_submit(self, sp):
+        """Submit a payment, for inclusion in the next block"""
+        return self._pool.add(SignedPayment.unmarshal(sp))
+
+    def payment_pending(self, ref):
+        return self._pool.pending(unmarshal(ref))
+
+    def payment_cancel(self, ref):
+        # TODO: require signature from owner to cancel
+        return self._pool.cancel(unmarshal(ref))
+
+    def payment_confirmed(self, block_no, ref):
+        """Was a given payment included in the block"""
+        ref = unmarshal(ref)
+        signed_payments = payments_load(block_no)
+        return any([sp.p.r == ref for sp in signed_payments])
 
 class IonRpcServer(object):
     def __init__(self, ionlink=None):
         self._ionlink = ionlink
-        self._new_pool()
         self._webapp_init()
 
     def _webapp_init(self):
@@ -32,14 +122,6 @@ class IonRpcServer(object):
             for name in dir(self)
             if name[0] != '_'
         })
-
-    def _new_pool(self, block_hash=None):
-        block_hash = block_hash or chaindata_latest_get()
-        if block_hash is None:
-            print("No plasma blocks exist yet. Creating genesis block.")
-            block_hash = block_genesis()
-            self.ionlink_sync()
-        self._pool = TxPool(block_hash)
 
     def ionlink_sync(self):
         ion = self._ionlink
@@ -102,64 +184,6 @@ class IonRpcServer(object):
         print("Response is", response)
         return jsonify(response)
 
-    def graph(self):
-        g = payments_graphviz(self._pool.payments)
-        g.render(chaindata_path('txpool', 'graphviz'))
-        return True
-
-    def block_get(self, block_no):
-        """Retrieve information about a specific block
-        :rtype: .model.Block
-        """
-        return block_load(block_no).marshal()
-
-    def block_get_latest(self):
-        """Lookup the latest block number, perform `block_get` on it"""
-        latest = chaindata_latest_get()
-        require( latest is not None, "No latest block" )
-        return self.block_get(latest)
-
-    def block_hash(self):
-        return marshal(self._pool.target)
-
-    def balance(self, currency, holder, block_hash=None):
-        currency = unmarshal(currency)
-        holder = unmarshal(holder)
-        if block_hash is None:
-            block_hash = chaindata_latest_get()
-        # XXX: this is slow, loads whole balances dict!
-        balances = balances_load(block_hash)
-        require( currency in balances, "Unknown currency" )
-        return balances[currency].get(holder, 0)
-
-    def block_commit(self):
-        """Whatever is in the payment list, commit it to a block"""
-        # then call `blockchain_apply` on the payments
-        prev_hash = chaindata_latest_get()
-        balances = balances_load(prev_hash)
-        pruned_payments = self._pool.prune(balances)
-        block = blockchain_apply(prev_hash, pruned_payments)
-        # self.ionlink_sync()
-        self._new_pool(block.hash)
-        return block.marshal()
-
-    def payment_submit(self, sp):
-        """Submit a payment, for inclusion in the next block"""
-        return self._pool.add(SignedPayment.unmarshal(sp))
-
-    def payment_pending(self, ref):
-        return self._pool.pending(unmarshal(ref))
-
-    def payment_cancel(self, ref):
-        # TODO: require signature from owner to cancel
-        return self._pool.cancel(unmarshal(ref))
-
-    def payment_confirmed(self, block_no, ref):
-        """Was a given payment included in the block"""
-        ref = unmarshal(ref)
-        signed_payments = payments_load(block_no)
-        return any([sp.p.r == ref for sp in signed_payments])
-
 
 class BlockMismatchException(Exception):
     pass
@@ -176,7 +200,8 @@ class BlockMismatchException(Exception):
 @click.option('--port', help='HTTP server port', default=5000, type=int)
 def server(ion_rpc, ion_account, ion_contract, host, port):
     """
-    RPC server for Ion.
+    Beryllium service receiving new roots from Lithium, committing to plasma chain and propagating to secondary
+    chain via RPC.
 
     :type ion_rpc: EthJsonRpc
     """

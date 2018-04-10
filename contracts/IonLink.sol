@@ -14,7 +14,7 @@ contract IonLink is IonLinkInterface
 
 	mapping(uint256 => IonBlock) internal m_blocks;
 
-	uint256 LatestBlock;
+	uint256 public LatestBlock;
 
 	address Owner;
 
@@ -40,8 +40,6 @@ contract IonLink is IonLinkInterface
 	    internal view returns (IonBlock storage)
 	{
 	    IonBlock storage blk = m_blocks[block_id];
-
-	    require( blk.root != 0 );
 
 	    return blk;
 	}
@@ -73,35 +71,60 @@ contract IonLink is IonLinkInterface
 	    return LatestBlock;
 	}
 
-    /**
-    * Supplies a sequence of merkle roots which create a hash-chain
-    *
-    *   hash = H(hash, root)
-    */
+	/**
+	* Supplies a sequence of merkle roots which create a hash-chain
+	*
+	*   hash = H(hash, root)
+	*/
 	function Update( uint256[] in_state )
 		public
 	{
-	    require( in_state.length > 1 );
+		require( in_state.length > 1 );
 
 		uint256 prev_hash = LatestBlock;
 
 		for( uint256 i = 0; i < in_state.length; i++ )
 		{
-		    uint256 block_hash = uint256(keccak256(prev_hash, in_state[i]));
+			uint256 block_hash = uint256(keccak256(prev_hash, in_state[i]));
 
-		    IonBlock storage blk = m_blocks[block_hash];//GetBlock(block_hash);
+			IonBlock storage blk = m_blocks[block_hash];//GetBlock(block_hash);
 
-		    blk.root = in_state[i];
+			blk.root = in_state[i];
 
-		    // Record state at time of block creation
-		    blk.prev = prev_hash;
-		    blk.time = block.timestamp;
+			// Record state at time of block creation
+			blk.prev = prev_hash;
+			blk.time = block.timestamp;
 
-		    prev_hash = block_hash;
+			prev_hash = block_hash;
 		}
 
 		LatestBlock = prev_hash;
 	}
+
+	/* function Update( uint256 _new_block_root )
+		public
+	{
+		require( msg.sender == Owner);
+
+		uint256 prev_hash = LatestBlock;
+		uint256 new_block_hash;
+
+		if (prev_hash != 0) {
+			new_block_hash = uint256(keccak256(prev_hash, _new_block_root));
+		} else {
+			new_block_hash = uint256(keccak256(_new_block_root));
+		}
+
+		IonBlock storage blk = GetBlock(new_block_hash);
+
+		blk.root = _new_block_root;
+
+		// Record state at time of block creation
+		blk.prev = prev_hash;
+		blk.time = block.timestamp;
+
+		LatestBlock = new_block_hash;
+	} */
 
 
 	function Verify( uint256 block_id, uint256 leaf_hash, uint256[] proof )

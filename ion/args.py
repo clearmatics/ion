@@ -43,4 +43,6 @@ def arg_ethrpc(ctx, param, value):
     port = int(port)
     require( port > 0 )
     require( port < 0xFFFF )
+    if port == 443:
+        return EthJsonRpc(ip, port, True)
     return EthJsonRpc(ip, port)

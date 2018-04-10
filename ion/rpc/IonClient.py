@@ -3,8 +3,8 @@ import os
 import pyjsonrpc
 from ethereum.utils import privtoaddr
 
-from ..plasma.model import Block
-from ..plasma.payment import dependency_hash, Payment, SignedPayment
+from ion.beryllium.plasma.model import Block
+from ion.beryllium.plasma.payment import dependency_hash, Payment, SignedPayment
 from ..utils import unmarshal, marshal
 
 

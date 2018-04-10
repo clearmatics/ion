@@ -3,7 +3,7 @@
 import os
 from flask import Flask, request, jsonify
 
-from .IonClient import IonClient
+from ion.rpc.IonClient import IonClient
 
 
 class PlasmaIonRESTAPI(object):

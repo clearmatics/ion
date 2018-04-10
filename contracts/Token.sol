@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.18;
 
 import "./ERC223Compatible.sol";
 import './SafeMath.sol';
@@ -38,6 +38,13 @@ contract Token is ERC223
         totalSupply = totalSupply.sub(_value);
     }
 
+    function metadataTransfer(address _to, uint256 _value, bytes _data) public {
+        transfer(_to, _value, _data);
+    }
+
+    function rawTransfer(address _to, uint256 _value) public {
+        transfer(_to, _value);
+    }
 
     /**
      * @dev Transfer the specified amount of tokens to the specified address.

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
+
 import random
 
-from .utils import zpad, int_to_big_endian, bit_clear, bit_test, bit_set, bytes_to_int
 from .crypto import keccak_256
+from .utils import zpad, int_to_big_endian, bit_clear, bit_test, bit_set, bytes_to_int
 
 
 def serialize(v):

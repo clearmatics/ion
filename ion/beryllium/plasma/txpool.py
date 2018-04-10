@@ -22,9 +22,9 @@ class TxPool(object):
     # TODO: are all balances above zero?
     # do { prune() } while ( ! balanced() );
 
-    def add(self, signed_payment):
+    def add(self, lithium_root):
         """
-        :type signed_payment: SignedPayment
+        :type lithium_root: SignedPayment
         """
         if not signed_payment.verify(self._target):
             raise RuntimeError("Invalid payment signature")
