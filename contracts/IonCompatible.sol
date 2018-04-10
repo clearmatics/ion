@@ -10,8 +10,7 @@ contract IonLinkInterface
 
 contract IonCompatible
 {
-    event IonTransfer(address indexed _recipient, address _currency, uint256 value, bytes32 indexed ref, bytes indexed data);
-    /* event IonTransfer(address indexed _recipient, address _currency, uint256 value, bytes32 indexed ref); */
+    event IonTransfer(address indexed _recipient, address _currency, uint256 value, bytes32 indexed ref, bytes data);
 
     event IonMint(uint256 value, bytes32 indexed ref);
 
