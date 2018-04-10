@@ -23,37 +23,6 @@ contract('IonLock', (accounts) => {
     const token = await Token.new();
     const ionLink = await IonLink.new(0);
 		const ionLock = await IonLock.new(token.address, ionLink.address);
-    /*
-    const token = await Token.deployed();
-    const ionLink = await IonLink.deployed();
-    const ionLock = await IonLock.deployed();
-    */
-    /*
-    const lockEvents = ionLock.allEvents()
-    const linkEvents = ionLink.allEvents()
-    const tokenEvents = token.allEvents()
-    const printEvent = (error,event) => {
-      if(error) {
-        console.log('Event ERROR:',error)
-        return
-      }
-      const address = '0x' + event.address.toString(16)
-      const args = event.args
-      const blockHash = event.blockHash
-      const blockNumber = event.blockNumber
-      const logIndex = event.logIndex
-      const name = event.event
-      const removed = event.removed /// success?
-      const txIndex = event.transactionIndex
-      const txHash = event.transactionHash
-      const argsName = Object.keys(args)
-      console.log(name,address)//,args);
-      console.log(argsName.map(key => Web3Utils.isBN(args[key]) ? `${key}: ${args[key].toString(16)}` : `${key}: ${args[key]}`))
-    }
-    lockEvents.watch(printEvent)
-    linkEvents.watch(printEvent)
-    tokenEvents.watch(printEvent)
-    */
 
     const owner = accounts[0]
     const totalSupply = 1000
@@ -61,14 +30,7 @@ contract('IonLock', (accounts) => {
 
     const receiptMint = await token.mint(totalSupply)
 
-    //const balance = await token.balanceOf(owner)
-
-    //console.log('accounts',accounts)
-    //console.log('token.address',token.address)
-    //console.log('ionLink.address',ionLink.address)
-    //console.log('ionLock.address',ionLock.address)
-    //const receiptTansfer = await token.transfer(accounts[1],1)
-    const receiptTransfer1 = await token.transfer(ionLock.address,value)
+    const receiptTransfer1 = await token.rawTransfer(ionLock.address,value)
 
     const ionMintEventObj = ionLock.IonMint()
     const ionTransferEventObj = ionLock.IonTransfer()
@@ -86,11 +48,6 @@ contract('IonLock', (accounts) => {
     ionMintEventObj.stopWatching()
     ionTransferEventObj.stopWatching()
 
-    /*
-    lockEvents.stopWatching()
-    linkEvents.stopWatching()
-    tokenEvents.stopWatching()
-    */
   })
 
   it('withdraw', async () => {

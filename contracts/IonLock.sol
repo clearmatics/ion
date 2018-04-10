@@ -15,6 +15,9 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
     // Used to prevent double-withdraw
     mapping(bytes32 => bool) m_withdraws;
 
+    // Keeps reference to latest block that transfer was performed on
+    uint256 public LatestBlock;
+
 
     function IonLock( ERC223 currency, IonLinkInterface ion )
         public
@@ -24,6 +27,8 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
         m_ion = ion;
 
         m_currency = currency;
+
+        LatestBlock = block.number;
     }
 
 
@@ -51,7 +56,10 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
 
         IonMint( _value, ref );
 
-        IonTransfer( _from, address(this), _value, ref );
+        /* IonTransfer( _from, address(this), _value, ref ); */
+        IonTransfer( _from, address(this), _value, ref, _data );
+
+        LatestBlock = block.number;
     }
 
 
@@ -68,17 +76,17 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
         public
     {
         require( false == m_withdraws[_ref] );
-        
+
         var leaf_hash = uint256(keccak256(msg.sender, address(this), m_currency, _value, _ref));
 
         require( m_ion.Verify(_block_id, leaf_hash, _proof) );
-        
+
         m_withdraws[_ref] = true;
 
         require( (m_balance - _value) < _value );
 
         m_balance -= _value;
-    
+
         m_currency.transfer(msg.sender, _value);
     }
 }

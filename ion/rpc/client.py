@@ -66,7 +66,7 @@ def test_newclient(rpc_endpoint, secret=None):
     return client, client.public
 
 
-def test_pay(rpc_endpoint):
+def test_pay(rpc_endpoint): 
     client_A, currency_A = test_newclient(rpc_endpoint)
     client_B, currency_B = test_newclient(rpc_endpoint)
 
@@ -213,7 +213,6 @@ def main(ion_rpc, ion_account, ion_contract, secret, endpoint=None):
         if not ion_rpc:
             ion_rpc = EthJsonRpc('127.0.0.1', 8545)
         # TODO: load ABI from package resources
-        print(ion_account)
         ionlink = ion_rpc.proxy("abi/IonLink.abi", ion_contract, ion_account)
 
     server = IonRpcServer(ionlink)

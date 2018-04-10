@@ -136,9 +136,9 @@ from base64 import b32encode
 
 from .model import Block
 from .payment import payments_apply, random_payments, payments_graphviz, SignedPayment
-from ..args import arg_bytes32
-from ..merkle import merkle_tree
-from ..utils import u256be, require, marshal
+from ion.args import arg_bytes32
+from ion.merkle import merkle_tree
+from ion.utils import u256be, require, marshal
 
 # --------------------------------------------------------------------
 # Data persistence load/save

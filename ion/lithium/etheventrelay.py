@@ -4,16 +4,13 @@ import click
 import time
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian, keccak
 
-from .args import arg_bytes20, arg_ethrpc
-from .merkle import merkle_tree
-from .utils import u256be
+from ion.args import arg_bytes20, arg_ethrpc
+from ion.merkle import merkle_tree
+from ion.utils import u256be
 
-on_deposit_signature = keccak.new(digest_bits=256).update('OnDeposit(bytes32)').hexdigest()
-on_withdraw_signature = keccak.new(digest_bits=256).update('OnWithdraw(bytes32)').hexdigest()
-on_cancel_signature = keccak.new(digest_bits=256).update('OnCancel(bytes32)').hexdigest()
-on_timeout_signature = keccak.new(digest_bits=256).update('OnTimeout(bytes32)').hexdigest()
+on_transfer_signature = keccak.new(digest_bits=256).update('IonTransfer(address,address,uint256,bytes32)').hexdigest()
 
-event_signatures = [on_deposit_signature, on_withdraw_signature, on_cancel_signature, on_timeout_signature]
+event_signatures = [on_transfer_signature]
 
 def pack_txn(block_no, tx):
     """
@@ -43,6 +40,11 @@ def pack_log(block_no, log):
 
     Where topic is the SHA3 of the event signature, e.g. `OnDeposit(bytes32)`
     """
+
+    print("DATA")
+    print(log['data'])
+    print("TOPICS")
+    print(log['topics'])
     if not len(log['topics']):
         return []
     return [''.join([
@@ -56,6 +58,8 @@ def pack_log(block_no, log):
 def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
     """Iterate through the block numbers"""
     obh = min(start, max(1, rpc.eth_blockNumber() - backlog))
+    print(start)
+    print(obh)
     obh -= obh % group
     blocks = []
     is_latest = False
@@ -76,6 +80,8 @@ def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
             print("Stopped by Keyboard interrupt")
             raise StopIteration
 
+def lithium_process_ionlock_transfer_event(log):
+    pass
 
 def lithium_process_block(rpc, block_height):
     """Returns all items within the block"""
@@ -95,7 +101,7 @@ def lithium_process_block(rpc, block_height):
             if len(receipt['logs']):
                 for log_entry in receipt['logs']:
                     if log_entry['topics'][0][2:] in event_signatures:
-                        print("Found relevant event")
+                        print("Processing IonLock Transfer Event")
                         log_items = pack_log(block_height, log_entry)
                         items += log_items
                         log_count += len(log_items)
@@ -116,13 +122,16 @@ def lithium_process_block_group(rpc, block_group):
     return items, group_tx_count, group_log_count
 
 
-def lithium_submit(sodium, batch):
-    """Submit batch of merkle roots to Sodium"""
+def lithium_submit(batch):
+    """Submit batch of merkle roots to Beryllium"""
     if not len(batch):
         return False
     start_block = batch[0][0]
     roots = [pair[1] for pair in batch]
-    sodium.Update(start_block, roots)
+    print("Start block:\n", start_block)
+    print("Roots:\n", roots)
+    # sodium.Update(start_block, roots)
+    print("NEED TO SUBMIT TO BERYLLIUM")
     return True
 
 
@@ -130,26 +139,31 @@ def lithium_submit(sodium, batch):
 @click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Source Ethereum JSON-RPC server")
 @click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Destination, where contract is")
 @click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Pays for Gas")
-@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="Sodium contract address")
+@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
 def etheventrelay(rpc_from, rpc_to, account, contract, batch_size):
-    sodium = rpc_to.proxy("abi/Sodium.abi", contract, account)
+    ionlock = rpc_to.proxy("abi/IonLock.abi", contract, account)
     batch = []
+
     print("Starting block iterator")
-    for is_latest, block_group in iter_blocks(rpc_from, sodium.NextBlock(), sodium.GroupSize()):
+    print(ionlock.LatestBlock())    
+    for is_latest, block_group in iter_blocks(rpc_from, ionlock.LatestBlock()):
         items, group_tx_count, group_log_count = lithium_process_block_group(rpc_from, block_group)
         if len(items):
             print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
-
-            _, root = merkle_tree(items)
+            print(items)
+            item_tree, root = merkle_tree(items)
             batch.append( (block_group[0], root) )
 
             if is_latest or len(batch) >= batch_size:
                 print("submitting batch of", len(batch), "blocks")
-                lithium_submit(sodium, batch)
+                lithium_submit(batch)
                 batch = []
     return 0
 
 
 if __name__ == "__main__":
+    import sys
+    from os import path
+    sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
     etheventrelay()
