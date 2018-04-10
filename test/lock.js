@@ -15,9 +15,53 @@ const randomArr = () => {
     result.push(randomHex())
   return result
 }
+const send2Lock = async (from,tokenAddr,ionLockAddr,value,rawRef) => {
+  const overloadedTransferAbi = {
+    "constant": false,
+    "inputs": [
+      { "name": "_to", "type": "address" },
+      { "name": "_value", "type": "uint256" },
+      { "name": "_data", "type": "bytes" }
+    ],
+    "name": "transfer",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+  const transferMethodTransactionData = web3Abi.encodeFunctionCall(
+    overloadedTransferAbi,
+    [ ionLockAddr, value, Web3Utils.toHex(rawRef) ]
+  );
+  const receiptTransfer1 = await web3.eth.sendTransaction({ from: from, to: tokenAddr, data: transferMethodTransactionData, value: 0 });
+  return receiptTransfer1;
+}
+const waitLockEvent = async (lockContract,rawRef) => {
+  const ionMintEventObj = lockContract.IonMint()
+  const ionTransferEventObj = lockContract.IonTransfer()
+  let ref
+  try {
+    const ionMintEvent = await watchEvent(ionMintEventObj)
+    const ionTransferEvent = await watchEvent(ionTransferEventObj)
+    assert.equal(ionTransferEvent.args.ref,Web3Utils.sha3(rawRef),'ref different than expected after transfer!')
+    ref = ionTransferEvent.args.ref
+  } catch (err) {
+    console.log('event error:', err)
+    assert.fail('event error:' + err)
+  }
+  ionMintEventObj.stopWatching()
+  ionTransferEventObj.stopWatching()
+  return ref
+}
+const joinIonLinkData = (receiverAddr,tokenAddr,ionLockAddr,value,reference) => {
+  const valueHex = '0x'+Web3Utils.toBN(value).toString(16).padStart(64,'0') // make an hex that is good to sha3 in solidity uint256 -> 64 bytes
+  const leaf = '0x' + [receiverAddr,ionLockAddr,tokenAddr,valueHex,reference].map(el=>el.slice(2)).join('') // joined args need to be added to the random leafs of the tree
+  return leaf
+}
+
+const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)))
 
 contract('IonLock', (accounts) => {
-  const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)))
 
   it('tokenFallback is called by Token.transfer', async () => {
     const token = await Token.new();
@@ -265,5 +309,98 @@ contract('IonLock', (accounts) => {
 
     assert.equal(balanceOwner,totalSupply - value, 'sender balance wrong!')
     assert.equal(balanceReceiver,value, 'receiver balance wrong!')
+  })
+
+  it.only('withdraw different chains with reference', async () => {
+    const token = await Token.new();
+    const ionLink = await IonLink.new(0);
+		const ionLock = await IonLock.new(token.address, ionLink.address);
+    const tokenB = await Token.new();
+    const ionLinkB = await IonLink.new(0);
+		const ionLockB = await IonLock.new(tokenB.address, ionLinkB.address);
+
+    const owner = accounts[0]
+    const totalSupply = 1000
+    const value = 10 // value transferred
+    const rawRef = 'Hello world!'
+    const totalSupplyB = 1000
+    const valueB = 10 // value transferred
+    const rawRefB = 'Hello world!'
+
+    const sender = accounts[3]
+    const withdrawReceiver = accounts[5]
+    const senderB = accounts[4]
+    const withdrawReceiverB = accounts[6]
+
+    const receiptMint = await token.mint(totalSupply)
+    const receiptTransfer = await token.transfer(sender,totalSupply)
+    const receiptMintB = await tokenB.mint(totalSupplyB)
+    const receiptTransferB = await tokenB.transfer(senderB,totalSupplyB)
+
+    // wait lock events blocks the rest of the test from running if no event is triggered
+    // A -> LOCK_A
+    const receiptSend2Lock = await send2Lock(sender,token.address,ionLock.address,value,rawRef)
+    const ref = await waitLockEvent(ionLock,rawRef)
+    // B -> LOCK_B
+    const receiptSend2LockB = await send2Lock(senderB,tokenB.address,ionLockB.address,value,rawRefB)
+    const refB = await waitLockEvent(ionLockB,rawRefB)
+
+    // hash details to be added to IonLink
+    // MERKLE_ROOT_A -> LINK_A
+    // this marks B as the recipient of the tokens
+    const reference = Web3Utils.sha3(rawRef) //hash our reference
+    const leaf = joinIonLinkData(withdrawReceiverB,token.address,ionLock.address,value,reference)
+
+    const testData = randomArr()
+    testData[0] = leaf
+    const tree = merkle.createMerkle(testData)
+    const treeExtra = merkle.createMerkle(randomArr()) // IonLink needs 2 roots min to update
+
+    const leafHash = merkle.merkleHash(leaf)
+    const path = merkle.pathMerkle(leaf,tree[0])
+    const rootArg = [treeExtra[1],tree[1]]
+
+    const receiptUpdate = await ionLink.Update(rootArg)
+    const latestBlock = await ionLink.GetLatestBlock()
+    const valid = await ionLink.Verify(latestBlock,leafHash,path)
+    assert(valid,'leaf not found in tree')
+
+    // MERKLE_ROOT_B -> LINK_B
+    // this marks A as the recipient of the tokens
+    const referenceB = Web3Utils.sha3(rawRefB) //hash our reference
+    const leafB = joinIonLinkData(withdrawReceiver,tokenB.address,ionLockB.address,valueB,referenceB)
+
+    const testDataB = randomArr()
+    testDataB[0] = leafB
+    const treeB = merkle.createMerkle(testDataB)
+    const treeExtraB = merkle.createMerkle(randomArr()) // IonLink needs 2 roots min to update
+
+    const leafHashB = merkle.merkleHash(leafB)
+    const pathB = merkle.pathMerkle(leafB,treeB[0])
+    const rootArgB = [treeExtraB[1],treeB[1]]
+
+    const receiptUpdateB = await ionLinkB.Update(rootArgB)
+    const latestBlockB = await ionLinkB.GetLatestBlock()
+    const validB = await ionLinkB.Verify(latestBlockB,leafHashB,pathB)
+    assert(validB,'leaf not found in tree')
+
+    // withdraw from ionlock
+    // LOCK_A -> A
+    const receiptWithdraw = await ionLock.Withdraw(value,reference,latestBlock,path,{ from: withdrawReceiverB })
+
+    const balanceSender = await token.balanceOf(sender)
+    const balanceReceiver = await token.balanceOf(withdrawReceiverB)
+
+    assert.equal(balanceSender,totalSupply - value, 'sender balance wrong!')
+    assert.equal(balanceReceiver,value, 'receiver balance wrong!')
+
+    // LOCK_B -> B
+    const receiptWithdrawB = await ionLockB.Withdraw(valueB,referenceB,latestBlockB,pathB,{ from: withdrawReceiver })
+
+    const balanceSenderB = await tokenB.balanceOf(senderB)
+    const balanceReceiverB = await tokenB.balanceOf(withdrawReceiver)
+
+    assert.equal(balanceSenderB,totalSupplyB - valueB, 'sender balance wrong!')
+    assert.equal(balanceReceiverB,valueB, 'receiver balance wrong!')
   })
 });
