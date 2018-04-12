@@ -102,7 +102,6 @@ def lithium_process_block(rpc, block_height, transfers):
     tx_count = 0
     if len(block['transactions']):
         for tx_hash in block['transactions']:
-
             tx = rpc.eth_getTransactionByHash(tx_hash)
             if tx['to'] is None:
                 continue
@@ -111,7 +110,6 @@ def lithium_process_block(rpc, block_height, transfers):
             items.append(packed_txns)
             tx_count += 1
             receipt = rpc.eth_getTransactionReceipt(tx_hash)
-            # print(receipt)
             if len(receipt['logs']):
                 # Note: this is where the juicy transfer information is found
                 # TODO: should probably move a little more of this into lithium_process_ionlock_transfer_event
@@ -132,7 +130,6 @@ def lithium_process_block(rpc, block_height, transfers):
 def lithium_process_block_group(rpc, block_group):
     """Process a group of blocks, returning the packed events and transactions"""
     print("Processing block group")
-    print(len(block_group))
     items = []
     transfers = []
     group_tx_count = 0
@@ -158,7 +155,6 @@ def lithium_submit(batch, prev_root, rpc, link, account):
     current_block = batch[0][0]
     for pair in batch:
         current_root = pair[1]
-        print(pair)
         if pair[2]:
             ionlink.Update([current_root, prev_root])
             prev_root = current_root

@@ -116,21 +116,7 @@ clean:
 testrpc:
 	yarn testrpc
 
-test-genesis:
-	rm -rf chaindata
-	$(PYTHON) -mion.plasma.chain -g -r 10
+test-lithium:
+	$(PYTHON) -m unittest discover test/test_lithium.py
 
-test-client:
-	$(PYTHON) -mion.rpc.client --inproc --test
-
-test-merkle:
-	$(PYTHON) -mion.merkle
-
-test-onchain:
-	$(PYTHON) -mion.onchain --help > /dev/null
-	$(PYTHON) -mion.onchain Token transfer --help > /dev/null
-
-test-payment:
-	$(PYTHON) -mion.plasma.payment --block-hash 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 --value 1234 --format json | $(PYTHON) -mion.plasma.payment --input /dev/stdin --block-hash 0xed39af75a8367cad4689e3b4ffe7e189171eb33e32663c70cf503690dbc49d98 --format meta
-
-test: test-genesis test-client test-merkle test-payment test-onchain
+test: test-lithium
