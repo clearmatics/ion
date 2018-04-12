@@ -12,4 +12,3 @@ contract ERC223
 
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
 }
-

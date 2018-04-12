@@ -61,7 +61,7 @@ const joinIonLinkData = (receiverAddr,tokenAddr,ionLockAddr,value,reference) => 
 
 const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)))
 
-contract('IonLock', (accounts) => {
+contract.only('IonLock', (accounts) => {
 
   it('tokenFallback is called by Token.transfer', async () => {
     const token = await Token.new();
@@ -268,7 +268,7 @@ contract('IonLock', (accounts) => {
     assert.equal(balanceReceiver,value, 'receiver balance wrong!')
   })
 
-  it('withdraw different chains with reference', async () => {
+  it.only('withdraw different chains with reference', async () => {
     const token = await Token.new();
     const ionLink = await IonLink.new(0);
 		const ionLock = await IonLock.new(token.address, ionLink.address);
@@ -298,6 +298,7 @@ contract('IonLock', (accounts) => {
     // A -> LOCK_A
     const receiptSend2Lock = await send2Lock(sender,token.address,ionLock.address,value,rawRef)
     const ref = await waitLockEvent(ionLock,rawRef)
+
     // B -> LOCK_B
     const receiptSend2LockB = await send2Lock(senderB,tokenB.address,ionLockB.address,value,rawRefB)
     const refB = await waitLockEvent(ionLockB,rawRefB)
@@ -306,19 +307,26 @@ contract('IonLock', (accounts) => {
     // MERKLE_ROOT_A -> LINK_A
     // this marks B as the recipient of the tokens
     const reference = Web3Utils.sha3(rawRef) //hash our reference
-    const leaf = joinIonLinkData(withdrawReceiverB,token.address,ionLock.address,value,reference)
+    const leaf = joinIonLinkData(withdrawReceiverB,token.address,ionLock.address,value,ref)
 
     const testData = randomArr()
+    console.log("testData:\n", testData)
     testData[0] = leaf
+    console.log("testData:\n", testData)
     const tree = merkle.createMerkle(testData)
+    console.log("tree:\n", tree)
     const treeExtra = merkle.createMerkle(randomArr()) // IonLink needs 2 roots min to update
 
-    const leafHash = merkle.merkleHash(leaf)
-    const path = merkle.pathMerkle(leaf,tree[0])
     const rootArg = [treeExtra[1],tree[1]]
+    console.log("tree extra:\n", treeExtra[1].toString(16))
+    console.log("tree:\n", tree[1].toString(16))
+    console.log("rootArg:\n", rootArg)
 
     const receiptUpdate = await ionLink.Update(rootArg)
     const latestBlock = await ionLink.GetLatestBlock()
+
+    const leafHash = merkle.merkleHash(leaf)
+    const path = merkle.pathMerkle(leaf,tree[0])
     const valid = await ionLink.Verify(latestBlock,leafHash,path)
     assert(valid,'leaf not found in tree')
 

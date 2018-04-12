@@ -27,7 +27,7 @@
     "web3-utils": "^1.0.0-beta.33"
   },
   "scripts": {
-    "testrpc": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 0 --network-id 1234",
+    "testrpc": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 0 --network-id 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "test": "truffle test",
     "coverage": "solidity-coverage"
   }

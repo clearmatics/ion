@@ -1,16 +1,25 @@
 from __future__ import print_function
 
 import click
+import json
 import time
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian, keccak
 
 from ion.args import arg_bytes20, arg_ethrpc
-from ion.merkle import merkle_tree
+from ion.merkle import merkle_tree, merkle_hash
 from ion.utils import u256be
 
-on_transfer_signature = keccak.new(digest_bits=256).update('IonTransfer(address,address,uint256,bytes32)').hexdigest()
+on_transfer_signature = keccak.new(digest_bits=256).update('IonTransfer(address,address,uint256,bytes32,bytes)').hexdigest()
 
 event_signatures = [on_transfer_signature]
+
+def jsonPrint(message, snippet):
+    """
+    Prints a message with a formatted slice of json which doesn't make your eyes bleed
+    """
+    print(message)
+    print(json.dumps(snippet, indent=4, sort_keys=True))
+
 
 def pack_txn(block_no, tx):
     """
@@ -21,8 +30,11 @@ def pack_txn(block_no, tx):
     Where `value` is expanded to a 256bit big endian integer.
     """
     tx_from, tx_to, tx_value, tx_input = [scan_bin(x + ('0' * (len(x) % 2)))
-                                          for x in [tx['from'], tx['to'], tx['value'], tx['input']]]
+
+    for x in [tx['from'], tx['to'], tx['value'], tx['input']]]
+
     tx_value = decode_int256(tx_value)
+
     return ''.join([
         u256be(block_no),
         tx_from,
@@ -41,10 +53,8 @@ def pack_log(block_no, log):
     Where topic is the SHA3 of the event signature, e.g. `OnDeposit(bytes32)`
     """
 
-    print("DATA")
-    print(log['data'])
-    print("TOPICS")
-    print(log['topics'])
+    # jsonPrint("Data:", log['data'])
+    # jsonPrint("Topics:", log['topics'])
     if not len(log['topics']):
         return []
     return [''.join([
@@ -58,14 +68,16 @@ def pack_log(block_no, log):
 def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
     """Iterate through the block numbers"""
     obh = min(start, max(1, rpc.eth_blockNumber() - backlog))
-    print(start)
-    print(obh)
+    print("Starting block header: ", start)
+    print("Previous block header: ", obh)
     obh -= obh % group
     blocks = []
     is_latest = False
+    # Infinite loop event listener...
     while True:
         bh = rpc.eth_blockNumber()
         for i in range(obh, bh):
+            # XXX TODO: I think this is why the latest block info is not always in sync with geth
             if i == (bh - 1):
                 is_latest = True
             blocks.append(i)
@@ -80,8 +92,14 @@ def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
             print("Stopped by Keyboard interrupt")
             raise StopIteration
 
-def lithium_process_ionlock_transfer_event(log):
-    pass
+def lithium_process_ionlock_transfer_event(log, block_height):
+    """Processes the ionlock transfer"""
+    print("Processing IonLock Transfer Event")
+    log_items = pack_log(block_height, log_entry)
+    items += log_items
+    log_count += len(log_items)
+
+    return items, log_count
 
 def lithium_process_block(rpc, block_height):
     """Returns all items within the block"""
@@ -91,20 +109,23 @@ def lithium_process_block(rpc, block_height):
     tx_count = 0
     if len(block['transactions']):
         for tx_hash in block['transactions']:
+
             tx = rpc.eth_getTransactionByHash(tx_hash)
             if tx['to'] is None:
                 continue
+
             packed_txns = pack_txn(block_height, tx)
             items.append(packed_txns)
             tx_count += 1
             receipt = rpc.eth_getTransactionReceipt(tx_hash)
+
             if len(receipt['logs']):
+                # Note: this is where the juicy transfer information is found
+                # TODO: should probably move a little more of this into lithium_process_ionlock_transfer_event
                 for log_entry in receipt['logs']:
                     if log_entry['topics'][0][2:] in event_signatures:
-                        print("Processing IonLock Transfer Event")
-                        log_items = pack_log(block_height, log_entry)
-                        items += log_items
-                        log_count += len(log_items)
+                        items, log_count = lithium_process_ionlock_transfer_event(log_entry, block_height)
+
     return items, tx_count, log_count
 
 
@@ -122,42 +143,58 @@ def lithium_process_block_group(rpc, block_group):
     return items, group_tx_count, group_log_count
 
 
-def lithium_submit(batch):
+def lithium_submit(batch, prev_root, rpc, link, account):
     """Submit batch of merkle roots to Beryllium"""
+    ionlink = rpc.proxy("abi/IonLink.abi", link, account)
+
     if not len(batch):
         return False
-    start_block = batch[0][0]
-    roots = [pair[1] for pair in batch]
-    print("Start block:\n", start_block)
-    print("Roots:\n", roots)
-    # sodium.Update(start_block, roots)
-    print("NEED TO SUBMIT TO BERYLLIUM")
-    return True
+
+    # XXX TODO: Using current strawman we submit update to the IonLock on chain B directly
+    # however this needs to change in future which I am happy to explain this rationale: fmg
+    current_block = batch[0][0]
+    for pair in batch:
+        current_root = pair[1]
+        print(current_root)
+        print(prev_root)
+        # ionlink.Update([current_root, prev_root])
+        prev_root = current_root
+
+    return prev_root
 
 
 @click.command(help="Ethereum event merkle tree relay daemon")
 @click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Source Ethereum JSON-RPC server")
 @click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Destination, where contract is")
 @click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Pays for Gas")
-@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
+@click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
+@click.option('--link', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLink contract address")
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
-def etheventrelay(rpc_from, rpc_to, account, contract, batch_size):
-    ionlock = rpc_to.proxy("abi/IonLock.abi", contract, account)
+def etheventrelay(rpc_from, rpc_to, account, lock, link, batch_size):
+    ionlock = rpc_from.proxy("abi/IonLock.abi", lock, account)
     batch = []
+    prev_root = merkle_hash("merkle-tree-extra")
+    transferFlag = False
 
     print("Starting block iterator")
-    print(ionlock.LatestBlock())    
+    print("Latest Block: ", ionlock.LatestBlock())
+
     for is_latest, block_group in iter_blocks(rpc_from, ionlock.LatestBlock()):
+        print(is_latest)
         items, group_tx_count, group_log_count = lithium_process_block_group(rpc_from, block_group)
         if len(items):
             print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
-            print(items)
             item_tree, root = merkle_tree(items)
+            # print("Block Group:\n", block_group)
             batch.append( (block_group[0], root) )
+            print("batch:\n", batch)
+            print("items:\n", items)
 
+            # if len(batch) >= 2:
             if is_latest or len(batch) >= batch_size:
-                print("submitting batch of", len(batch), "blocks")
-                lithium_submit(batch)
+                print("Submitting batch of", len(batch), "blocks")
+                print(batch_size, is_latest)
+                # prev_root = lithium_submit(batch, prev_root, rpc_to, link, account)
                 batch = []
     return 0
 
