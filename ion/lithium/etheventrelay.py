@@ -53,8 +53,6 @@ def pack_log(block_no, log):
     Where topic is the SHA3 of the event signature, e.g. `OnDeposit(bytes32)`
     """
 
-    # jsonPrint("Data:", log['data'])
-    # jsonPrint("Topics:", log['topics'])
     if not len(log['topics']):
         return []
     return [''.join([
@@ -92,16 +90,11 @@ def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
             print("Stopped by Keyboard interrupt")
             raise StopIteration
 
-def lithium_process_ionlock_transfer_event(log, block_height):
+def lithium_process_ionlock_transfer_event(log, log_count, block_height, items):
     """Processes the ionlock transfer"""
-    print("Processing IonLock Transfer Event")
-    log_items = pack_log(block_height, log_entry)
-    items += log_items
-    log_count += len(log_items)
+    pass
 
-    return items, log_count
-
-def lithium_process_block(rpc, block_height):
+def lithium_process_block(rpc, block_height, transfers):
     """Returns all items within the block"""
     block = rpc.eth_getBlockByNumber(block_height, False)
     items = []
@@ -118,13 +111,20 @@ def lithium_process_block(rpc, block_height):
             items.append(packed_txns)
             tx_count += 1
             receipt = rpc.eth_getTransactionReceipt(tx_hash)
-
+            # print(receipt)
             if len(receipt['logs']):
                 # Note: this is where the juicy transfer information is found
                 # TODO: should probably move a little more of this into lithium_process_ionlock_transfer_event
                 for log_entry in receipt['logs']:
                     if log_entry['topics'][0][2:] in event_signatures:
-                        items, log_count = lithium_process_ionlock_transfer_event(log_entry, block_height)
+                        print("Processing IonLock Transfer Event")
+                        log_items = pack_log(block_height, log_entry)
+                        items += log_items
+                        log_count += len(log_items)
+                        transfers.append(True)
+            # This else lets us log which blocks contain a transfer
+            else:
+                transfers.append(False)
 
     return items, tx_count, log_count
 
@@ -132,15 +132,18 @@ def lithium_process_block(rpc, block_height):
 def lithium_process_block_group(rpc, block_group):
     """Process a group of blocks, returning the packed events and transactions"""
     print("Processing block group")
+    print(len(block_group))
     items = []
+    transfers = []
     group_tx_count = 0
     group_log_count = 0
     for block_height in block_group:
-        block_items, tx_count, log_count = lithium_process_block(rpc, block_height)
+        block_items, tx_count, log_count = lithium_process_block(rpc, block_height, transfers)
         items += block_items
         group_tx_count += tx_count
         group_log_count += log_count
-    return items, group_tx_count, group_log_count
+
+    return items, group_tx_count, group_log_count, transfers
 
 
 def lithium_submit(batch, prev_root, rpc, link, account):
@@ -155,10 +158,10 @@ def lithium_submit(batch, prev_root, rpc, link, account):
     current_block = batch[0][0]
     for pair in batch:
         current_root = pair[1]
-        print(current_root)
-        print(prev_root)
-        # ionlink.Update([current_root, prev_root])
-        prev_root = current_root
+        print(pair)
+        if pair[2]:
+            ionlink.Update([current_root, prev_root])
+            prev_root = current_root
 
     return prev_root
 
@@ -173,28 +176,24 @@ def lithium_submit(batch, prev_root, rpc, link, account):
 def etheventrelay(rpc_from, rpc_to, account, lock, link, batch_size):
     ionlock = rpc_from.proxy("abi/IonLock.abi", lock, account)
     batch = []
+    transfers = []
     prev_root = merkle_hash("merkle-tree-extra")
-    transferFlag = False
 
     print("Starting block iterator")
     print("Latest Block: ", ionlock.LatestBlock())
 
     for is_latest, block_group in iter_blocks(rpc_from, ionlock.LatestBlock()):
-        print(is_latest)
-        items, group_tx_count, group_log_count = lithium_process_block_group(rpc_from, block_group)
+        items, group_tx_count, group_log_count, transfers = lithium_process_block_group(rpc_from, block_group)
+        print(len(items), len(transfers))
         if len(items):
             print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
             item_tree, root = merkle_tree(items)
-            # print("Block Group:\n", block_group)
-            batch.append( (block_group[0], root) )
-            print("batch:\n", batch)
-            print("items:\n", items)
+            batch.append( (block_group[0], root, transfers[0]) )
 
             # if len(batch) >= 2:
             if is_latest or len(batch) >= batch_size:
                 print("Submitting batch of", len(batch), "blocks")
-                print(batch_size, is_latest)
-                # prev_root = lithium_submit(batch, prev_root, rpc_to, link, account)
+                prev_root = lithium_submit(batch, prev_root, rpc_to, link, account)
                 batch = []
     return 0
 
