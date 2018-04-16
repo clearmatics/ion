@@ -17,14 +17,14 @@ module.exports = {
       gas: 0xFFFFFFF,
       gasprice: 0x1
     },
-    testnet1: {
+    testrpca: {
       host: "localhost",
-      port: 8546,
+      port: 8545,
       network_id: "*" // Match any network id
     },
-    testnet2: {
+    testrpcb: {
       host: "localhost",
-      port: 8547,
+      port: 8546,
       network_id: "*" // Match any network id
     }
   },

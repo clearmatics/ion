@@ -26,6 +26,7 @@ class TxPool(object):
         """
         :type lithium_root: SignedPayment
         """
+        signed_payment = lithium_root
         if not signed_payment.verify(self._target):
             raise RuntimeError("Invalid payment signature")
         payment = signed_payment.p
