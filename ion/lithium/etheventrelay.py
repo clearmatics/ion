@@ -154,8 +154,8 @@ def lithium_submit(batch, prev_root, rpc, link, account):
     # however this needs to change in future which I am happy to explain this rationale: fmg
     current_block = batch[0][0]
     for pair in batch:
-        current_root = pair[1]
-        if pair[2]:
+        if pair[2] is not None:
+            current_root = pair[2]
             ionlink.Update([current_root, prev_root])
             prev_root = current_root
 
@@ -165,12 +165,13 @@ def lithium_submit(batch, prev_root, rpc, link, account):
 @click.command(help="Ethereum event merkle tree relay daemon")
 @click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Source Ethereum JSON-RPC server")
 @click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Destination, where contract is")
-@click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Pays for Gas")
+@click.option('--from-account', callback=arg_bytes20, metavar="0x...20", required=True, help="Pays for Gas to fetch latest IonLock Block")
+@click.option('--to-account', callback=arg_bytes20, metavar="0x...20", required=True, help="Pays for Gas to update IonLink")
 @click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
 @click.option('--link', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLink contract address")
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
-def etheventrelay(rpc_from, rpc_to, account, lock, link, batch_size):
-    ionlock = rpc_from.proxy("abi/IonLock.abi", lock, account)
+def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
+    ionlock = rpc_from.proxy("abi/IonLock.abi", lock, from_account)
     batch = []
     transfers = []
     prev_root = merkle_hash("merkle-tree-extra")
@@ -189,7 +190,7 @@ def etheventrelay(rpc_from, rpc_to, account, lock, link, batch_size):
             # if len(batch) >= 2:
             if is_latest or len(batch) >= batch_size:
                 print("Submitting batch of", len(batch), "blocks")
-                prev_root = lithium_submit(batch, prev_root, rpc_to, link, account)
+                prev_root = lithium_submit(batch, prev_root, rpc_to, link, to_account)
                 batch = []
     return 0
 
