@@ -2,6 +2,34 @@ const readline = require('readline');
 
 const Web3 = require('web3')
 
+const color = {
+  Reset: '\x1b[0m',
+  Bright: '\x1b[1m',
+  Dim: '\x1b[2m',
+  Underscore: '\x1b[4m',
+  Blink: '\x1b[5m',
+  Reverse: '\x1b[7m',
+  Hidden: '\x1b[8m',
+
+  FgBlack: '\x1b[30m',
+  FgRed: '\x1b[31m',
+  FgGreen: '\x1b[32m',
+  FgYellow: '\x1b[33m',
+  FgBlue: '\x1b[34m',
+  FgMagenta: '\x1b[35m',
+  FgCyan: '\x1b[36m',
+  FgWhite: '\x1b[37m',
+
+  BgBlack: '\x1b[40m',
+  BgRed: '\x1b[41m',
+  BgGreen: '\x1b[42m',
+  BgYellow: '\x1b[43m',
+  BgBlue: '\x1b[44m',
+  BgMagenta: '\x1b[45m',
+  BgCyan: '\x1b[46m',
+  BgWhite: '\x1b[47m',
+}
+
 const deployContract = (web3, contractPath, ownerAcc, args) => {
   const contractData = require(contractPath)
   const abi = contractData.abi
@@ -94,50 +122,132 @@ const printBlock = (args) => {
   console.log('===========================================================')
 }
 
-const main = async () => {
-  const web3A = getWeb3('http://localhost:8545')
-  //const web3B = getWeb3('http://localhost:8546')
+const depositIonLock = async (web3, token, ionLock, value, reference, ownerAccount ,senderAccount,senderName) => {
+  console.log(`\nSTART - Deposit from ${senderName} to IonLock\n`)
 
-  const owner = web3A.eth.accounts[0]
-  const accountA = web3A.eth.accounts[1]
-  //const accountB = web3A.eth.accounts[2]
-
-  // deploy contracts
-  const tokenA = await deployContract(web3A, './build/contracts/Token.json', owner)
-  const ionLinkA = await deployContract(web3A, './build/contracts/IonLink.json', owner)
-  const ionLockA = await deployContract(web3A, './build/contracts/IonLock.json', owner, [tokenA.address, ionLinkA.address])
-
-  printBlock([
-    ['Deployed Contracts'],
-    ['Token:',tokenA.address],
-    ['IonLock:',ionLockA.address],
-    ['IonLink:',ionLinkA.address]])
-
-  //TODO: PRINT BALANCES WHEN RELEVANT
+  console.log('Mint tokens into the Owner account')
+  const mintTxHash = await mintToken(token, ownerAccount, value)
 
   await waitForKeypress()
 
-  const value = 1000
-  const reference = 'Example A'
-
-  console.log('Mint tokens into the Owner account')
-  const mintTxHash = await mintToken(tokenA, owner, value)
-
-  console.log('Transfer tokens from Owner account to Account A')
-  const transferTxHash = await transferToken(tokenA, owner, accountA, value, reference)
+  console.log(`Transfer tokens from Owner account to ${senderName}`)
+  const transferTxHash = await transferToken(token, ownerAccount, senderAccount, value, reference)
 
   await waitForKeypress()
 
   // setup filter to get ionlock event
-  console.log('Transfer tokens Account A to IonLock')
-  const lockTxHash = await transferToken(tokenA, accountA, ionLockA.address, value, reference)
+  console.log(`Transfer tokens ${senderName} to IonLock`)
+  const lockTxHash = await transferToken(token, senderAccount, ionLock.address, value, reference)
 
   await waitForKeypress()
 
   // Wait for IonLock Event
   console.log('IonLock event triggered')
-  const lockEvent = await getIonLockEvent(web3A, ionLockA, reference)
+  const lockEvent = await getIonLockEvent(web3, ionLock, reference)
 
+  console.log(`\nEND - Deposit from ${senderName} to IonLock`)
+  await waitForKeypress()
+}
+
+const printTokenBalance = async (accountA, tokenA, nameA, accountB, tokenB, nameB, ionLockA, ionLockB) => {
+  const balanceAA = await tokenA.balanceOf(accountA)
+  const balanceBA = await tokenA.balanceOf(accountB)
+  const balanceAB = await tokenB.balanceOf(accountA)
+  const balanceBB = await tokenB.balanceOf(accountB)
+  const balanceIonLockA = await tokenA.balanceOf(ionLockA.address)
+  const balanceIonLockB = await tokenB.balanceOf(ionLockB.address)
+  printBlock([
+    ['Balance of Tokens'],
+    [`Balance of ${nameA} on Token A ${tokenA.address}`],
+    ['\tAccount:',accountA],
+    ['\tBalance:',balanceAA.toString()],
+    [`Balance of ${nameB} on Token A ${tokenA.address}`],
+    ['\tAccount:',accountB],
+    ['\tBalance:',balanceBA.toString()],
+    [`Balance of ${nameA} on Token B ${tokenB.address}`],
+    ['\tAccount:',accountA],
+    ['\tBalance:',balanceAB.toString()],
+    [`Balance of ${nameB} on Token B ${tokenB.address}`],
+    ['\tAccount:',accountB],
+    ['\tBalance:',balanceBB.toString()],
+    [`Balance of IonLock on Token A ${tokenA.address}`],
+    ['\tAccount:',ionLockA.address],
+    ['\tBalance:',balanceIonLockA.toString()],
+    [`Balance of IonLock on Token B ${tokenB.address}`],
+    ['\tAccount:',ionLockB.address],
+    ['\tBalance:',balanceIonLockB.toString()],
+  ])
+}
+
+const main = async () => {
+  console.log('NodeA at http://localhost:8545')
+  console.log('NodeB at http://localhost:8546')
+  console.log()
+  const web3A = getWeb3('http://localhost:8545')
+  const web3B = getWeb3('http://localhost:8546')
+
+  const owner = web3A.eth.accounts[0]
+  const accountA = web3A.eth.accounts[1]
+  const accountB = web3A.eth.accounts[2]
+
+  // deploy contracts
+  const tokenA = await deployContract(web3A, './build/contracts/Token.json', owner)
+  const ionLinkA = await deployContract(web3A, './build/contracts/IonLink.json', owner)
+  const ionLockA = await deployContract(web3A, './build/contracts/IonLock.json', owner, [tokenA.address, ionLinkA.address])
+  // deploy contracts
+  const tokenB = await deployContract(web3B, './build/contracts/Token.json', owner)
+  const ionLinkB = await deployContract(web3B, './build/contracts/IonLink.json', owner)
+  const ionLockB = await deployContract(web3B, './build/contracts/IonLock.json', owner, [tokenB.address, ionLinkB.address])
+
+  printBlock([
+    ['Deployed Contracts NodeA'],
+    ['\tToken:',tokenA.address],
+    ['\tIonLock:',ionLockA.address],
+    ['\tIonLink:',ionLinkA.address],
+    ['Deployed Contracts NodeB'],
+    ['\tToken:',tokenB.address],
+    ['\tIonLock:',ionLockB.address],
+    ['\tIonLink:',ionLinkB.address]])
+
+  await printTokenBalance(
+    accountA, tokenA, 'Alice',
+    accountB, tokenB, 'Bob',
+    ionLockA, ionLockB)
+
+  const value = 1000
+  const reference = 'Simple Ion Example'
+
+  console.log('\n\n\n')
+  console.log('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+  console.log('VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV')
+  console.log('\n')
+  console.log('================= Deposit to IonLock on chain A =================')
+  await waitForKeypress()
+  await depositIonLock(
+    web3A, tokenA, ionLockA,
+    value, reference,
+    owner, accountA, 'Alice')
+
+  await printTokenBalance(
+    accountA, tokenA, 'Alice',
+    accountB, tokenB, 'Bob',
+    ionLockA, ionLockB)
+
+  console.log('\n\n\n')
+  console.log('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+  console.log('VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV')
+  console.log('\n')
+  console.log('================= Deposit to IonLock on chain B =================')
+  await waitForKeypress()
+  await depositIonLock(
+    web3B, tokenB, ionLockB,
+    value, reference,
+    owner, accountB, 'Bob')
+
+  await printTokenBalance(
+    accountA, tokenA, 'Alice',
+    accountB, tokenB, 'Bob',
+    ionLockA, ionLockB)
 
   // TODO: WAIT FOR UPDATE IN IONLINK
   // TODO: WITHDRAW
