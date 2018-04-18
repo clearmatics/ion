@@ -325,6 +325,7 @@ contract('IonLock', (accounts) => {
     // MERKLE_ROOT(REFERENCE_A) -> LINK_B
     // this marks A as the recipient of the tokens
     const leafB = joinIonLinkData(withdrawReceiver,tokenB.address,ionLockB.address,valueB,ref)
+    console.log(leafB)
 
     const testDataB = randomArr()
     testDataB[0] = leafB
@@ -332,11 +333,13 @@ contract('IonLock', (accounts) => {
     const treeExtraB = merkle.createMerkle(randomArr()) // IonLink needs 2 roots min to update
 
     const leafHashB = merkle.merkleHash(leafB)
+    console.log(leafHashB.toString(16))
     const pathB = merkle.pathMerkle(leafB,treeB[0])
     const rootArgB = [treeExtraB[1],treeB[1]]
 
     const receiptUpdateB = await ionLinkB.Update(rootArgB)
     const latestBlockB = await ionLinkB.GetLatestBlock()
+    console.log(latestBlockB.toString(16))
     const validB = await ionLinkB.Verify(latestBlockB,leafHashB,pathB)
     assert(validB,'leaf not found in tree')
 

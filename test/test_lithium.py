@@ -62,7 +62,7 @@ class LithiumTest(unittest.TestCase):
         tx_input_hash = sha3( scan_bin( tx['input'] + ('0' * (len(tx['input']) % 2)))).encode('hex')
 
         packed_txn = pack_txn(rpc.eth_blockNumber(), tx).encode('hex')
-        expected_result = '' + u256be_block_no_hex + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + pad_be_tx_value + tx_input_hash
+        expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])
 
         self.assertTrue(packed_txn == expected_result)
         print("Test: Pack Transaction Success")
@@ -71,19 +71,20 @@ class LithiumTest(unittest.TestCase):
     def test_pack_log(self):
         print("\nTest: Pack Transaction Logs")
         rpc = MockRPC()
+        tx = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
         self.assertTrue(len(receipt['logs']) > 0)
         for log in receipt['logs']:
-            packed_log = pack_log(rpc.eth_blockNumber(), log)
+            packed_log = pack_log(rpc.eth_blockNumber(), tx, log)
 
-            u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
             address = scan_bin(log['address']).encode('hex')
-            topics = scan_bin(log['topics'][0]).encode('hex')
+            topic1 = scan_bin(log['topics'][1]).encode('hex')
+            topic2 = scan_bin(log['topics'][2]).encode('hex')
             data = sha3(scan_bin(log['data'])).encode('hex')
 
-            expected_result = '' + u256be_block_no_hex + address + topics + data
-            self.assertTrue(len(packed_log) == 1)
-            self.assertTrue(packed_log[0].encode('hex') == expected_result)
+            expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + address + topic1 + topic2
+
+            self.assertTrue(packed_log.encode('hex') == expected_result)
 
         print("Test: Pack Transaction Logs Success")
 
@@ -95,13 +96,24 @@ class LithiumTest(unittest.TestCase):
         items, tx_count, log_count = lithium_process_block(rpc, rpc.eth_blockNumber(), transfers)
 
         tx = rpc.eth_getTransactionByHash()
+        receipt = rpc.eth_getTransactionReceipt()
+        self.assertTrue(len(receipt['logs']) > 0)
+
         u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
         pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( tx['value'] + ('0' * (len(tx['value']) % 2))))), 32).encode('hex')
         tx_input_hash = sha3( scan_bin( tx['input'] + ('0' * (len(tx['input']) % 2)))).encode('hex')
 
-        expected_txn_result = '' + u256be_block_no_hex + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + pad_be_tx_value + tx_input_hash
+        for log in receipt['logs']:
+            packed_log = pack_log(rpc.eth_blockNumber(), tx, log)
 
-        self.assertTrue(len(items) == 2)
+            address = scan_bin(log['address']).encode('hex')
+            topic1 = scan_bin(log['topics'][1]).encode('hex')
+            topic2 = scan_bin(log['topics'][2]).encode('hex')
+            data = sha3(scan_bin(log['data'])).encode('hex')
+
+        expected_txn_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
+
+        self.assertTrue(len(items) == 1)
         self.assertTrue(items[0].encode('hex') == expected_txn_result)
         self.assertTrue(tx_count == 1)
         self.assertTrue(log_count == 1)
@@ -116,13 +128,24 @@ class LithiumTest(unittest.TestCase):
         items, group_tx_count, group_log_count, transfers = lithium_process_block_group(rpc, [1])
 
         tx = rpc.eth_getTransactionByHash()
+        receipt = rpc.eth_getTransactionReceipt()
+        self.assertTrue(len(receipt['logs']) > 0)
+
         u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
         pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( tx['value'] + ('0' * (len(tx['value']) % 2))))), 32).encode('hex')
         tx_input_hash = sha3( scan_bin( tx['input'] + ('0' * (len(tx['input']) % 2)))).encode('hex')
 
-        expected_txn_result = '' + u256be_block_no_hex + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + pad_be_tx_value + tx_input_hash
+        for log in receipt['logs']:
+            packed_log = pack_log(rpc.eth_blockNumber(), tx, log)
 
-        self.assertTrue(len(items) == 2)
+            address = scan_bin(log['address']).encode('hex')
+            topic1 = scan_bin(log['topics'][1]).encode('hex')
+            topic2 = scan_bin(log['topics'][2]).encode('hex')
+            data = sha3(scan_bin(log['data'])).encode('hex')
+
+        expected_txn_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
+
+        self.assertTrue(len(items) == 1)
         self.assertTrue(items[0].encode('hex') == expected_txn_result)
         self.assertTrue(group_tx_count == 1)
         self.assertTrue(group_log_count == 1)

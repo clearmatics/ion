@@ -66,7 +66,7 @@ def test_newclient(rpc_endpoint, secret=None):
     return client, client.public
 
 
-def test_pay(rpc_endpoint): 
+def test_pay(rpc_endpoint):
     client_A, currency_A = test_newclient(rpc_endpoint)
     client_B, currency_B = test_newclient(rpc_endpoint)
 
@@ -173,8 +173,10 @@ def test_swap2(rpc_endpoint):
 
 @click.command()
 @click.option('--inproc', is_flag=True, help="Use in-process chain")
+@click.option('--ion-account', help='Ethereum account address', required=False)
+@click.option('--ion-contract', help='IonLink contract address', required=False)
 @click.argument('endpoint', required=False)
-def tests(inproc, endpoint=None):
+def tests(inproc, ion_account, ion_contract, endpoint=None):
     """
     Connect to Ion RPC server and perform tests.
 
@@ -183,6 +185,11 @@ def tests(inproc, endpoint=None):
     """
     if inproc:
         endpoint = IonRpcServer()
+    else:
+        ion_rpc = EthJsonRpc('127.0.0.1', 8545)
+        ionlink = ion_rpc.proxy("abi/IonLink.abi", ion_contract, ion_account)
+        endpoint = IonRpcServer(ionlink)
+
 
     test_pay(endpoint)
     test_swap(endpoint)
