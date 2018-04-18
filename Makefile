@@ -117,6 +117,9 @@ testrpc:
 	yarn testrpc
 
 test-lithium:
-	$(PYTHON) -m unittest discover test/test_lithium.py
+	./run_ion_testchains.sh
+	sleep 30s
+	$(PYTHON) -m unittest discover test/
+	./kill_ion_testchains.sh
 
 test: test-lithium

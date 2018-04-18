@@ -3,6 +3,7 @@ from __future__ import print_function
 import click
 import json
 import time
+import binascii
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian, keccak
 
 from ion.args import arg_bytes20, arg_ethrpc
@@ -29,22 +30,16 @@ def pack_txn(block_no, tx):
 
     Where `value` is expanded to a 256bit big endian integer.
     """
-    tx_from, tx_to, tx_value, tx_input = [scan_bin(x + ('0' * (len(x) % 2)))
-
-    for x in [tx['from'], tx['to'], tx['value'], tx['input']]]
-
+    tx_from, tx_to, tx_value, tx_input = [scan_bin(x + ('0' * (len(x) % 2))) for x in [tx['from'], tx['to'], tx['value'], tx['input']]]
     tx_value = decode_int256(tx_value)
 
     return ''.join([
-        u256be(block_no),
         tx_from,
-        tx_to,
-        zpad(int_to_big_endian(tx_value), 32),
-        sha3(tx_input)
+        tx_to
     ])
 
 
-def pack_log(block_no, log):
+def pack_log(block_no, tx, log):
     """
     Packs a log entry into one or more entries.
 
@@ -53,14 +48,13 @@ def pack_log(block_no, log):
     Where topic is the SHA3 of the event signature, e.g. `OnDeposit(bytes32)`
     """
 
-    if not len(log['topics']):
-        return []
-    return [''.join([
-        u256be(block_no),
+    return ''.join([
+        scan_bin(tx['from']),
+        scan_bin(tx['to']),
         scan_bin(log['address']),
-        scan_bin(log['topics'][0]),
-        sha3(scan_bin(log['data']))
-    ])]
+        scan_bin(log['topics'][1]),
+        scan_bin(log['topics'][2]),
+    ])
 
 
 def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
@@ -106,23 +100,26 @@ def lithium_process_block(rpc, block_height, transfers):
             if tx['to'] is None:
                 continue
 
-            packed_txns = pack_txn(block_height, tx)
-            items.append(packed_txns)
             tx_count += 1
+            packed_txns = pack_txn(block_height, tx)
+            item_value = packed_txns
+            # item_value = tx_count
             receipt = rpc.eth_getTransactionReceipt(tx_hash)
+            transfer = False
             if len(receipt['logs']):
                 # Note: this is where the juicy transfer information is found
                 # TODO: should probably move a little more of this into lithium_process_ionlock_transfer_event
                 for log_entry in receipt['logs']:
                     if log_entry['topics'][0][2:] in event_signatures:
                         print("Processing IonLock Transfer Event")
-                        log_items = pack_log(block_height, log_entry)
-                        items += log_items
-                        log_count += len(log_items)
-                        transfers.append(True)
-            # This else lets us log which blocks contain a transfer
-            else:
-                transfers.append(False)
+                        log_items = pack_log(block_height, tx, log_entry)
+                        item_value = log_items
+                        log_count += 1
+                        transfer = True
+
+            # XXX: This appends the flag regarding if an item is a IonTranfer or not...
+            transfers.append(transfer)
+            items.append(item_value)
 
     return items, tx_count, log_count
 
@@ -146,7 +143,6 @@ def lithium_process_block_group(rpc, block_group):
 def lithium_submit(batch, prev_root, rpc, link, account):
     """Submit batch of merkle roots to Beryllium"""
     ionlink = rpc.proxy("abi/IonLink.abi", link, account)
-
     if not len(batch):
         return False
 
@@ -154,9 +150,9 @@ def lithium_submit(batch, prev_root, rpc, link, account):
     # however this needs to change in future which I am happy to explain this rationale: fmg
     current_block = batch[0][0]
     for pair in batch:
-        if pair[2] is not None:
-            current_root = pair[2]
-            ionlink.Update([current_root, prev_root])
+        if pair[2]:
+            current_root = pair[1]
+            ionlink.Update([prev_root, current_root])
             prev_root = current_root
 
     return prev_root
