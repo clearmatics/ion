@@ -61,7 +61,7 @@ const joinIonLinkData = (receiverAddr,tokenAddr,ionLockAddr,value,reference) => 
 
 const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)))
 
-contract.only('IonLock', (accounts) => {
+contract('IonLock', (accounts) => {
 
   it('tokenFallback is called by Token.transfer', async () => {
     const token = await Token.new();
@@ -268,7 +268,7 @@ contract.only('IonLock', (accounts) => {
     assert.equal(balanceReceiver,value, 'receiver balance wrong!')
   })
 
-  it.only('withdraw different chains with reference', async () => {
+  it('withdraw different chains with reference', async () => {
     const token = await Token.new();
     const ionLink = await IonLink.new(0);
 		const ionLock = await IonLock.new(token.address, ionLink.address);
@@ -279,10 +279,10 @@ contract.only('IonLock', (accounts) => {
     const owner = accounts[0]
     const totalSupply = 1000
     const value = 10 // value transferred
-    const rawRef = 'Hello world!'
+    const rawRef = Web3Utils.sha3('Reference from deposit on chain A')
     const totalSupplyB = 1000
     const valueB = 10 // value transferred
-    const rawRefB = 'Hello world!'
+    const rawRefB = Web3Utils.sha3('Reference from deposit on chain B')
 
     const sender = accounts[3]
     const withdrawReceiver = accounts[5]
@@ -295,45 +295,36 @@ contract.only('IonLock', (accounts) => {
     const receiptTransferB = await tokenB.transfer(senderB,totalSupplyB)
 
     // wait lock events blocks the rest of the test from running if no event is triggered
-    // A -> LOCK_A
+    // A -> LOCK_A // get REFERENCE_A
     const receiptSend2Lock = await send2Lock(sender,token.address,ionLock.address,value,rawRef)
     const ref = await waitLockEvent(ionLock,rawRef)
 
-    // B -> LOCK_B
+    // B -> LOCK_B // get REFERENCE_B
     const receiptSend2LockB = await send2Lock(senderB,tokenB.address,ionLockB.address,value,rawRefB)
     const refB = await waitLockEvent(ionLockB,rawRefB)
 
     // hash details to be added to IonLink
-    // MERKLE_ROOT_A -> LINK_A
+    // MERKLE_ROOT(REFERENCE_B) -> LINK_A
     // this marks B as the recipient of the tokens
-    const reference = Web3Utils.sha3(rawRef) //hash our reference
-    const leaf = joinIonLinkData(withdrawReceiverB,token.address,ionLock.address,value,ref)
+    const leaf = joinIonLinkData(withdrawReceiverB,token.address,ionLock.address,value,refB)
 
     const testData = randomArr()
-    console.log("testData:\n", testData)
     testData[0] = leaf
-    console.log("testData:\n", testData)
     const tree = merkle.createMerkle(testData)
-    console.log("tree:\n", tree)
     const treeExtra = merkle.createMerkle(randomArr()) // IonLink needs 2 roots min to update
-
-    const rootArg = [treeExtra[1],tree[1]]
-    console.log("tree extra:\n", treeExtra[1].toString(16))
-    console.log("tree:\n", tree[1].toString(16))
-    console.log("rootArg:\n", rootArg)
-
-    const receiptUpdate = await ionLink.Update(rootArg)
-    const latestBlock = await ionLink.GetLatestBlock()
 
     const leafHash = merkle.merkleHash(leaf)
     const path = merkle.pathMerkle(leaf,tree[0])
+    const rootArg = [treeExtra[1],tree[1]]
+
+    const receiptUpdate = await ionLink.Update(rootArg)
+    const latestBlock = await ionLink.GetLatestBlock()
     const valid = await ionLink.Verify(latestBlock,leafHash,path)
     assert(valid,'leaf not found in tree')
 
-    // MERKLE_ROOT_B -> LINK_B
+    // MERKLE_ROOT(REFERENCE_A) -> LINK_B
     // this marks A as the recipient of the tokens
-    const referenceB = Web3Utils.sha3(rawRefB) //hash our reference
-    const leafB = joinIonLinkData(withdrawReceiver,tokenB.address,ionLockB.address,valueB,referenceB)
+    const leafB = joinIonLinkData(withdrawReceiver,tokenB.address,ionLockB.address,valueB,ref)
 
     const testDataB = randomArr()
     testDataB[0] = leafB
@@ -350,8 +341,8 @@ contract.only('IonLock', (accounts) => {
     assert(validB,'leaf not found in tree')
 
     // withdraw from ionlock
-    // LOCK_A -> A
-    const receiptWithdraw = await ionLock.Withdraw(value,reference,latestBlock,path,{ from: withdrawReceiverB })
+    // LOCK_A -> B
+    const receiptWithdraw = await ionLock.Withdraw(value,refB,latestBlock,path,{ from: withdrawReceiverB })
 
     const balanceSender = await token.balanceOf(sender)
     const balanceReceiver = await token.balanceOf(withdrawReceiverB)
@@ -359,8 +350,8 @@ contract.only('IonLock', (accounts) => {
     assert.equal(balanceSender,totalSupply - value, 'sender balance wrong!')
     assert.equal(balanceReceiver,value, 'receiver balance wrong!')
 
-    // LOCK_B -> B
-    const receiptWithdrawB = await ionLockB.Withdraw(valueB,referenceB,latestBlockB,pathB,{ from: withdrawReceiver })
+    // LOCK_B -> A
+    const receiptWithdrawB = await ionLockB.Withdraw(valueB,ref,latestBlockB,pathB,{ from: withdrawReceiver })
 
     const balanceSenderB = await tokenB.balanceOf(senderB)
     const balanceReceiverB = await tokenB.balanceOf(withdrawReceiver)
