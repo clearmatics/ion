@@ -179,6 +179,15 @@ const printTokenBalance = async (accountA, tokenA, nameA, accountB, tokenB, name
   ])
 }
 
+const queryLithium = () = {
+}
+
+//UNTESTED
+const withdrawIonLock = async (ionLock, value, ref, blockId, proof) => {
+  const withdrawTx = await ionLock.Withdraw(value, ref, blockId, proof)
+  return withdrawTx
+}
+
 const main = async () => {
   console.log('NodeA at http://localhost:8545')
   console.log('NodeB at http://localhost:8546')
@@ -250,7 +259,23 @@ const main = async () => {
     ionLockA, ionLockB)
 
   // TODO: WAIT FOR UPDATE IN IONLINK
+  console.log('\n\n\n')
+  console.log('================= Wait for Lithium to continue =================')
+  console.log('\n')
+  // TODO: get IonLink block id (for the deposit) for chain A and B
+  // TODO: get IonLink proof (for the deposit) for chain A and B
+  await waitForKeypress()
+
   // TODO: WITHDRAW
+  //const withdrawTxA = await withdrawIonLock(ionLockA, valueA, refA, blockIdA, proofA)
+  //const withdrawTxB = await withdrawIonLock(ionLockB, valueB, refB, blockIdB, proofB)
+
+  await printTokenBalance(
+    accountA, tokenA, 'Alice',
+    accountB, tokenB, 'Bob',
+    ionLockA, ionLockB)
+
+
   process.exit()
 }
 
