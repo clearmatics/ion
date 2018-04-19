@@ -116,9 +116,13 @@ clean:
 testrpc:
 	yarn testrpc
 
+test-js:
+	npm run testrpc &
+	npm run test
+
 test-lithium:
 	./run_ion_testchains.sh
-	sleep 30s
+	sleep 15s
 	$(PYTHON) -m unittest discover test/
 	./kill_ion_testchains.sh
 

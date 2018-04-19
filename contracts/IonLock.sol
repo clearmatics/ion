@@ -6,11 +6,6 @@ import "./IonCompatible.sol";
 
 contract IonLock is ERC223ReceivingContract, IonCompatible
 {
-    event Test(bool withdraw);
-    event Test1(address cont, address here, address token, uint256 _value, bytes32 _ref);
-    event Test2(uint256 cont);
-    event Test3(uint256 bal, uint256 val);
-
     uint256 m_balance;
 
     ERC223 m_currency;
@@ -81,20 +76,13 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
         public
     {
         require( false == m_withdraws[_ref] );
-        Test(m_withdraws[_ref]);
 
         var leaf_hash = uint256(keccak256(msg.sender, m_currency, address(this), _value, _ref));
-        Test1(msg.sender, m_currency, address(this), _value, _ref);
-
-        Test2(leaf_hash);
 
         require( m_ion.Verify(_block_id, leaf_hash, _proof) );
 
         m_withdraws[_ref] = true;
 
-        Test3(m_balance, _value);
-
-        /* require( (m_balance - _value) < m_balance ); */
         require( (m_balance - _value) < _value );
 
         m_balance -= _value;

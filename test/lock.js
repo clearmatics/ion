@@ -55,7 +55,8 @@ const waitLockEvent = async (lockContract,rawRef) => {
 }
 const joinIonLinkData = (receiverAddr,tokenAddr,ionLockAddr,value,reference) => {
   const valueHex = '0x'+Web3Utils.toBN(value).toString(16).padStart(64,'0') // make an hex that is good to sha3 in solidity uint256 -> 64 bytes
-  const leaf = '0x' + [receiverAddr,ionLockAddr,tokenAddr,valueHex,reference].map(el=>el.slice(2)).join('') // joined args need to be added to the random leafs of the tree
+  const leaf = '0x' + [receiverAddr,tokenAddr,ionLockAddr,valueHex,reference].map(el=>el.slice(2)).join('') // joined args need to be added to the random leafs of the tree
+  // const leaf = '0x' + [receiverAddr,ionLockAddr,tokenAddr,valueHex,reference].map(el=>el.slice(2)).join('') // joined args need to be added to the random leafs of the tree
   return leaf
 }
 
@@ -133,7 +134,7 @@ contract('IonLock', (accounts) => {
     const withdrawReceiver = accounts[1]
 
     //concat the arguments of sh3 in solidity (in the same way solidity does)
-    const joinedArgs = '0x' + [withdrawReceiver,lockAddr,tokenAddr,valueHex,reference].map(el=>el.slice(2)).join('')
+    const joinedArgs = '0x' + [withdrawReceiver,tokenAddr,lockAddr,valueHex,reference].map(el=>el.slice(2)).join('')
 
     //const hashData = Web3Utils.soliditySha3(withdrawReceiver,lockAddr,tokenAddr,value,reference) //it is the same
     const hashData = Web3Utils.sha3(joinedArgs)
@@ -235,7 +236,7 @@ contract('IonLock', (accounts) => {
     const withdrawReceiver = accounts[1]
 
     //concat the arguments of sh3 in solidity (in the same way solidity does)
-    const joinedArgs = '0x' + [withdrawReceiver,lockAddr,tokenAddr,valueHex,reference].map(el=>el.slice(2)).join('')
+    const joinedArgs = '0x' + [withdrawReceiver,tokenAddr,lockAddr,valueHex,reference].map(el=>el.slice(2)).join('')
 
     //const hashData = Web3Utils.soliditySha3(withdrawReceiver,lockAddr,tokenAddr,value,reference) //it is the same
     const hashData = Web3Utils.sha3(joinedArgs)
@@ -325,7 +326,6 @@ contract('IonLock', (accounts) => {
     // MERKLE_ROOT(REFERENCE_A) -> LINK_B
     // this marks A as the recipient of the tokens
     const leafB = joinIonLinkData(withdrawReceiver,tokenB.address,ionLockB.address,valueB,ref)
-    console.log(leafB)
 
     const testDataB = randomArr()
     testDataB[0] = leafB
@@ -333,13 +333,11 @@ contract('IonLock', (accounts) => {
     const treeExtraB = merkle.createMerkle(randomArr()) // IonLink needs 2 roots min to update
 
     const leafHashB = merkle.merkleHash(leafB)
-    console.log(leafHashB.toString(16))
     const pathB = merkle.pathMerkle(leafB,treeB[0])
     const rootArgB = [treeExtraB[1],treeB[1]]
 
     const receiptUpdateB = await ionLinkB.Update(rootArgB)
     const latestBlockB = await ionLinkB.GetLatestBlock()
-    console.log(latestBlockB.toString(16))
     const validB = await ionLinkB.Verify(latestBlockB,leafHashB,pathB)
     assert(validB,'leaf not found in tree')
 
