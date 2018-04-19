@@ -179,7 +179,7 @@ const printTokenBalance = async (accountA, tokenA, nameA, accountB, tokenB, name
   ])
 }
 
-const queryLithium = () = {
+const queryLithium = () => {
 }
 
 //UNTESTED
