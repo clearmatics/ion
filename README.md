@@ -1,7 +1,7 @@
 # Ion Interoperability Protocol
 
 The Ion Interoperability Protocol provides mechanisms to perform atomic swaps and currency transfers across
-multiple turing-complete blockchains. It is a sidechain and series of smart-contracts which 
+multiple turing-complete blockchains. It is a sidechain and series of smart-contracts which
 
 ## Getting Started
 
@@ -15,7 +15,7 @@ $ python -mion shell
 > onchain Token transfer --help
 ```
 
-or 
+or
 
 ```
 $ python -mion onchain Token transfer --help
@@ -27,7 +27,7 @@ The small Alpine Linux container is under 30mb and contains a self-contained PyI
 
 ```commandline
 make docker-build
-docker run -ti --rm clearmatics/ion:latest 
+docker run -ti --rm clearmatics/ion:latest
 ```
 
 ### PyInstaller
@@ -42,20 +42,25 @@ make dist/ion
 
 ## Tests
 
+To run the Ion testing:
 ```
-make testrpc &
 make test
+```
+
+testing smart contracts individually, run a testrpc:
+```
+npm run test
 ```
 
 # Commands
 
  * `shell` - REPL environment
- * `etheventrelay` - Relay Ethereum events as merkle roots 
+ * `etheventrelay` - Relay Ethereum events as merkle roots
  * `plasma payment` - Create Plasma payment
  * `plasma chain` - Perform operations on the Plasma chain
  * `rpc server` - Run a Plasma RPC server which syncs to a smart contract
  * `rpc client` - JSON-RPC client for Plasma RPC server
- 
+
 ## Smart-Contract integration
 
 All `.abi` files in the `abi` directory are available via the `onchain` command,
