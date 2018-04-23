@@ -351,6 +351,9 @@ contract('IonLock', (accounts) => {
     assert.equal(balanceSender,totalSupply - value, 'sender balance wrong!')
     assert.equal(balanceReceiver,value, 'receiver balance wrong!')
 
+    assert(receiptWithdraw.logs.length > 0)
+    assert.equal( receiptWithdraw.logs[0].event, 'IonWithdraw', 'Chain A IonWithdraw event not found in logs' )
+
     // LOCK_B -> A
     const receiptWithdrawB = await ionLockB.Withdraw(valueB,ref,latestBlockB,pathB,{ from: withdrawReceiver })
 
@@ -359,5 +362,8 @@ contract('IonLock', (accounts) => {
 
     assert.equal(balanceSenderB,totalSupplyB - valueB, 'sender balance wrong!')
     assert.equal(balanceReceiverB,valueB, 'receiver balance wrong!')
+
+    assert(receiptWithdrawB.logs.length > 0)
+    assert.equal( receiptWithdrawB.logs[0].event, 'IonWithdraw', 'Chain B IonWithdraw event not found in logs' )
   })
 });
