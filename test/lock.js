@@ -62,7 +62,7 @@ const joinIonLinkData = (receiverAddr,tokenAddr,ionLockAddr,value,reference) => 
 
 const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)))
 
-contract.only('IonLock', (accounts) => {
+contract('IonLock', (accounts) => {
 
   it('tokenFallback is called by Token.transfer', async () => {
     const token = await Token.new();
@@ -269,7 +269,7 @@ contract.only('IonLock', (accounts) => {
     assert.equal(balanceReceiver,value, 'receiver balance wrong!')
   })
 
-  it.only('withdraw different chains with reference', async () => {
+  it('withdraw different chains with reference', async () => {
     const token = await Token.new();
     const ionLink = await IonLink.new(0);
 		const ionLock = await IonLock.new(token.address, ionLink.address);
@@ -351,9 +351,8 @@ contract.only('IonLock', (accounts) => {
     assert.equal(balanceSender,totalSupply - value, 'sender balance wrong!')
     assert.equal(balanceReceiver,value, 'receiver balance wrong!')
 
-    console.log(receiptWithdraw)
-    // assert(receiptWithdraw['receipt']['logs'].length > 0)
-    // assert.equal( receiptWithdraw['receipt']['logs'][0].event, 'IonWithdraw', 'Chain A IonWithdraw event not found in logs' )
+    assert(receiptWithdraw.logs.length > 0)
+    assert.equal( receiptWithdraw.logs[0].event, 'IonWithdraw', 'Chain A IonWithdraw event not found in logs' )
 
     // LOCK_B -> A
     const receiptWithdrawB = await ionLockB.Withdraw(valueB,ref,latestBlockB,pathB,{ from: withdrawReceiver })
@@ -364,7 +363,7 @@ contract.only('IonLock', (accounts) => {
     assert.equal(balanceSenderB,totalSupplyB - valueB, 'sender balance wrong!')
     assert.equal(balanceReceiverB,valueB, 'receiver balance wrong!')
 
-    // assert(receiptWithdrawB.logs.length > 0)
-    // assert.equal( receiptWithdrawB.logs[0].event, 'IonWithdraw', 'Chain B IonWithdraw event not found in logs' )
+    assert(receiptWithdrawB.logs.length > 0)
+    assert.equal( receiptWithdrawB.logs[0].event, 'IonWithdraw', 'Chain B IonWithdraw event not found in logs' )
   })
 });
