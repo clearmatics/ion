@@ -146,18 +146,18 @@ const depositIonLock = async (web3, token, ionLock, value, reference, ownerAccou
   console.log('Mint tokens into the Owner account')
   const mintTxHash = await mintToken(token, ownerAccount, value)
 
-  // await waitForKeypress()
+   await waitForKeypress()
 
   console.log(`Transfer tokens from Owner account to ${senderName}`)
   const transferTxHash = await transferToken(token, ownerAccount, senderAccount, value, reference)
 
-  // await waitForKeypress()
+   await waitForKeypress()
 
   // setup filter to get ionlock event
   console.log(`Transfer tokens from ${senderName} to IonLock`)
   const lockTxHash = await transferToken(token, senderAccount, ionLock.address, value, reference)
 
-  // await waitForKeypress()
+   await waitForKeypress()
 
   // Wait for IonLock Event
   console.log('IonLock event triggered')
