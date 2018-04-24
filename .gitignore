@@ -11,4 +11,3 @@ docs/deps-modules.dot
 *.pdf
 *.egg-info/
 /data/*.txt
-*.txt
