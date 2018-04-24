@@ -10,9 +10,9 @@ contract Token is ERC223
 {
     using SafeMath for uint256;
 
-
     mapping(address => uint256) balances; // List of user balances.
 
+    event AccountTransfer();
 
     function Token ()
         public
@@ -75,6 +75,8 @@ contract Token is ERC223
         if(codeLength>0) {
             ERC223ReceivingContract receiver = ERC223ReceivingContract(_to);
             receiver.tokenFallback(msg.sender, _value, _data);
+        } else {
+            AccountTransfer();
         }
 
         Transfer(msg.sender, _to, _value, _data);

@@ -372,8 +372,18 @@ const main = async () => {
   console.log("Reference chain A: ", validA)
   await waitForKeypress()
 
+  console.log('\n\n\n')
+  console.log('================= Alice Withdraw on Chain B =================')
+  console.log('\n')
+  await waitForKeypress()
+
   const withdrawTxA = await withdrawIonLock(ionLockB, value, refA, blockIdB, proofA, accountA)
   // console.log(withdrawTxA)
+
+  console.log('\n\n\n')
+  console.log('================= Bob Withdraw on Chain A =================')
+  console.log('\n')
+  await waitForKeypress()
   const withdrawTxB = await withdrawIonLock(ionLockA, value, refB, blockIdA, proofB, accountB)
   // console.log(withdrawTxB)
 
