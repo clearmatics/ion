@@ -1,11 +1,16 @@
 const readline = require('readline');
-const Web3 = require('web3')
-const Web3Utils = require('web3-utils');
-const BN = require('bignumber.js')
-const fs = require('fs');
-const merkle = require('./test/helpers/merkle.js')
 
 require('events').EventEmitter.prototype._maxListeners = 15;
+
+const Web3 = require('web3')
+
+const Web3Utils = require('web3-utils');
+
+const BN = require('bignumber.js')
+
+const fs = require('fs');
+
+const merkle = require('./test/helpers/merkle.js')
 
 const color = {
   Reset: '\x1b[0m',
@@ -141,25 +146,25 @@ const depositIonLock = async (web3, token, ionLock, value, reference, ownerAccou
   console.log('Mint tokens into the Owner account')
   const mintTxHash = await mintToken(token, ownerAccount, value)
 
-   await waitForKeypress()
+  await waitForKeypress()
 
   console.log(`Transfer tokens from Owner account to ${senderName}`)
   const transferTxHash = await transferToken(token, ownerAccount, senderAccount, value, reference)
 
-   await waitForKeypress()
+  await waitForKeypress()
 
   // setup filter to get ionlock event
   console.log(`Transfer tokens from ${senderName} to IonLock`)
   const lockTxHash = await transferToken(token, senderAccount, ionLock.address, value, reference)
 
-   await waitForKeypress()
+  await waitForKeypress()
 
   // Wait for IonLock Event
   console.log('IonLock event triggered')
   const lockEvent = await getIonLockEvent(web3, ionLock, reference)
 
   console.log(`\nEND - Deposit from ${senderName} to IonLock`)
-  // await waitForKeypress()
+  await waitForKeypress()
 }
 
 const printTokenBalance = async (accountA, tokenA, nameA, accountB, tokenB, nameB, ionLockA, ionLockB) => {
@@ -218,6 +223,12 @@ const joinIonLinkData = (receiverAddr,tokenAddr,ionLockAddr,value,reference) => 
 //UNTESTED
 const withdrawIonLock = async (ionLock, value, ref, blockId, proof, account) => {
   const withdrawTx = await ionLock.Withdraw(value, ref, blockId, proof, {from: account, gas: "0xFFFFFD"})
+  printBlock([
+    ['Withdraw tokens from',ionLock.address,'to',account],
+    ['Value:', value.toString(10)],
+    ['Reference:',ref],
+    ['Transfer TxHash:',withdrawTx]
+  ])
   return withdrawTx
 }
 
@@ -327,7 +338,7 @@ const main = async () => {
     ionLockA, ionLockB)
 
   // TODO: WAIT FOR UPDATE IN IONLINK
-  console.log('\n\n\n')
+  console.log('\n\n')
   console.log('================= Lithium Withdraw =================')
   console.log('\n')
 
@@ -350,43 +361,45 @@ const main = async () => {
   proofA = convertArrayBN(proofA)
   proofB = convertArrayBN(proofB)
 
-  await waitForKeypress()
-
   // TODO: WITHDRAW
   var leafB = joinIonLinkData(accountA,tokenB.address,ionLockB.address,value,refA)
   leafhashB = merkle.merkleHash(leafB)
   var leafA = joinIonLinkData(accountB,tokenA.address,ionLockA.address,value,refB)
   leafhashA = merkle.merkleHash(leafA)
 
-  const validB = await ionLinkB.Verify(blockIdB, leafhashB, proofA, {from: accountA, gas: "0xFFFD"})
+  // const validB = await ionLinkB.Verify(blockIdB, leafhashB, proofA, {from: accountA, gas: "0xFFFD"})
   const valueB = await tokenB.balanceOf(ionLockB.address) // Alice on chain B
-  console.log('\n\n\n')
-  console.log('================= Check IonLink =================')
-  console.log('\n')
-  console.log("IonLink Verify on chain B: ", validB)
-  console.log("Balance of IonLock on chain B: ", valueB)
-  await waitForKeypress()
+  // console.log('\n\n\n')
+  // console.log('================= Check IonLink =================')
+  // console.log('\n')
+  // console.log("IonLink Verify on chain B: ", validB)
+  // console.log("Balance of IonLock on chain B: ", valueB)
+  // await waitForKeypress()
 
-  const validA = await ionLinkA.Verify(blockIdA, leafhashA, proofB, {from: accountB, gas: "0xFFFD"})
+  // const validA = await ionLinkA.Verify(blockIdA, leafhashA, proofB, {from: accountB, gas: "0xFFFD"})
   const valueA = await tokenA.balanceOf(ionLockA.address) // Bob on chain A
-  console.log("IonLink Verify on chain A: ", validA)
-  console.log("Balance of IonLock on chain A: ", valueA)
-  await waitForKeypress()
+  // console.log("IonLink Verify on chain A: ", validA)
+  // console.log("Balance of IonLock on chain A: ", valueA)
 
-  console.log('\n\n\n')
-  console.log('================= Alice Withdraw on Chain B =================')
+  console.log('\n\n')
+  console.log('================= Withdraw Chain B =================')
   console.log('\n')
   await waitForKeypress()
 
-  const withdrawTxA = await withdrawIonLock(ionLockB, value, refA, blockIdB, proofA, accountA)
-  // console.log(withdrawTxA)
+  console.log(`Withdraw tokens from IonLock on Chain B to Alice`)
+  const withdrawTxAlice = await withdrawIonLock(ionLockB, valueB, refA, blockIdB, proofA, accountA)
+  await printTokenBalance(
+    accountA, tokenA, 'Alice',
+    accountB, tokenB, 'Bob',
+    ionLockA, ionLockB)
 
-  console.log('\n\n\n')
-  console.log('================= Bob Withdraw on Chain A =================')
+  console.log('\n\n')
+  console.log('================= Withdraw Chain A =================')
   console.log('\n')
   await waitForKeypress()
-  const withdrawTxB = await withdrawIonLock(ionLockA, value, refB, blockIdA, proofB, accountB)
-  // console.log(withdrawTxB)
+
+  console.log(`Withdraw tokens from IonLock on Chain A to Bob`)
+  const withdrawTxBob = await withdrawIonLock(ionLockA, valueA, refB, blockIdA, proofB, accountB)
   await printTokenBalance(
     accountA, tokenA, 'Alice',
     accountB, tokenB, 'Bob',
