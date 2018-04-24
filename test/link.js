@@ -65,6 +65,9 @@ contract('IonLink', (accounts) => {
     const latestBlock = await ionLink.GetLatestBlock()
     const valid = await ionLink.Verify(latestBlock,leafHash,path)
     assert(valid,'IonLink.verify() failed!')
+
+    assert( receiptUpdate.logs.length > 0)
+    assert.equal( receiptUpdate.logs[0].event, 'IonLinkUpdated', 'IonLinkUpdated event not found in logs' )
   })
 
   it('duplicate root', async () => {

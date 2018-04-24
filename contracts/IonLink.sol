@@ -18,6 +18,7 @@ contract IonLink is IonLinkInterface
 
 	address Owner;
 
+	event IonLinkUpdated();
 
 	function IonLink ( uint256 genesis )
 		public
@@ -99,6 +100,8 @@ contract IonLink is IonLinkInterface
 		}
 
 		LatestBlock = prev_hash;
+
+		IonLinkUpdated();
 	}
 
 	/* function Update( uint256 _new_block_root )

@@ -91,5 +91,7 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
         m_balance -= _value;
 
         m_currency.transfer(msg.sender, _value);
+
+        IonWithdraw(msg.sender, m_currency, _value,  _ref);
     }
 }
