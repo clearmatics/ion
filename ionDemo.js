@@ -1,16 +1,11 @@
 const readline = require('readline');
+const Web3 = require('web3')
+const Web3Utils = require('web3-utils');
+const BN = require('bignumber.js')
+const fs = require('fs');
+const merkle = require('./test/helpers/merkle.js')
 
 require('events').EventEmitter.prototype._maxListeners = 15;
-
-const Web3 = require('web3')
-
-const Web3Utils = require('web3-utils');
-
-const BN = require('bignumber.js')
-
-const fs = require('fs');
-
-const merkle = require('./test/helpers/merkle.js')
 
 const color = {
   Reset: '\x1b[0m',

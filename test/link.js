@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-const merkle = require('./merkle')
+const merkle = require('./helpers/merkle.js')
 
 const IonLink = artifacts.require("IonLink");
 const utils = require('./helpers/utils.js')

@@ -1,7 +1,7 @@
 const web3Utils = require('web3-utils')
 const web3Abi = require('web3-eth-abi');
 
-const merkle = require('./merkle');
+const merkle = require('./helpers/merkle.js');
 
 const Token = artifacts.require("Token");
 const Sodium = artifacts.require("Sodium");

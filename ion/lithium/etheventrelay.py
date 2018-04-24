@@ -80,35 +80,20 @@ def pack_items(items):
 def processProof(item, item_tree, rpc):
     file = open("./data/merklePath" + str(rpc.port) + ".txt", "w")
     path = merkle_path(item, item_tree)
-    # path = [str(hex(item) )[:-1] for item in path]
-    for val in path:
-        print("Path: ", hex(val))
-
-    # file.write(path)
     for item in path:
         file.write("%s\n" % item)
-    # for i in range(0, len(path)):
-    #     var = path[i]
-    #     var = str(hex(var))[:-1]
-    #     print(var)
-    #     file.write(var)
 
     file.close()
 
 def processReference(ref, rpc):
     file = open("./data/reference" + str(rpc.port) + ".txt", "w")
     var = ref
-    # var = str(var)[:-1]
     var = str(var)
-    # print("reference: ", var)
     file.write(var)
     file.close()
 
 def processLatestBlock(block, rpc):
     file = open("./data/latestBlock" + str(rpc.port) + ".txt", "w")
-    # print("Latest block: ", block)
-    # var = str(hex(block))[:-1]
-    # print("Latest block: ", var)
     file.write(str(block))
     file.close()
 
@@ -169,10 +154,7 @@ def lithium_process_block(rpc, block_height, transfers):
                     if log_entry['topics'][0][2:] in event_signatures:
                         print("Processing IonLock Transfer Event")
 
-                        # Get the hashed reference
-                        print("Reference: ", log_entry['topics'][2])
                         processReference(log_entry['topics'][2], rpc)
-                        log_items = pack_log(block_height, tx, log_entry)
 
                         log_items = pack_log(block_height, tx, log_entry)
                         item_value = log_items
@@ -241,7 +223,6 @@ def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_
 
     for is_latest, block_group in iter_blocks(rpc_from, ionlock.LatestBlock()):
         items, group_tx_count, group_log_count, transfers = lithium_process_block_group(rpc_from, block_group)
-        print(len(items), len(transfers))
         if len(items):
             pack_items(items)
             print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
@@ -250,10 +231,6 @@ def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_
 
             # XXX This means the only time we get the proof is when the transfers[0] is true
             if transfers[0]==True:
-                print("Items: ")
-                for item in items:
-                    print(item.encode('hex'))
-
                 processProof(items[0], item_tree, rpc_from)
 
             # if len(batch) >= 2:

@@ -1,4 +1,4 @@
-const merkle = require('./merkle')
+const merkle = require('./helpers/merkle.js')
 const Sodium = artifacts.require("Sodium");
 const crypto = require('crypto');
 
