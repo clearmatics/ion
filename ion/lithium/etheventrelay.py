@@ -4,15 +4,24 @@ import click
 import json
 import time
 import binascii
+import random
+import string
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian, keccak
 
 from ion.args import arg_bytes20, arg_ethrpc
-from ion.merkle import merkle_tree, merkle_hash
+from ion.merkle import merkle_tree, merkle_hash, merkle_path
 from ion.utils import u256be
 
 on_transfer_signature = keccak.new(digest_bits=256).update('IonTransfer(address,address,uint256,bytes32,bytes)').hexdigest()
 
 event_signatures = [on_transfer_signature]
+
+def random_string(N):
+    """
+    Returns a random string to hash as pseudo data...
+    """
+    return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(N))
+
 
 def jsonPrint(message, snippet):
     """
@@ -56,6 +65,53 @@ def pack_log(block_no, tx, log):
         scan_bin(log['topics'][2]),
     ])
 
+def pack_items(items):
+    """
+    Ensures items has minimum of 4 leaves.
+    """
+    start = len(items)
+    if start < 4:
+        for val in range(start, 4):
+            new_item = random_string(16)
+            items.append(sha3(new_item))
+    else:
+        pass
+
+def processProof(item, item_tree, rpc):
+    file = open("./data/merklePath" + str(rpc.port) + ".txt", "w")
+    path = merkle_path(item, item_tree)
+    # path = [str(hex(item) )[:-1] for item in path]
+    for val in path:
+        print("Path: ", hex(val))
+
+    # file.write(path)
+    for item in path:
+        file.write("%s\n" % item)
+    # for i in range(0, len(path)):
+    #     var = path[i]
+    #     var = str(hex(var))[:-1]
+    #     print(var)
+    #     file.write(var)
+
+    file.close()
+
+def processReference(ref, rpc):
+    file = open("./data/reference" + str(rpc.port) + ".txt", "w")
+    var = ref
+    # var = str(var)[:-1]
+    var = str(var)
+    # print("reference: ", var)
+    file.write(var)
+    file.close()
+
+def processLatestBlock(block, rpc):
+    file = open("./data/latestBlock" + str(rpc.port) + ".txt", "w")
+    # print("Latest block: ", block)
+    # var = str(hex(block))[:-1]
+    # print("Latest block: ", var)
+    file.write(str(block))
+    file.close()
+
 
 def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
     """Iterate through the block numbers"""
@@ -67,7 +123,7 @@ def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
     is_latest = False
     # Infinite loop event listener...
     while True:
-        bh = rpc.eth_blockNumber()
+        bh = rpc.eth_blockNumber() + 1
         for i in range(obh, bh):
             # XXX TODO: I think this is why the latest block info is not always in sync with geth
             if i == (bh - 1):
@@ -112,6 +168,12 @@ def lithium_process_block(rpc, block_height, transfers):
                 for log_entry in receipt['logs']:
                     if log_entry['topics'][0][2:] in event_signatures:
                         print("Processing IonLock Transfer Event")
+
+                        # Get the hashed reference
+                        print("Reference: ", log_entry['topics'][2])
+                        processReference(log_entry['topics'][2], rpc)
+                        log_items = pack_log(block_height, tx, log_entry)
+
                         log_items = pack_log(block_height, tx, log_entry)
                         item_value = log_items
                         log_count += 1
@@ -153,6 +215,7 @@ def lithium_submit(batch, prev_root, rpc, link, account):
         if pair[2]:
             current_root = pair[1]
             ionlink.Update([prev_root, current_root])
+            processLatestBlock(ionlink.GetLatestBlock(), rpc)
             prev_root = current_root
 
     return prev_root
@@ -179,9 +242,18 @@ def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_
         items, group_tx_count, group_log_count, transfers = lithium_process_block_group(rpc_from, block_group)
         print(len(items), len(transfers))
         if len(items):
+            pack_items(items)
             print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
             item_tree, root = merkle_tree(items)
             batch.append( (block_group[0], root, transfers[0]) )
+
+            # XXX This means the only time we get the proof is when the transfers[0] is true
+            if transfers[0]==True:
+                print("Items: ")
+                for item in items:
+                    print(item.encode('hex'))
+
+                processProof(items[0], item_tree, rpc_from)
 
             # if len(batch) >= 2:
             if is_latest or len(batch) >= batch_size:

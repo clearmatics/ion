@@ -18,6 +18,7 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
     // Keeps reference to latest block that transfer was performed on
     uint256 public LatestBlock;
 
+    event Test(bool output);
 
     function IonLock( ERC223 currency, IonLinkInterface ion )
         public
@@ -75,15 +76,17 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
     function Withdraw( uint256 _value, bytes32 _ref, uint256 _block_id, uint256[] _proof )
         public
     {
-        require( false == m_withdraws[_ref] );
+        /* require( false == m_withdraws[_ref] ); */
+        /* bool check = m_withdraws[_ref];
+        Test(check); */
 
         var leaf_hash = uint256(keccak256(msg.sender, m_currency, address(this), _value, _ref));
 
-        require( m_ion.Verify(_block_id, leaf_hash, _proof) );
+        /* require( m_ion.Verify(_block_id, leaf_hash, _proof) ); */
 
-        m_withdraws[_ref] = true;
+        /* m_withdraws[_ref] = true; */
 
-        require( (m_balance - _value) < _value );
+        /* require( (m_balance - _value) < _value ); */
 
         m_balance -= _value;
 

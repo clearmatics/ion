@@ -1,6 +1,16 @@
 const readline = require('readline');
 
+require('events').EventEmitter.prototype._maxListeners = 15;
+
 const Web3 = require('web3')
+
+const Web3Utils = require('web3-utils');
+
+const BN = require('bignumber.js')
+
+const fs = require('fs');
+
+const merkle = require('./test/helpers/merkle.js')
 
 const color = {
   Reset: '\x1b[0m',
@@ -29,6 +39,13 @@ const color = {
   BgCyan: '\x1b[46m',
   BgWhite: '\x1b[47m',
 }
+
+const tokenJson = require('./build/contracts/Token.json')
+const tokenAbi = tokenJson.abi
+const lockJson = require('./build/contracts/IonLock.json')
+const lockAbi = lockJson.abi
+const linkJson = require('./build/contracts/IonLink.json')
+const linkAbi = linkJson.abi
 
 const deployContract = (web3, contractPath, ownerAcc, args) => {
   const contractData = require(contractPath)
@@ -88,7 +105,7 @@ const getIonLockEvent = async (web3, ionLock, reference) => {
     ['TxHash:', le.transactionHash],
     ['Arguments of event:'],
     ['\tRecipient:',le.args._recipient],
-    ['\tCurrency hash:',le.args._currency],
+    ['\tCurrency address:',le.args._currency],
     ['\tValue:',le.args.value.toString()],
     ['\tReference hash:',le.args.ref],
     ['\tData (hex of reference):',le.args.data],
@@ -103,6 +120,7 @@ const getWeb3 = (providerURL) => {
 }
 
 const waitForKeypress = async () => {
+  // {}
   readline.emitKeypressEvents(process.stdin)
   process.stdin.setRawMode(true)
   const promiseKey = new Promise((resolve, reject) => process.stdin.on('keypress', (str, key) => {
@@ -136,7 +154,7 @@ const depositIonLock = async (web3, token, ionLock, value, reference, ownerAccou
   await waitForKeypress()
 
   // setup filter to get ionlock event
-  console.log(`Transfer tokens ${senderName} to IonLock`)
+  console.log(`Transfer tokens from ${senderName} to IonLock`)
   const lockTxHash = await transferToken(token, senderAccount, ionLock.address, value, reference)
 
   await waitForKeypress()
@@ -179,13 +197,57 @@ const printTokenBalance = async (accountA, tokenA, nameA, accountB, tokenB, name
   ])
 }
 
+const printReferenceData = async (refA, refB, proofA, proofB, blockIdA, blockIdB) => {
+  printBlock([
+    ['Withdrawal Reference Data'],
+    [`Alice on Chain B`],
+    ['\tReference: ',refA],
+    ['\tProof: ',proofA],
+    ['\tBlockId: ',blockIdB.toString()],
+    [`Bob on Chain A`],
+    ['\tReference: ',refB],
+    ['\tProof: ',proofB],
+    ['\tBlockId: ',blockIdA.toString()],
+  ])
+}
+
 const queryLithium = () => {
 }
 
+const joinIonLinkData = (receiverAddr,tokenAddr,ionLockAddr,value,reference) => {
+  const valueHex = '0x'+Web3Utils.toBN(value).toString(16).padStart(64,'0') // make an hex that is good to sha3 in solidity uint256 -> 64 bytes
+  const leaf = '0x' + [receiverAddr,tokenAddr,ionLockAddr,valueHex,reference].map(el=>el.slice(2)).join('') // joined args need to be added to the random leafs of the tree
+  return leaf
+}
+
 //UNTESTED
-const withdrawIonLock = async (ionLock, value, ref, blockId, proof) => {
-  const withdrawTx = await ionLock.Withdraw(value, ref, blockId, proof)
+const withdrawIonLock = async (ionLock, value, ref, blockId, proof, account) => {
+  const withdrawTx = await ionLock.Withdraw(value, ref, blockId, proof, {from: account})
   return withdrawTx
+}
+
+const reader = (input) => {
+  const output = fs.readFileSync(input, 'utf8');
+  return output;
+}
+
+const arrayReader = (input) => {
+  const output = fs.readFileSync(input, 'utf8').toString().split("\n");
+  // Remove any empty elements
+  var index = output.indexOf('');
+  if (index > -1) {
+      output.splice(index, 1);
+  }
+  return output;
+}
+
+const convertArrayBN = (input) => {
+  var arrayLength = input.length;
+  for (var i = 0; i < arrayLength; i++) {
+      input[i] = new BN(input[i])
+      // console.log(input[i]);
+  }
+  return input;
 }
 
 const main = async () => {
@@ -199,14 +261,24 @@ const main = async () => {
   const accountA = web3A.eth.accounts[1]
   const accountB = web3A.eth.accounts[2]
 
+  // console.log(tokenAbi)
+  // instantiate by address
+
+  // // deploy contracts
+  const TokenA = web3A.eth.contract(tokenAbi);
+  const tokenA = TokenA.at('0x9561c133dd8580860b6b7e504bc5aa500f0f06a7');
+  const LockA = web3A.eth.contract(lockAbi);
+  const ionLockA = LockA.at('0xe982e462b094850f12af94d21d470e21be9d0e9c');
+  const LinkA = web3A.eth.contract(linkAbi);
+  const ionLinkA = LinkA.at('0xc89ce4735882c9f0f0fe26686c53074e09b0d550');
+
   // deploy contracts
-  const tokenA = await deployContract(web3A, './build/contracts/Token.json', owner)
-  const ionLinkA = await deployContract(web3A, './build/contracts/IonLink.json', owner)
-  const ionLockA = await deployContract(web3A, './build/contracts/IonLock.json', owner, [tokenA.address, ionLinkA.address])
-  // deploy contracts
-  const tokenB = await deployContract(web3B, './build/contracts/Token.json', owner)
-  const ionLinkB = await deployContract(web3B, './build/contracts/IonLink.json', owner)
-  const ionLockB = await deployContract(web3B, './build/contracts/IonLock.json', owner, [tokenB.address, ionLinkB.address])
+  const TokenB = web3B.eth.contract(tokenAbi);
+  const tokenB = TokenB.at('0x9561c133dd8580860b6b7e504bc5aa500f0f06a7');
+  const LockB = web3B.eth.contract(lockAbi);
+  const ionLockB = LockB.at('0xe982e462b094850f12af94d21d470e21be9d0e9c');
+  const LinkB = web3B.eth.contract(linkAbi);
+  const ionLinkB = LinkB.at('0xc89ce4735882c9f0f0fe26686c53074e09b0d550');
 
   printBlock([
     ['Deployed Contracts NodeA'],
@@ -224,7 +296,8 @@ const main = async () => {
     ionLockA, ionLockB)
 
   const value = 1000
-  const reference = 'Simple Ion Example'
+  const date = Math.floor(Date.now() / 1000);
+  const reference = Web3Utils.sha3('Reference from deposit on chain B')
 
   console.log('\n\n\n')
   console.log('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
@@ -260,21 +333,56 @@ const main = async () => {
 
   // TODO: WAIT FOR UPDATE IN IONLINK
   console.log('\n\n\n')
-  console.log('================= Wait for Lithium to continue =================')
+  console.log('================= Lithium Withdraw =================')
   console.log('\n')
-  // TODO: get IonLink block id (for the deposit) for chain A and B
-  // TODO: get IonLink proof (for the deposit) for chain A and B
+
+  // TODO: get IonLink block id (for the deposit) for chain A
+  var refA = await reader('./data/reference8545.txt')
+  var proofA = await arrayReader('./data/merklePath8545.txt')
+  var blockIdB = await reader('./data/latestBlock8546.txt')
+
+  // TODO: get IonLink proof (for the deposit) for chain B
+  var refB = await reader('./data/reference8546.txt')
+  var proofB = await arrayReader('./data/merklePath8546.txt')
+  var blockIdA = await reader('./data/latestBlock8545.txt')
+
+  // await printReferenceData(refA, refB, proofA, proofB, blockIdB, blockIdA)
+
+  // Convert the strings into javascript stuff
+  blockIdA = new BN(blockIdA)
+  blockIdB = new BN(blockIdB)
+
+  proofA = convertArrayBN(proofA)
+  proofB = convertArrayBN(proofB)
+
   await waitForKeypress()
 
   // TODO: WITHDRAW
-  //const withdrawTxA = await withdrawIonLock(ionLockA, valueA, refA, blockIdA, proofA)
-  //const withdrawTxB = await withdrawIonLock(ionLockB, valueB, refB, blockIdB, proofB)
+  var leafB = joinIonLinkData(accountA,tokenB.address,ionLockB.address,value,refA)
+  leafhashB = merkle.merkleHash(leafB)
+  var leafA = joinIonLinkData(accountB,tokenA.address,ionLockA.address,value,refB)
+  leafhashA = merkle.merkleHash(leafA)
+
+  const validB = await ionLinkB.Verify(blockIdB, leafhashB, proofA, {from: accountA})
+  const validA = await ionLinkA.Verify(blockIdA, leafhashA, proofB, {from: accountB})
+  console.log('\n\n\n')
+  console.log('================= Check IonLink =================')
+  console.log('\n')
+  console.log("Reference chain B: ", validB)
+  console.log("Reference chain A: ", validA)
+  await waitForKeypress()
+
+  const withdrawTxA = await withdrawIonLock(ionLockB, value, refA, blockIdB, proofA, accountA)
+  // console.log(withdrawTxA)
+  const withdrawTxB = await withdrawIonLock(ionLockA, value, refB, blockIdA, proofB, accountB)
+  // console.log(withdrawTxB)
 
   await printTokenBalance(
     accountA, tokenA, 'Alice',
     accountB, tokenB, 'Bob',
     ionLockA, ionLockB)
 
+  // await waitForKeypress()
 
   process.exit()
 }
