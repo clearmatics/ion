@@ -104,31 +104,6 @@ contract IonLink is IonLinkInterface
 		IonLinkUpdated();
 	}
 
-	/* function Update( uint256 _new_block_root )
-		public
-	{
-		require( msg.sender == Owner);
-
-		uint256 prev_hash = LatestBlock;
-		uint256 new_block_hash;
-
-		if (prev_hash != 0) {
-			new_block_hash = uint256(keccak256(prev_hash, _new_block_root));
-		} else {
-			new_block_hash = uint256(keccak256(_new_block_root));
-		}
-
-		IonBlock storage blk = GetBlock(new_block_hash);
-
-		blk.root = _new_block_root;
-
-		// Record state at time of block creation
-		blk.prev = prev_hash;
-		blk.time = block.timestamp;
-
-		LatestBlock = new_block_hash;
-	} */
-
 
 	function Verify( uint256 block_id, uint256 leaf_hash, uint256[] proof )
 		public view
