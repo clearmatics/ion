@@ -1,3 +1,6 @@
+## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+## SPDX-License-Identifier: LGPL-3.0+
+
 import unittest
 
 from plasma.chain import chaindata_latest_get

@@ -30,7 +30,6 @@
     "testrpc": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 0 --network-id 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "testrpca": "ganache-cli --port 8545 --gasLimit 0xFFFFFFF --gasPrice 0 --networkId 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "testrpcb": "ganache-cli --port 8546 --gasLimit 0xFFFFFFF --gasPrice 0 --networkId 5678 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
-    "testrpc1": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 0 --network-id 12345 --port 8546 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "compile": "truffle compile",
     "deploy": "truffle deploy",
     "test": "truffle test",

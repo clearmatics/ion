@@ -1,3 +1,6 @@
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// SPDX-License-Identifier: LGPL-3.0+
+
 const merkle = require('./helpers/merkle.js')
 const Sodium = artifacts.require("Sodium");
 const crypto = require('crypto');

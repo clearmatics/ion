@@ -1,3 +1,6 @@
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// SPDX-License-Identifier: LGPL-3.0+
+
 const crypto = require('crypto')
 
 // Format required for sending bytes through eth client:
