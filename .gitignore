@@ -10,5 +10,3 @@ docs/deps-modules.dot
 *.log
 *.pdf
 *.egg-info/
-/data/*.txt
-/scripts

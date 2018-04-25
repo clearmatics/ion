@@ -121,9 +121,9 @@ test-js:
 	npm run test
 
 test-lithium:
-	./run_ion_testchains.sh
+	./scripts/run_testchains.sh
 	sleep 15s
 	$(PYTHON) -m unittest discover test/
-	./kill_ion_testchains.sh
+	./scripts/kill_testchains.sh
 
 test: test-lithium

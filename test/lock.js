@@ -2,7 +2,7 @@ const Web3Utils = require('web3-utils');
 const web3Abi = require('web3-eth-abi');
 const crypto = require('crypto');
 
-const merkle = require('./merkle')
+const merkle = require('./helpers/merkle.js')
 const Token = artifacts.require("Token");
 const IonLink = artifacts.require("IonLink");
 const IonLock = artifacts.require("IonLock");
