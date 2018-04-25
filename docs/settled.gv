@@ -1,8 +1,0 @@
-digraph {
-	"('Ion', 'USD', 0)" -> "('Ion', 'EUR', 1)" [label="925 USD" color=green fontsize=8.0 penwidth=5.0 weight="defaultdict(<type 'int'>, {'USD': 925, 'EUR': 250})"]
-	"('Ion', 'USD', 0)" -> "('Ion', 'EUR', 1)" [label="250 EUR" color=blue fontsize=8.0 penwidth=4.20875420875 weight="defaultdict(<type 'int'>, {'USD': 925, 'EUR': 250})"]
-	"('Ion', 'EUR', 1)" -> "('Ion', 'USD', 2)" [label="791 USD" color=green fontsize=8.0 penwidth=4.27567567568 weight="defaultdict(<type 'int'>, {'USD': 791, 'EUR': 297})"]
-	"('Ion', 'EUR', 1)" -> "('Ion', 'USD', 2)" [label="297 EUR" color=blue fontsize=8.0 penwidth=5.0 weight="defaultdict(<type 'int'>, {'USD': 791, 'EUR': 297})"]
-	"('Ion', 'USD', 2)" -> "('Ion', 'USD', 0)" [label="790 USD" color=green fontsize=8.0 penwidth=4.27027027027 weight="defaultdict(<type 'int'>, {'USD': 790, 'EUR': 289})"]
-	"('Ion', 'USD', 2)" -> "('Ion', 'USD', 0)" [label="289 EUR" color=blue fontsize=8.0 penwidth=4.86531986532 weight="defaultdict(<type 'int'>, {'USD': 790, 'EUR': 289})"]
-}
