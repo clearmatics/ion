@@ -196,7 +196,6 @@ def lithium_submit(batch, prev_root, rpc, link, account):
     for pair in batch:
         if pair[2]:
             current_root = pair[1]
-            time.sleep(5)
             ionlink.Update([prev_root, current_root])
             processLatestBlock(ionlink.GetLatestBlock(), rpc)
             prev_root = current_root
