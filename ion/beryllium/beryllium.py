@@ -18,25 +18,74 @@ gevent.monkey.patch_all()
 import click
 from flask import Flask, request, jsonify
 from jsonrpc2 import JsonRpc
+from ethereum.utils import keccak
 
 from ..ethrpc import EthJsonRpc
 from ..args import arg_ethrpc
 from ..utils import marshal, unmarshal, require
 from ion.beryllium.plasma.chain import payments_load, blockchain_apply, balances_load, chaindata_latest_get, block_load, chaindata_path, block_genesis, find_block, find_next_block, BlockNotFoundException
-from ion.beryllium.plasma import payments_graphviz, SignedPayment
-from ion.beryllium.plasma import TxPool
+from ion.beryllium.plasma.payment import payments_graphviz, SignedPayment
+from ion.beryllium.plasma.txpool import TxPool
+from ion.beryllium.plasma.model import Block
+from ion.merkle import merkle_tree, merkle_path, merkle_hash
 from .api import PlasmaIonRESTAPI
 
+
 class Beryllium(object):
-    def __init__(self, ionlink=None):
-        self.ionRpc = IonRpcServer(ionlink)
-        self.plasma = PlasmaChain()
+    def __init__(self):
+        self._mleaves = []
+        self._blocks = {}
+        self._latest_block = ''
+        self._generate_genesis()
+        self._new_pool()
+
+    def _generate_genesis(self):
+        self._latest_block = keccak.new(digest_bits=256).update('genesis').digest()
+
+    def _new_pool(self):
+        self._pool = LithiumTxPool()
+
+    def get_latest_block(self):
+        return self._latest_block
+
+    def submit_items(self, lithium_items):
+        self._mleaves.extend(lithium_items)
+        self._pool.add_items(self._mleaves)
+
+    def seal_block(self):
+        tree, root = self._pool.prune_items()
+        prev = self._latest_block
+        root = format(root, 'x').decode('hex')
+        new_block = Block(prev, root)
+        self._latest_block = new_block.hash
+        self._new_pool()
+        self._blocks[new_block.hash.encode('hex')] = tree
+        return new_block.hash
+
+    def merkle_path(self, block_hash, item):
+        tree = self._blocks[block_hash]
+
+        path = merkle_path(item, tree)
+
+        print("Beryllium: Printing path")
+        print(path)
+
+        return path
 
 
-    def submit_roots(self, lithium_roots):
-        for root in lithium_roots:
-            # TODO: Submit entire tree instead of just roots to plasma
-            pass
+
+class LithiumTxPool(object):
+    def __init__(self):
+        self._pool = []
+
+    def add_items(self, items):
+        self._pool.extend(items)
+
+    def get_items(self):
+        return self._pool
+
+    def prune_items(self):
+        return merkle_tree(self._pool)
 
 
 class PlasmaChain(object):
