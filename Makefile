@@ -11,31 +11,13 @@ PROTOCOLS_PY=$(addsuffix _pb2.py,$(PROTOCOLS))
 
 PYLINT_IGNORE=C0330,invalid-name,line-too-long,missing-docstring,bad-whitespace,consider-using-ternary,wrong-import-position,wrong-import-order,trailing-whitespace
 
-all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) pyflakes test truffle-test dist/ion pylint
-
-README.pdf: README.md
-	pandoc --toc --reference-links --number-sections --listings --template docs/eisvogel -f markdown -t latex -o $@ $<
+all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) test truffle-test pylint
 
 build:
 	mkdir -p build
 
-pyflakes:
-	$(PYTHON) -mpyflakes ion
-
 pylint:
 	$(PYTHON) -mpylint -d $(PYLINT_IGNORE) ion
-
-lint: pyflakes pylint
-
-bdist:
-	$(PYTHON) setup.py bdist_egg --exclude-source-files
-	$(PYTHON) setup.py bdist_wheel --universal
-
-dist:
-	mkdir -p dist
-
-dist/ion: dist
-	$(PYTHON) -mPyInstaller ion.spec
 
 dev-yarn:
 	echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
@@ -91,7 +73,7 @@ ion/proto/%_pb2.py: ion/proto/%.proto
 	protoc -I. --python_out=. $<
 
 requirements: requirements.txt
-	$(PYTHON) -mpip install -r requirements.txt
+	$(PYTHON) -mpip install -r requirements.txts
 
 abi:
 	mkdir -p abi
@@ -120,10 +102,7 @@ test-js:
 	npm run testrpc &
 	npm run test
 
-test-lithium:
-	./scripts/run_testchains.sh
-	sleep 15s
+test-unit:
 	$(PYTHON) -m unittest discover test/
-	./scripts/kill_testchains.sh
 
-test: test-lithium
+test: test-unit

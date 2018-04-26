@@ -1,3 +1,5 @@
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
 import "./ERC223Compatible.sol";
@@ -12,7 +14,7 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
 
     IonLinkInterface m_ion;
 
-    // Used to prevent double-withdraw
+    // Logs the unique references that have been submitted
     mapping(bytes32 => bool) m_withdraws;
 
     // Keeps reference to latest block that transfer was performed on
@@ -53,10 +55,9 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
 
         bytes32 ref = keccak256(_data);
 
-        IonMint( _value, ref );
+        emit IonMint( _value, ref );
 
-        /* IonTransfer( _from, address(this), _value, ref ); */
-        IonTransfer( _from, address(this), _value, ref, _data );
+        emit IonTransfer( _from, address(this), _value, ref, _data );
 
         LatestBlock = block.number;
     }
@@ -88,6 +89,6 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
 
         m_currency.transfer(msg.sender, _value);
 
-        IonWithdraw(msg.sender, m_currency, _value, _ref);
+        emit IonWithdraw(msg.sender, m_currency, _value, _ref);
     }
 }

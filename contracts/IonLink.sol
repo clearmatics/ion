@@ -1,3 +1,5 @@
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
 import "./Merkle.sol";
@@ -88,7 +90,7 @@ contract IonLink is IonLinkInterface
 		{
 			uint256 block_hash = uint256(keccak256(prev_hash, in_state[i]));
 
-			IonBlock storage blk = m_blocks[block_hash];//GetBlock(block_hash);
+			IonBlock storage blk = m_blocks[block_hash];
 
 			blk.root = in_state[i];
 
@@ -101,7 +103,7 @@ contract IonLink is IonLinkInterface
 
 		LatestBlock = prev_hash;
 
-		IonLinkUpdated();
+		emit IonLinkUpdated();
 	}
 
 
