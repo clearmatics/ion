@@ -1,7 +1,0 @@
-FROM frolvlad/alpine-glibc
-
-COPY dist/ion /app/
-COPY abi /app/abi/
-WORKDIR /app
-
-ENTRYPOINT ["/app/ion"]

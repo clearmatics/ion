@@ -1,15 +1,9 @@
-const HTLC = artifacts.require("HTLC");
-const Sodium = artifacts.require("Sodium");
 const IonLink = artifacts.require("IonLink");
 const IonLock = artifacts.require("IonLock");
 const Token = artifacts.require("Token");
 
 module.exports = async (deployer) => {
   try {
-    deployer.deploy(HTLC);
-
-    deployer.deploy(Sodium);
-
     await deployer.deploy(IonLink, 0);
 
     await deployer.deploy(Token)

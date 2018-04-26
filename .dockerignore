@@ -1,8 +1,0 @@
-node_modules
-*.egg-info
-build
-chaindata
-contracts
-docs
-migrations
-test
