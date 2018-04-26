@@ -195,7 +195,7 @@ A
   - 1 QA Tester
   - 1 Business analyst
 
-### Seventh checkpoint (April - ...)
+### Seventh checkpoint (April 2019 - ...)
 
 #### Description
 
@@ -207,7 +207,7 @@ A
 #### Tasks
   * Release of final solution
 
-  * Open Source and comunity
+  * Open Source and community
     - Marketing material in the form of blog posts and anouncements
 
 #### Resources

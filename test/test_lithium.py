@@ -24,6 +24,9 @@ test_recipient_addr = u'0x678910'
 test_tx_input = u'0x11111111'
 
 class MockRPC():
+    def port():
+        return 8545
+
     def eth_blockNumber(self):
         return 1
 
