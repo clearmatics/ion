@@ -3,6 +3,7 @@ from __future__ import print_function
 import click
 import json
 import time
+import threading
 import binascii
 import random
 import string
@@ -11,6 +12,7 @@ from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endia
 from ion.args import arg_bytes20, arg_ethrpc
 from ion.merkle import merkle_tree, merkle_hash, merkle_path
 from ion.utils import u256be
+from chris import LithiumRESTAPI
 
 on_transfer_signature = keccak.new(digest_bits=256).update('IonTransfer(address,address,uint256,bytes32,bytes)').hexdigest()
 
@@ -99,33 +101,6 @@ def processLatestBlock(block, rpc):
     file.close()
 
 
-def iter_blocks(rpc, start=1, group=1, backlog=0, interval=1):
-    """Iterate through the block numbers"""
-    obh = min(start, max(1, rpc.eth_blockNumber() - backlog))
-    print("Starting block header: ", start)
-    print("Previous block header: ", obh)
-    obh -= obh % group
-    blocks = []
-    is_latest = False
-
-    # Infinite loop event listener...
-    while True:
-        bh = rpc.eth_blockNumber() + 1
-        for i in range(obh, bh):
-            if i == (bh - 1):
-                is_latest = True
-            blocks.append(i)
-            if len(blocks) % group == 0:
-                yield is_latest, blocks
-                blocks = []
-                is_latest = False
-        obh = bh
-        try:
-            time.sleep(interval)
-        except KeyboardInterrupt:
-            print("Stopped by Keyboard interrupt")
-            raise StopIteration
-
 
 def lithium_process_block(rpc, block_height, transfers):
     """Returns all items within the block"""
@@ -193,6 +168,55 @@ def lithium_submit(batch, prev_root, rpc, link, account):
     return prev_root
 
 
+def iter_blocks(run_event, rpc, start=1, group=1, backlog=0, interval=1):
+    """Iterate through the block numbers"""
+    obh = min(start, max(1, rpc.eth_blockNumber() - backlog))
+    print("Starting block header: ", start)
+    print("Previous block header: ", obh)
+    obh -= obh % group
+    blocks = []
+    is_latest = False
+
+    # Infinite loop event listener...
+    while run_event.is_set():
+        bh = rpc.eth_blockNumber() + 1
+        for i in range(obh, bh):
+            if i == (bh - 1):
+                is_latest = True
+            blocks.append(i)
+            if len(blocks) % group == 0:
+                yield is_latest, blocks
+                blocks = []
+                is_latest = False
+        obh = bh
+
+def lithiumInstance(run_event, rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
+    ionlock = rpc_from.proxy("abi/IonLock.abi", lock, from_account)
+    batch = []
+    transfers = []
+    prev_root = merkle_hash("merkle-tree-extra")
+
+    print("Starting block iterator")
+    print("Latest Block: ", ionlock.LatestBlock)
+
+    for is_latest, block_group in iter_blocks(run_event, rpc_from, ionlock.LatestBlock()):
+      items, group_tx_count, group_log_count, transfers = lithium_process_block_group(rpc_from, block_group)
+      if len(items):
+          pack_items(items)
+          print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
+          item_tree, root = merkle_tree(items)
+          batch.append( (block_group[0], root, transfers[0]) )
+
+          if transfers[0]==True:
+              processProof(items[0], item_tree, rpc_from)
+
+          if is_latest or len(batch) >= batch_size:
+              print("Submitting batch of", len(batch), "blocks")
+              prev_root = lithium_submit(batch, prev_root, rpc_to, link, to_account)
+              batch = []
+    return 0
+
+
 @click.command(help="Ethereum event merkle tree relay daemon")
 @click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Source Ethereum JSON-RPC server")
 @click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8546', help="Destination Ethereum JSON-RPC server")
@@ -201,35 +225,29 @@ def lithium_submit(batch, prev_root, rpc, link, account):
 @click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
 @click.option('--link', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLink contract address")
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
-def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
-    ionlock = rpc_from.proxy("abi/IonLock.abi", lock, from_account)
-    batch = []
-    transfers = []
-    prev_root = merkle_hash("merkle-tree-extra")
+def threadedrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
+    # Create new threads
+    run_event = threading.Event()
+    run_event.set()
 
-    print("Starting block iterator")
-    print("Latest Block: ", ionlock.LatestBlock())
+    relay_to = threading.Thread(target = (lithiumInstance), args = (run_event, rpc_from, rpc_to, from_account, to_account, lock, link, batch_size))
+    relay_to.start()
 
-    for is_latest, block_group in iter_blocks(rpc_from, ionlock.LatestBlock()):
-        items, group_tx_count, group_log_count, transfers = lithium_process_block_group(rpc_from, block_group)
-        if len(items):
-            pack_items(items)
-            print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
-            item_tree, root = merkle_tree(items)
-            batch.append( (block_group[0], root, transfers[0]) )
+    try:
+        while 1:
+            time.sleep(.010)
+    except KeyboardInterrupt:
+        print("Attempting to close threads.")
+        run_event.clear()
+        relay_to.join()
+        # relay_from.join()
+        print( "threads successfully closed")
 
-            if transfers[0]==True:
-                processProof(items[0], item_tree, rpc_from)
 
-            if is_latest or len(batch) >= batch_size:
-                print("Submitting batch of", len(batch), "blocks")
-                prev_root = lithium_submit(batch, prev_root, rpc_to, link, to_account)
-                batch = []
-    return 0
 
 
 if __name__ == "__main__":
     import sys
     from os import path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-    etheventrelay()
+    threadedrelay()
