@@ -20,20 +20,6 @@ hashs = lambda *x: bytes_to_int(keccak_256(''.join(map(serialize, x))).digest())
 
 merkle_hash = lambda *x: bit_clear(hashs(*x), 0xFF)
 
-
-"""
-References:
-
-TODO: add more interesting references and notes to get a better understanding
-of the data structure, its properties, usage guidelines and potential applications.
-
- - http://calvino.polito.it/~tilli/matdiscreta/complexity_remarks.pdf
- - http://www.ccs.neu.edu/home/wichs/class/crypto-fall15/lecture11.pdf
- - https://lab.getmonero.org/pubs/MRL-0002.pdf
- - http://naun.org/multimedia/UPress/ami/16-125.pdf
-"""
-
-
 def merkle_tree(items):
     """
     Hashes a list of items, then creates a Merkle tree where the items are
@@ -92,6 +78,7 @@ def merkle_path(item, tree):
     ```
     """
     item = merkle_hash(item)
+    # TODO handle item passed not being in list more elegantly
     idx = tree[0].index(item)
 
     path = []
