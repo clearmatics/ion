@@ -15,7 +15,8 @@ gathering and marshalling
 import unittest
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian
 
-from ion.lithium.etheventrelay import lithium_process_block_group, lithium_process_block, pack_txn, pack_log
+from ion.lithium.etheventrelay import Lithium, pack_txn, pack_log
+# from ion.lithium.etheventrelay import lithium_process_block_group, lithium_process_block, pack_txn, pack_log
 from ion.utils import u256be
 
 test_tx_hash = u'0x999999'
@@ -97,9 +98,10 @@ class LithiumTest(unittest.TestCase):
 
     def test_process_block(self):
         print("\nTest: Process Single Block")
+        lithium = Lithium()
         rpc = MockRPC()
         transfers = []
-        items, tx_count, log_count = lithium_process_block(rpc, rpc.eth_blockNumber(), transfers)
+        items, tx_count, log_count = lithium.lithium_process_block(rpc, rpc.eth_blockNumber(), transfers)
 
         tx = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
@@ -129,9 +131,10 @@ class LithiumTest(unittest.TestCase):
 
     def test_process_block_group(self):
         print("\nTest: Process Block Group")
+        lithium = Lithium()
         rpc = MockRPC()
         transfers = []
-        items, group_tx_count, group_log_count, transfers = lithium_process_block_group(rpc, [1])
+        items, group_tx_count, group_log_count, transfers = lithium.lithium_process_block_group(rpc, [1])
 
         tx = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
