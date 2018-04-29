@@ -1,51 +1,50 @@
+# Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+# SPDX-License-Identifier: LGPL-3.0+
+"""
+etheventrelay: manages the update of Ionlink and Merkle proof for corresponding chain
+"""
 from __future__ import print_function
 
-import click
 import json
-import time
 import threading
-import binascii
 import random
 import string
-from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian, keccak
+import click
+from ethereum.utils import scan_bin, sha3, decode_int256, keccak
 
 from ion.args import arg_bytes20, arg_ethrpc
-from ion.merkle import merkle_tree, merkle_hash, merkle_path
-from ion.utils import u256be
+from ion.merkle import merkle_tree, merkle_hash
 
-from api import LithiumRestApi
+from ion.lithium.api import LithiumRestApi
 
-on_transfer_signature = keccak.new(digest_bits=256).update('IonTransfer(address,address,uint256,bytes32,bytes)').hexdigest()
+TRANSFER_SIGNATURE = keccak.new(digest_bits=256) \
+    .update('IonTransfer(address,address,uint256,bytes32,bytes)') \
+    .hexdigest()
 
-event_signatures = [on_transfer_signature]
+EVENT_SIGNATURES = [TRANSFER_SIGNATURE]
 
 
-def random_string(N):
+def random_string(amount):
     """
     Returns a random string to hash as pseudo data
     """
-    return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(N))
+    return ''.join(random.SystemRandom() \
+        .choice(string.ascii_uppercase + string.digits) for _ in range(amount))
 
 
-def jsonPrint(message, snippet):
-    """
-    Prints a message with a formatted slice of json which doesn't make your eyes bleed
-    """
-    print(message)
-    print(json.dumps(snippet, indent=4, sort_keys=True))
-
-
-def pack_txn(block_no, tx):
+def pack_txn(tx):
     """
     Packs all the information about a transaction into a deterministic fixed-sized array of bytes
         from || to
     """
-    tx_from, tx_to, tx_value, tx_input = [scan_bin(x + ('0' * (len(x) % 2))) for x in [tx['from'], tx['to'], tx['value'], tx['input']]]
-    tx_value = decode_int256(tx_value)
+    tx_from, tx_to, tx_value, tx_input = [scan_bin(x + ('0' * (len(x) % 2))) \
+        for x in [tx['from'], tx['to'], tx['value'], tx['input']]]
 
     return ''.join([
         tx_from,
-        tx_to
+        tx_to,
+        tx_value,
+        tx_input
     ])
 
 
@@ -78,9 +77,15 @@ def pack_items(items):
 
 
 class Lithium(object):
+    """
+    Lithium process the blocks for the event relat to identify the IonLock transactions which occur
+    on the rpc_from chains, which are then added to the IonLink of the rpc_to chain.
+    """
     def __init__(self):
         self.checkpoints = []
         self.leaves = []
+        self._run_event = None
+        self._relay_to = None
 
     def lithium_process_block(self, rpc, block_height, transfers):
         """Returns all items within the block"""
@@ -88,23 +93,23 @@ class Lithium(object):
         items = []
         log_count = 0
         tx_count = 0
-        if len(block['transactions']):
+        if block['transactions']:
             for tx_hash in block['transactions']:
-                tx = rpc.eth_getTransactionByHash(tx_hash)
-                if tx['to'] is None:
+                transaction = rpc.eth_getTransactionByHash(tx_hash)
+                if transaction['to'] is None:
                     continue
 
                 tx_count += 1
-                packed_txns = pack_txn(block_height, tx)
+                packed_txns = pack_txn(transaction)
                 item_value = packed_txns
                 receipt = rpc.eth_getTransactionReceipt(tx_hash)
                 transfer = False
-                if len(receipt['logs']):
+                if receipt['logs']:
                     for log_entry in receipt['logs']:
-                        if log_entry['topics'][0][2:] in event_signatures:
+                        if log_entry['topics'][0][2:] in EVENT_SIGNATURES:
                             print("Processing IonLock Transfer Event")
                             # processReference(log_entry['topics'][2], rpc)
-                            log_items = pack_log(block_height, tx, log_entry)
+                            log_items = pack_log(block_height, transaction, log_entry)
                             item_value = log_items
                             log_count += 1
                             transfer = True
@@ -157,7 +162,7 @@ class Lithium(object):
     def lithium_submit(self, batch, prev_root, rpc, link, account, checkpoints, nleaves):
         """Submit batch of merkle roots to IonLink"""
         ionlink = rpc.proxy("abi/IonLink.abi", link, account)
-        if not len(batch):
+        if not batch:
             return False
 
         current_block = batch[0][0]
@@ -174,7 +179,8 @@ class Lithium(object):
         return prev_root
 
 
-    def lithiumInstance(self, run_event, rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
+    def lithium_instance(self, run_event, rpc_from, rpc_to, from_account, to_account, lock,
+                         link, batch_size):
         ionlock = rpc_from.proxy("abi/IonLock.abi", lock, from_account)
         batch = []
         transfers = []
@@ -186,15 +192,15 @@ class Lithium(object):
 
         for is_latest, block_group in self.iter_blocks(run_event, rpc_from, ionlock.LatestBlock()):
             items, group_tx_count, group_log_count, transfers = self.lithium_process_block_group(rpc_from, block_group)
-            if len(items):
-                for el in items:
-                    self.leaves.append(el)
+            if items:
+                for value in items:
+                    self.leaves.append(value)
 
                 print(self.leaves)
                 pack_items(self.leaves)
                 print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
-                tree, root = merkle_tree(self.leaves)
-                batch.append( (block_group[0], root, transfers[0]) )
+                _, root = merkle_tree(self.leaves)
+                batch.append((block_group[0], root, transfers[0]))
 
                 if is_latest or len(batch) >= batch_size:
                     print("Submitting batch of", len(batch), "blocks")
@@ -203,23 +209,29 @@ class Lithium(object):
         return 0
 
     def run(self, rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
+        """ Launches the etheventrelay on a thread"""
         self._run_event = threading.Event()
         self._run_event.set()
 
-        self._relay_to = threading.Thread(target = (self.lithiumInstance), args = (self._run_event, rpc_from, rpc_to, from_account, to_account, lock, link, batch_size))
+        self._relay_to = threading.Thread(target=(self.lithium_instance), \
+            args=(self._run_event, rpc_from, rpc_to, from_account, to_account, lock, link, batch_size))
         self._relay_to.start()
 
     def stop(self):
+        """ Stops the etheventrelay thread """
         self._run_event.clear()
         self._relay_to.join()
 
 
 @click.command(help="Ethereum event merkle tree relay daemon")
-@click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Source Ethereum JSON-RPC server")
-@click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8546', help="Destination Ethereum JSON-RPC server")
+@click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', \
+              help="Source Ethereum JSON-RPC server")
+@click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8546', \
+              help="Destination Ethereum JSON-RPC server")
 @click.option('--from-account', callback=arg_bytes20, metavar="0x...20", required=True, help="Sender")
 @click.option('--to-account', callback=arg_bytes20, metavar="0x...20", required=True, help="Recipient")
-@click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
+@click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True,
+              help="IonLock contract address")
 @click.option('--link', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLink contract address")
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
 def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
