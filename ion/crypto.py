@@ -1,3 +1,12 @@
+## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+## SPDX-License-Identifier: LGPL-3.0+
+
+#!/usr/bin/env python
+"""
+Crypto
+
+Has a load of useful crypto stuff
+"""
 from collections import namedtuple
 
 from ethereum.utils import big_endian_to_int, encode_int32

@@ -1,4 +1,11 @@
+## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+## SPDX-License-Identifier: LGPL-3.0+
+
 #!/usr/bin/env python
+"""
+Merkle:
+Provides an interface to produce merkle trees, proofs, etc.
+"""
 from __future__ import print_function
 
 import random
@@ -46,7 +53,7 @@ def merkle_tree(items):
         level = tree[-1]
         # Ensure level has an even number of items, pad it with an 'extra item'
         if len(level) % 2 != 0:
-            level.append( extra )
+            level.append(extra)
         # Hash each pair in the list to create the next level
         it = iter(level)
         tree.append([merkle_hash(item, next(it)) for item in it])

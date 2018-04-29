@@ -22,7 +22,8 @@ from ion.utils import u256be
 test_tx_hash = u'0x999999'
 test_sender_addr = u'0x123456'
 test_recipient_addr = u'0x678910'
-test_tx_input = u'0x11111111'
+test_input = u'0x11111111'
+test_value = u'0xfffd'
 
 class MockRPC():
     def port():
@@ -35,8 +36,8 @@ class MockRPC():
         return {u'transactions': [test_tx_hash]}
 
     def eth_getTransactionByHash(self, block_number=1):
-        return {u'from': test_sender_addr, u'value': u'0x0', u'to': test_recipient_addr,
-                u'input': test_tx_input}
+        return {u'from': test_sender_addr, u'value': test_value, u'to': test_recipient_addr,
+                u'input': test_input}
 
     def eth_getTransactionReceipt(self, block_number=1):
         json = {u'logs':
@@ -62,14 +63,15 @@ class LithiumTest(unittest.TestCase):
     def test_pack_txn(self):
         print("\nTest: Pack Transaction")
         rpc = MockRPC()
-        tx = rpc.eth_getTransactionByHash()
+        txn = rpc.eth_getTransactionByHash()
 
         u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
-        pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( tx['value'] + ('0' * (len(tx['value']) % 2))))), 32).encode('hex')
-        tx_input_hash = sha3( scan_bin( tx['input'] + ('0' * (len(tx['input']) % 2)))).encode('hex')
+        pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( txn['value'] + ('0' * (len(txn['value']) % 2))))), 32).encode('hex')
+        tx_input_hash = sha3( scan_bin( txn['input'] + ('0' * (len(txn['input']) % 2)))).encode('hex')
 
-        packed_txn = pack_txn(rpc.eth_blockNumber(), tx).encode('hex')
-        expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])
+        packed_txn = pack_txn(txn).encode('hex')
+        expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + \
+                         (test_value[2:]) + (test_input[2:])
 
         self.assertTrue(packed_txn == expected_result)
         print("Test: Pack Transaction Success")
@@ -78,11 +80,11 @@ class LithiumTest(unittest.TestCase):
     def test_pack_log(self):
         print("\nTest: Pack Transaction Logs")
         rpc = MockRPC()
-        tx = rpc.eth_getTransactionByHash()
+        txn = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
         self.assertTrue(len(receipt['logs']) > 0)
         for log in receipt['logs']:
-            packed_log = pack_log(rpc.eth_blockNumber(), tx, log)
+            packed_log = pack_log(txn, log)
 
             address = scan_bin(log['address']).encode('hex')
             topic1 = scan_bin(log['topics'][1]).encode('hex')
@@ -103,16 +105,16 @@ class LithiumTest(unittest.TestCase):
         transfers = []
         items, tx_count, log_count = lithium.lithium_process_block(rpc, rpc.eth_blockNumber(), transfers)
 
-        tx = rpc.eth_getTransactionByHash()
+        txn = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
         self.assertTrue(len(receipt['logs']) > 0)
 
         u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
-        pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( tx['value'] + ('0' * (len(tx['value']) % 2))))), 32).encode('hex')
-        tx_input_hash = sha3( scan_bin( tx['input'] + ('0' * (len(tx['input']) % 2)))).encode('hex')
+        pad_be_tx_value = zpad( int_to_big_endian(decode_int256( scan_bin( txn['value'] + ('0' * (len(txn['value']) % 2))))), 32).encode('hex')
+        tx_input_hash = sha3( scan_bin( txn['input'] + ('0' * (len(txn['input']) % 2)))).encode('hex')
 
         for log in receipt['logs']:
-            packed_log = pack_log(rpc.eth_blockNumber(), tx, log)
+            packed_log = pack_log(txn, log)
 
             address = scan_bin(log['address']).encode('hex')
             topic1 = scan_bin(log['topics'][1]).encode('hex')
@@ -136,16 +138,16 @@ class LithiumTest(unittest.TestCase):
         transfers = []
         items, group_tx_count, group_log_count, transfers = lithium.lithium_process_block_group(rpc, [1])
 
-        tx = rpc.eth_getTransactionByHash()
+        txn = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
         self.assertTrue(len(receipt['logs']) > 0)
 
         u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
-        pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( tx['value'] + ('0' * (len(tx['value']) % 2))))), 32).encode('hex')
-        tx_input_hash = sha3( scan_bin( tx['input'] + ('0' * (len(tx['input']) % 2)))).encode('hex')
+        pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( txn['value'] + ('0' * (len(txn['value']) % 2))))), 32).encode('hex')
+        tx_input_hash = sha3( scan_bin( txn['input'] + ('0' * (len(txn['input']) % 2)))).encode('hex')
 
         for log in receipt['logs']:
-            packed_log = pack_log(rpc.eth_blockNumber(), tx, log)
+            packed_log = pack_log(txn, log)
 
             address = scan_bin(log['address']).encode('hex')
             topic1 = scan_bin(log['topics'][1]).encode('hex')

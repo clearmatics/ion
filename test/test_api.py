@@ -34,15 +34,15 @@ class MockLithium():
 class ApiTest(unittest.TestCase):
     def setUp(self):
         lithium = MockLithium()
-        api = LithiumRestApi(lithium, '127.0.0.1', 5000)
-        # api = LithiumRestApi(self, lithium, '127.0.0.1', 5000)
+        api = LithiumRestApi(lithium)   
         self.app = api.app.test_client()
         self.app.testing = True
 
 
     def test_leaves2(self):
         print("Test: GET Leaves2")
-        response = self.app.get(BASE_URL)
+        response = self.app.get('/', follow_redirects=True)
+        # response = self.app.get(BASE_URL)
         print(response)
         self.assertEqual(response.status_code, 200)
 

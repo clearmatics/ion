@@ -5,12 +5,11 @@ etheventrelay: manages the update of Ionlink and Merkle proof for corresponding 
 """
 from __future__ import print_function
 
-import json
 import threading
 import random
 import string
 import click
-from ethereum.utils import scan_bin, sha3, decode_int256, keccak
+from ethereum.utils import scan_bin, sha3, keccak
 
 from ion.args import arg_bytes20, arg_ethrpc
 from ion.merkle import merkle_tree, merkle_hash
@@ -32,13 +31,13 @@ def random_string(amount):
         .choice(string.ascii_uppercase + string.digits) for _ in range(amount))
 
 
-def pack_txn(tx):
+def pack_txn(txn):
     """
     Packs all the information about a transaction into a deterministic fixed-sized array of bytes
         from || to
     """
     tx_from, tx_to, tx_value, tx_input = [scan_bin(x + ('0' * (len(x) % 2))) \
-        for x in [tx['from'], tx['to'], tx['value'], tx['input']]]
+        for x in [txn['from'], txn['to'], txn['value'], txn['input']]]
 
     return ''.join([
         tx_from,
@@ -48,15 +47,15 @@ def pack_txn(tx):
     ])
 
 
-def pack_log(block_no, tx, log):
+def pack_log(txn, log):
     """
     Packs a log entry into one or more entries.
         from || to || address || topics[1] || topics[2]
     """
 
     return ''.join([
-        scan_bin(tx['from']),
-        scan_bin(tx['to']),
+        scan_bin(txn['from']),
+        scan_bin(txn['to']),
         scan_bin(log['address']),
         scan_bin(log['topics'][1]),
         scan_bin(log['topics'][2]),
@@ -69,7 +68,7 @@ def pack_items(items):
     """
     start = len(items)
     if start < 4:
-        for val in range(start, 4):
+        for _ in range(start, 4):
             new_item = random_string(16)
             items.append(sha3(new_item))
     else:
@@ -109,7 +108,7 @@ class Lithium(object):
                         if log_entry['topics'][0][2:] in EVENT_SIGNATURES:
                             print("Processing IonLock Transfer Event")
                             # processReference(log_entry['topics'][2], rpc)
-                            log_items = pack_log(block_height, transaction, log_entry)
+                            log_items = pack_log(transaction, log_entry)
                             item_value = log_items
                             log_count += 1
                             transfer = True
@@ -138,25 +137,25 @@ class Lithium(object):
 
     def iter_blocks(self, run_event, rpc, start=1, group=1, backlog=0, interval=1):
         """Iterate through the block numbers"""
-        obh = min(start, max(1, rpc.eth_blockNumber() - backlog))
+        old_head = min(start, max(1, rpc.eth_blockNumber() - backlog))
         print("Starting block header: ", start)
-        print("Previous block header: ", obh)
-        obh -= obh % group
+        print("Previous block header: ", old_head)
+        old_head -= old_head % group
         blocks = []
         is_latest = False
 
         # Infinite loop event listener...
         while run_event.is_set():
-            bh = rpc.eth_blockNumber() + 1
-            for i in range(obh, bh):
-                if i == (bh - 1):
+            head = rpc.eth_blockNumber() + 1
+            for i in range(old_head, head):
+                if i == (head - 1):
                     is_latest = True
                 blocks.append(i)
                 if len(blocks) % group == 0:
                     yield is_latest, blocks
                     blocks = []
                     is_latest = False
-            obh = bh
+            old_head = head
 
 
     def lithium_submit(self, batch, prev_root, rpc, link, account, checkpoints, nleaves):
@@ -172,8 +171,8 @@ class Lithium(object):
             if pair[2]:
                 current_root = pair[1]
                 ionlink.Update([prev_root, current_root])
-                ionlinkLatest = ionlink.GetLatestBlock()
-                checkpoints.append((nleaves, ionlinkLatest))
+                ionlink_latest = ionlink.GetLatestBlock()
+                checkpoints.append((nleaves, ionlink_latest))
                 prev_root = current_root
 
         return prev_root
@@ -246,4 +245,3 @@ if __name__ == "__main__":
     import sys
     from os import path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-    threadedrelay()
