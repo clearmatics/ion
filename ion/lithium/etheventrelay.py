@@ -14,7 +14,8 @@ from ethereum.utils import scan_bin, sha3, keccak
 from ion.args import arg_bytes20, arg_ethrpc
 from ion.merkle import merkle_tree, merkle_hash
 
-from ion.lithium.api import LithiumRestApi
+# from ion.lithium.api import LithiumRestApi
+from ion.lithium.api import app
 
 TRANSFER_SIGNATURE = keccak.new(digest_bits=256) \
     .update('IonTransfer(address,address,uint256,bytes32,bytes)') \
@@ -192,7 +193,6 @@ class Lithium(object):
                 for value in items:
                     self.leaves.append(value)
 
-                print(self.leaves)
                 pack_items(self.leaves)
                 print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
                 _, root = merkle_tree(self.leaves)
@@ -232,9 +232,9 @@ class Lithium(object):
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
 def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
     lithium = Lithium()
-    api = LithiumRestApi(lithium)
+    app.lithium = lithium
     lithium.run(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size)
-    api.serve_endpoints()
+    app.run()
     lithium.stop()
 
 

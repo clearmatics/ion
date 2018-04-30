@@ -11,7 +11,7 @@ This tests the API which gives users access to the data required to make a withd
 import unittest
 import requests
 import json
-from ion.lithium.flask_api import app
+from ion.lithium.api import app
 
 CHECKPOINTS = \
     {
