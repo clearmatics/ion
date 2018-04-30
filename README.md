@@ -35,3 +35,4 @@ Executing cross payment of two tokens
 3. Bob Withdraw from IonLock
 
 This process needs to be excuted on both chains, step 3. is blocked for both chains until funds are deposited into the escrow of the opposite chain.
+
