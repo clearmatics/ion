@@ -3,99 +3,36 @@
 The Ion Interoperability Protocol provides mechanisms to perform atomic swaps and currency transfers across
 multiple turing-complete blockchains.
 
+## Install
 
-## Getting Started
-
-Building Ion requires many components such as Python, NodeJS, Yarn, Solidity compiler, Docker etc.
-The `make dev` command will install all necessary dependencies required to develop and build Ion.
-
-All Ion functionality is available via the built-in shell, or via the `ion` command:
-
-```commandline
-$ python -mion shell
-> onchain Token transfer --help
-```
-
-or
+Install all the dependencies which need Node v9.0.0, NPM, and Python 2.7.
 
 ```
-$ python -mion onchain Token transfer --help
+npm install
+pip install -r requirements.txt
 ```
 
-### Docker
+## Setup
 
-The small Alpine Linux container is under 30mb and contains a self-contained PyInstaller executable.
+This will run 2 testrpc networks and 
 
-```commandline
-make docker-build
-docker run -ti --rm clearmatics/ion:latest
+```
+npm run testrpca
+npm run testrpcb
+npm run compile
+npm run deploya
+npm run deployb
+python -mion etheventrelay --rpc-from <IP_TESTRPC_A:PORT> --rpc-to <IP_TESTRPC_B:PORT> --from-account <FROM_ACCOUNT_X> --to-account <TO_ACCOUNT_Y> --lock <IONLOCK_ADDRESS_TESTRPC_A> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_A> --batch-size <BATCH_SIZE>
+python -mion etheventrelay --rpc-from <IP_TESTRPC_B:PORT> --rpc-to <IP_TESTRPC_A:PORT> --from-account <FROM_ACCOUNT_Y> --to-account <TO_ACCOUNT_X> --lock <IONLOCK_ADDRESS_TESTRPC_B> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_B> --batch-size <BATCH_SIZE>
 ```
 
-### PyInstaller
+## Cross chain payment
 
-The PyInstaller `ion` executable is a self-contained Python bundle which includes all necessary dependencies,
-this makes Ion easier to distribute.  
+Executing cross payment of two tokens
 
-```commandline
-make dist/ion
-./dist/ion
-```
+1. Alice Deposit to IonLock
+2. Wait for Lithium / Event Relay to update 
+3. Bob Withdraw from IonLock
 
-## Tests
+This process needs to be excuted on both chains, step 3. is blocked for both chains until funds are deposited into the escrow of the opposite chain.
 
-To run the Ion testing:
-```
-make test
-```
-
-testing smart contracts individually, run a testrpc:
-```
-npm run test
-```
-
-# Commands
- * `shell` - REPL environment
- * `etheventrelay` - Relay Ethereum events as merkle roots
- * `plasma payment` - Create Plasma payment
- * `plasma chain` - Perform operations on the Plasma chain
- * `rpc server` - Run a Plasma RPC server which syncs to a smart contract
- * `rpc client` - JSON-RPC client for Plasma RPC server
-
-## etheventrelay
-
-The etheventrelay allows transfer of information across two RPC chains. Specifically the verification
-of a deposit of funds.
-
-The etheventrelay observes one blockchain and informs another.
-
-Prior to using two rpc servers must be available.
-
-Launch:
-```
-CHAINA=127.0.0.1:8545
-CHAINB=127.0.0.1:8546
-SEND=0xffcf8fdee72ac11b5c542428b35eef5769c409f0
-RECV=0x22d491bde2303f2f43325b2108d26f1eaba1e32b
-LOCK=0xe982e462b094850f12af94d21d470e21be9d0e9c
-LINK=0xc89ce4735882c9f0f0fe26686c53074e09b0d550
-
-python -mion etheventrelay --rpc-from $CHAINA --rpc-to $CHAINB --from-account $SEND --to-account $RECV --lock $LOCK --link $LINK
-```
-
-
-## Smart-Contract integration
-
-All `.abi` files in the `abi` directory are available via the `onchain` command,
-for example the `abi/Token.abi` file is available as a command within the Ion shell:
-
-```commandline
-> onchain Token transfer --help
-Usage: __main__.py  onchain Token transfer [OPTIONS] to value data
-
-  transfer(address,uint256,bytes)
-
-Options:
-  -w      Wait until mined
-  -c      Commit transaction
-  --help  Show this message and exit.
-```
