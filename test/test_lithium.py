@@ -70,8 +70,7 @@ class LithiumTest(unittest.TestCase):
         tx_input_hash = sha3( scan_bin( txn['input'] + ('0' * (len(txn['input']) % 2)))).encode('hex')
 
         packed_txn = pack_txn(txn).encode('hex')
-        expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + \
-                         (test_value[2:]) + (test_input[2:])
+        expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])
 
         self.assertTrue(packed_txn == expected_result)
         print("Test: Pack Transaction Success")

@@ -16,8 +16,7 @@ class LithiumRestApi(object):
     """
     Class containing the API for use with lithium
     """
-    def __init__(self, lithium, host=None, port=None):
-        # self.app = app
+    def __init__(self, lithium=None, host=None, port=None):
         self.app = Flask('REST API')
         self.host = host
         self.port = port
@@ -28,8 +27,6 @@ class LithiumRestApi(object):
             self.host = '127.0.0.1'
         if self.port is None:
             self.port = 5000
-
-        # self.app = Flask("REST API")
 
         @self.app.route('/api/leaves', methods=['GET'])
         def api_leaves():

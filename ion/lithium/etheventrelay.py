@@ -41,9 +41,7 @@ def pack_txn(txn):
 
     return ''.join([
         tx_from,
-        tx_to,
-        tx_value,
-        tx_input
+        tx_to
     ])
 
 
@@ -107,7 +105,6 @@ class Lithium(object):
                     for log_entry in receipt['logs']:
                         if log_entry['topics'][0][2:] in EVENT_SIGNATURES:
                             print("Processing IonLock Transfer Event")
-                            # processReference(log_entry['topics'][2], rpc)
                             log_items = pack_log(transaction, log_entry)
                             item_value = log_items
                             log_count += 1
