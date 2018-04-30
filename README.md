@@ -56,10 +56,10 @@ python -mion etheventrelay --rpc-from <IP_TESTRPC_B:PORT> --rpc-to <IP_TESTRPC_A
 
 ### Mint Tokens
 ```bash
-python -mion ion mint --rpc <ip:port> --account <beneficiary_address> --tkn <token_contract_address --value <amount_of_token>
+python -mion ion mint --rpc <ip:port> --account <beneficiary_address> --tkn <token_contract_address> --value <amount_of_token>
 ```
 
 ### Deposit
 ```bash
-python -mion ion deposit --rpc <ip:port> --account <beneficiary_address> --lock <ionlock_contract_address> --tkn <token_contract_address --value <amount_of_token> --data <arbitrary_data_payment_reference>
+python -mion ion deposit --rpc <ip:port> --account <beneficiary_address> --lock <ionlock_contract_address> --tkn <token_contract_address> --value <amount_of_token> --data <arbitrary_data_payment_reference>
 ```
