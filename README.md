@@ -28,6 +28,8 @@ python -mion etheventrelay --rpc-from <IP_TESTRPC_B:PORT> --rpc-to <IP_TESTRPC_A
 
 ## Cross chain payment
 
+Executing cross payment of two tokens
+
 1. Alice Deposit to IonLock
 2. Wait for Lithium / Event Relay to update 
 3. Bob Withdraw from IonLock
