@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
-library Merkle
-{
+library Merkle {
     //uint256 constant ONE_SHL_255 = 57896044618658097711785492504343953926634992332820282019728792003956564819968;
     uint256 constant ONE_SHL_255 = 28948022309329048855892746252171976963317496166410141009864396001978282409984;
 
@@ -26,9 +25,7 @@ library Merkle
     */
 
     function Verify( uint256 root, uint256 leaf_hash, uint256[] path )
-        internal pure
-        returns (bool)
-    {
+        internal pure returns (bool) {
         if( leaf_hash & ONE_SHL_255 > 0 )
             leaf_hash ^= ONE_SHL_255;
 

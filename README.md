@@ -4,21 +4,35 @@ The Ion Interoperability Protocol provides mechanisms to perform atomic swaps an
 multiple turing-complete blockchains.
 
 Ion consists of 3 core smart contracts:
-* IonLock
-* IonLink
-* ERC223 Token
+* IonLock: Escrow contract where funds are deposited to and withdrawn from
+* IonLink: Maintains state of counter-blockchain and verifies withdrawals with merkle proofs
+* ERC223 Token: A placeholder ERC223 Token to perform exchanges with.
 
-A tool called Lithium is used to facilitate to communication between the chains.
+A tool called Lithium is an event relay used to facilitate to communication between the chains. Lithium forwards `IonLock` deposit events to the opposite chain's `IonLink` as a state update to inform of a party's escrowing of funds.
 
-## Cross chain payment
+## Cross-chain payment
 
-Executing cross payment of two tokens
+Cross-chain payment flow of two different tokens on their respective blockchains with Alice and Bob as the parties involved is as follows:
 
-1. Alice Deposit to IonLock
-2. Wait for Lithium / Event Relay to update
-3. Bob Withdraw from IonLock
+Chain A: Alice's chain
+Chain B: Bob's chain
 
-This process needs to be excuted on both chains, step 3. is blocked for both chains until funds are deposited into the escrow of the opposite chain.
+1. Alice Deposits to chain A IonLock
+2. Wait for Lithium (Event Relay) to update chain B IonLink
+3. Bob Deposits to chain B IonLock
+4. Wait for Lithium (Event Relay) to update chain A IonLink
+5. Alice withdraws from chain B IonLock with proof of her deposit on to chain A IonLock
+6. Bob withdraws from chain A IonLock with proof of his deposit on to chain B IonLock
+7. Both parties successfully withdraw and atomic swap is complete.
+
+Note that withdrawing is blocked for both chains until funds are deposited into the escrow of the opposite chain.
+
+### Caveats
+
+Currently notable flaws in the design:
+* All funds deposited must be withdrawn at once
+* The number of tokens deposited must also equal the funds attempting to be withdrawn i.e. 1:1 exchange
+* Payment references are currently redundant as proofs submitted to verify a withdrawal are only used to prove that the party has deposited on the other chain and is not used to distinguish the funds to be withdrawn as noted in the first point.
 
 ## Install
 
