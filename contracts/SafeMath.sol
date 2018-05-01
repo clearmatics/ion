@@ -6,8 +6,7 @@ pragma solidity ^0.4.18;
 /**
  * Math operations with safety checks
  */
-library SafeMath
-{
+library SafeMath {
     function mul(uint a, uint b)
         internal pure returns (uint)
     {

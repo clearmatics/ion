@@ -6,8 +6,7 @@ import "./ERC223Compatible.sol";
 import "./IonCompatible.sol";
 
 
-contract IonLock is ERC223ReceivingContract, IonCompatible
-{
+contract IonLock is ERC223ReceivingContract, IonCompatible{
     uint256 m_balance;
 
     ERC223 m_currency;
@@ -20,9 +19,7 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
     // Keeps reference to latest block that transfer was performed on
     uint256 public LatestBlock;
 
-    function IonLock( ERC223 currency, IonLinkInterface ion )
-        public
-    {
+    function IonLock( ERC223 currency, IonLinkInterface ion ) public {
         require( address(currency) != 0 );
 
         m_ion = ion;
@@ -42,9 +39,7 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
     * @param _value Amount of tokens
     * @param _data Arbitrary data, to be used as the payment reference
     */
-    function tokenFallback(address _from, uint _value, bytes _data)
-        public
-    {
+    function tokenFallback(address _from, uint _value, bytes _data) public {
         require( msg.sender == address(m_currency) );
 
         require( _value > 0 );
@@ -72,9 +67,7 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
     * @param _block_id IonLink block ID
     * @param _proof Merkle proof
     */
-    function Withdraw( uint256 _value, bytes32 _ref, uint256 _block_id, uint256[] _proof )
-        public
-    {
+    function Withdraw( uint256 _value, bytes32 _ref, uint256 _block_id, uint256[] _proof ) public {
         require( false == m_withdraws[_ref] );
 
         uint256 leaf_hash = uint256(keccak256(msg.sender, m_currency, address(this), _value, _ref));
