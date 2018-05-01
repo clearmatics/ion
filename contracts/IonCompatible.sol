@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
-contract IonLinkInterface
-{
+contract IonLinkInterface {
     function Verify(uint256 block_id, uint256 leaf_hash, uint256[] proof)
-		  public view returns (bool);
+	public view returns (bool);
 }
 
 
