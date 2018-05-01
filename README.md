@@ -3,99 +3,77 @@
 The Ion Interoperability Protocol provides mechanisms to perform atomic swaps and currency transfers across
 multiple turing-complete blockchains.
 
+Ion consists of 3 core smart contracts:
+* IonLock: Escrow contract where funds are deposited to and withdrawn from
+* IonLink: Maintains state of counter-blockchain and verifies withdrawals with merkle proofs
+* ERC223 Token: A placeholder ERC223 Token to perform exchanges with.
 
-## Getting Started
+A tool called Lithium is an event relay used to facilitate to communication between the chains. Lithium forwards `IonLock` deposit events to the opposite chain's `IonLink` as a state update to inform of a party's escrowing of funds.
 
-Building Ion requires many components such as Python, NodeJS, Yarn, Solidity compiler, Docker etc.
-The `make dev` command will install all necessary dependencies required to develop and build Ion.
+## Cross-chain payment
 
-All Ion functionality is available via the built-in shell, or via the `ion` command:
+Cross-chain payment flow of two different tokens on their respective blockchains with Alice and Bob as the parties involved is as follows:
 
-```commandline
-$ python -mion shell
-> onchain Token transfer --help
+Chain A: Alice's chain
+Chain B: Bob's chain
+
+1. Alice Deposits to chain A IonLock
+2. Wait for Lithium (Event Relay) to update chain B IonLink
+3. Bob Deposits to chain B IonLock
+4. Wait for Lithium (Event Relay) to update chain A IonLink
+5. Alice withdraws from chain B IonLock with proof of her deposit on to chain A IonLock
+6. Bob withdraws from chain A IonLock with proof of his deposit on to chain B IonLock
+7. Both parties successfully withdraw and atomic swap is complete.
+
+Note that withdrawing is blocked for both chains until funds are deposited into the escrow of the opposite chain.
+
+### Caveats
+
+Currently notable flaws in the design:
+* All funds deposited must be withdrawn at once
+* The number of tokens deposited must also equal the funds attempting to be withdrawn i.e. 1:1 exchange
+* Payment references are currently redundant as proofs submitted to verify a withdrawal are only used to prove that the party has deposited on the other chain and is not used to distinguish the funds to be withdrawn as noted in the first point.
+
+## Install
+
+Install all the dependencies which need Node v9.0.0, NPM, and Python 2.7.
+
+```
+npm install
+pip install -r requirements.txt
 ```
 
-or
+## Setup
 
-```
-$ python -mion onchain Token transfer --help
-```
+To perform cross-chain payments, the contracts must be deployed on each chain.
 
-### Docker
-
-The small Alpine Linux container is under 30mb and contains a self-contained PyInstaller executable.
-
-```commandline
-make docker-build
-docker run -ti --rm clearmatics/ion:latest
+Deploy two testrpc networks (if necessary):
+```bash
+npm run testrpca
+npm run testrpcb
 ```
 
-### PyInstaller
-
-The PyInstaller `ion` executable is a self-contained Python bundle which includes all necessary dependencies,
-this makes Ion easier to distribute.  
-
-```commandline
-make dist/ion
-./dist/ion
+Compile and deploy the contracts on to the relevant networks:
+```bash
+npm run compile
+npm run deploya
+npm run deployb
 ```
 
-## Tests
-
-To run the Ion testing:
-```
-make test
-```
-
-testing smart contracts individually, run a testrpc:
-```
-npm run test
+Run the event relay to transmit state between the chains:
+```bash
+python -mion etheventrelay --rpc-from <IP_TESTRPC_A:PORT> --rpc-to <IP_TESTRPC_B:PORT> --from-account <FROM_ACCOUNT_X> --to-account <TO_ACCOUNT_Y> --lock <IONLOCK_ADDRESS_TESTRPC_A> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_A> --batch-size <BATCH_SIZE>
+python -mion etheventrelay --rpc-from <IP_TESTRPC_B:PORT> --rpc-to <IP_TESTRPC_A:PORT> --from-account <FROM_ACCOUNT_Y> --to-account <TO_ACCOUNT_X> --lock <IONLOCK_ADDRESS_TESTRPC_B> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_B> --batch-size <BATCH_SIZE>
 ```
 
-# Commands
- * `shell` - REPL environment
- * `etheventrelay` - Relay Ethereum events as merkle roots
- * `plasma payment` - Create Plasma payment
- * `plasma chain` - Perform operations on the Plasma chain
- * `rpc server` - Run a Plasma RPC server which syncs to a smart contract
- * `rpc client` - JSON-RPC client for Plasma RPC server
+## Usage
 
-## etheventrelay
-
-The etheventrelay allows transfer of information across two RPC chains. Specifically the verification
-of a deposit of funds.
-
-The etheventrelay observes one blockchain and informs another.
-
-Prior to using two rpc servers must be available.
-
-Launch:
-```
-CHAINA=127.0.0.1:8545
-CHAINB=127.0.0.1:8546
-SEND=0xffcf8fdee72ac11b5c542428b35eef5769c409f0
-RECV=0x22d491bde2303f2f43325b2108d26f1eaba1e32b
-LOCK=0xe982e462b094850f12af94d21d470e21be9d0e9c
-LINK=0xc89ce4735882c9f0f0fe26686c53074e09b0d550
-
-python -mion etheventrelay --rpc-from $CHAINA --rpc-to $CHAINB --from-account $SEND --to-account $RECV --lock $LOCK --link $LINK
+### Mint Tokens
+```bash
+python -mion ion mint --rpc <ip:port> --account <beneficiary_address> --tkn <token_contract_address> --value <amount_of_token>
 ```
 
-
-## Smart-Contract integration
-
-All `.abi` files in the `abi` directory are available via the `onchain` command,
-for example the `abi/Token.abi` file is available as a command within the Ion shell:
-
-```commandline
-> onchain Token transfer --help
-Usage: __main__.py  onchain Token transfer [OPTIONS] to value data
-
-  transfer(address,uint256,bytes)
-
-Options:
-  -w      Wait until mined
-  -c      Commit transaction
-  --help  Show this message and exit.
+### Deposit
+```bash
+python -mion ion deposit --rpc <ip:port> --account <beneficiary_address> --lock <ionlock_contract_address> --tkn <token_contract_address> --value <amount_of_token> --data <arbitrary_data_payment_reference>
 ```

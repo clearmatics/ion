@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
-contract ERC223
-{
+contract ERC223 {
     uint public totalSupply;
 
     function balanceOf(address who) constant public returns (uint);
