@@ -5,7 +5,7 @@ pragma solidity ^0.4.18;
 contract IonLinkInterface
 {
 
-    function Verify( uint256 block_id, uint256 leaf_hash, uint256[] proof )
+    function Verify(uint256 block_id, uint256 leaf_hash, uint256[] proof)
 		public view returns (bool);
 }
 

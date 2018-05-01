@@ -106,6 +106,7 @@ class Lithium(object):
                     for log_entry in receipt['logs']:
                         if log_entry['topics'][0][2:] in EVENT_SIGNATURES:
                             print("Processing IonLock Transfer Event")
+
                             log_items = pack_log(transaction, log_entry)
                             item_value = log_items
                             log_count += 1
@@ -163,7 +164,6 @@ class Lithium(object):
             return False
 
         current_block = batch[0][0]
-        print(len(batch))
 
         for pair in batch:
             if pair[2]:
@@ -234,7 +234,7 @@ def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_
     lithium = Lithium()
     app.lithium = lithium
     lithium.run(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size)
-    app.run()
+    app.run(host='127.0.0.1', port=rpc_from.port+10)
     lithium.stop()
 
 

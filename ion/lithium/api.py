@@ -26,7 +26,6 @@ def index():
 def api_leaves():
     """Return all the leaves for the merkle tree"""
     byte_leaves = app.lithium.leaves
-    # print(byte_leaves)
     hex_leaves = [x.encode('hex') for x in byte_leaves]
     dict = {u'leaves': hex_leaves}
     return jsonify(dict)
@@ -53,6 +52,7 @@ def api_blockid():
     byte_leaves = app.lithium.leaves
     byte_checkpoints = app.lithium.checkpoints
 
+
     hex_leaves = [x.encode('hex') for x in byte_leaves]
     idx = hex_leaves.index(leaf)
     output = None
@@ -63,7 +63,7 @@ def api_blockid():
             output = el[1]
             break
 
-    dict = {u'blockId': format(output, 'x')}
+    dict = {u'blockId': str(output)}
     return jsonify(dict)
 
 @app.route('/api/proof', methods=['POST'])
@@ -73,11 +73,10 @@ def api_proof():
         leaf = request.args.get('leaf')
 
     byte_leaves = app.lithium.leaves
-    tree, _ = merkle_tree(app.lithium.leaves)
+    tree, root = merkle_tree(app.lithium.leaves)
     hex_leaf = leaf.decode('hex')
 
     path = merkle_path(hex_leaf, tree)
-    hex_path = [format(x, 'x') for x in path]
-
-    dict = {u'proof': hex_path}
+    string_path = [str(x) for x in path]
+    dict = {u'proof': string_path}
     return jsonify(dict)
