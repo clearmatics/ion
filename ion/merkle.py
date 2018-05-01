@@ -1,4 +1,11 @@
+## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+## SPDX-License-Identifier: LGPL-3.0+
+
 #!/usr/bin/env python
+"""
+Merkle:
+Provides an interface to produce merkle trees, proofs, etc.
+"""
 from __future__ import print_function
 
 import random
@@ -19,20 +26,6 @@ def serialize(v):
 hashs = lambda *x: bytes_to_int(keccak_256(''.join(map(serialize, x))).digest())
 
 merkle_hash = lambda *x: bit_clear(hashs(*x), 0xFF)
-
-
-"""
-References:
-
-TODO: add more interesting references and notes to get a better understanding
-of the data structure, its properties, usage guidelines and potential applications.
-
- - http://calvino.polito.it/~tilli/matdiscreta/complexity_remarks.pdf
- - http://www.ccs.neu.edu/home/wichs/class/crypto-fall15/lecture11.pdf
- - https://lab.getmonero.org/pubs/MRL-0002.pdf
- - http://naun.org/multimedia/UPress/ami/16-125.pdf
-"""
-
 
 def merkle_tree(items):
     """
@@ -60,7 +53,7 @@ def merkle_tree(items):
         level = tree[-1]
         # Ensure level has an even number of items, pad it with an 'extra item'
         if len(level) % 2 != 0:
-            level.append( extra )
+            level.append(extra)
         # Hash each pair in the list to create the next level
         it = iter(level)
         tree.append([merkle_hash(item, next(it)) for item in it])
@@ -92,6 +85,7 @@ def merkle_path(item, tree):
     ```
     """
     item = merkle_hash(item)
+    # TODO handle item passed not being in list more elegantly
     idx = tree[0].index(item)
 
     path = []

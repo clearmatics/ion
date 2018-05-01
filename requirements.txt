@@ -2,6 +2,7 @@ requests
 ethereum
 jsonrpc2
 flask
+flask_restful
 gevent
 rlp
 python-jsonrpc
