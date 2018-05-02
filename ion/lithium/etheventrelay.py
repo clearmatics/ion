@@ -85,7 +85,7 @@ class Lithium(object):
         self._run_event = None
         self._relay_to = None
 
-    def lithium_process_block(self, rpc, block_height, transfers):
+    def process_block(self, rpc, block_height, transfers):
         """Returns all items within the block"""
         block = rpc.eth_getBlockByNumber(block_height, False)
         items = []
@@ -118,7 +118,7 @@ class Lithium(object):
         return items, tx_count, log_count
 
 
-    def lithium_process_block_group(self, rpc, block_group):
+    def process_block_group(self, rpc, block_group):
         """Process a group of blocks, returning the packed events and transactions"""
         print("Processing block group")
         items = []
@@ -126,7 +126,7 @@ class Lithium(object):
         group_tx_count = 0
         group_log_count = 0
         for block_height in block_group:
-            block_items, tx_count, log_count = self.lithium_process_block(rpc, block_height, transfers)
+            block_items, tx_count, log_count = self.process_block(rpc, block_height, transfers)
             items += block_items
             group_tx_count += tx_count
             group_log_count += log_count
@@ -188,7 +188,7 @@ class Lithium(object):
         print("Latest Block: ", ionlock.LatestBlock)
 
         for is_latest, block_group in self.iter_blocks(run_event, rpc_from, ionlock.LatestBlock()):
-            items, group_tx_count, group_log_count, transfers = self.lithium_process_block_group(rpc_from, block_group)
+            items, group_tx_count, group_log_count, transfers = self.process_block_group(rpc_from, block_group)
             if items:
                 for value in items:
                     self.leaves.append(value)

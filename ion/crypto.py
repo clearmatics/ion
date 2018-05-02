@@ -3,9 +3,7 @@
 
 #!/usr/bin/env python
 """
-Crypto
-
-Has a load of useful crypto stuff
+Crypto: Has a load of useful crypto stuff
 """
 from collections import namedtuple
 
