@@ -32,8 +32,11 @@ docker-build: dist/ion
 docker-run:
 	docker run --rm=true -ti clearmatics/ion:latest shell
 
-lint:
+python-lint:
 	$(PYTHON) -mpylint ion/
+
+solidity-lint:
+	npm run lint
 
 requirements: requirements.txt
 	$(PYTHON) -mpip install -r requirements.txt

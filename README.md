@@ -53,7 +53,12 @@ $ make test
 
 This will run both the Javascript tests for the smart contracts and the Python tests for the Lithium RPC relay.
 
-Additionally 
+Additionally contributors to this project should use linting tools when making commits, for both solidity and python code.
+
+```
+$ make python-lint
+$ make solidity-lint
+```
 
 ## Setup
 
