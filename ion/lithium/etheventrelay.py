@@ -229,12 +229,13 @@ class Lithium(object):
 @click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True,
               help="IonLock contract address")
 @click.option('--link', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLink contract address")
+@click.option('--api-port', type=int, default=5000, metavar="N", help="API server endpoint")
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
-def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size):
+def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, api_port, batch_size):
     lithium = Lithium()
     app.lithium = lithium
     lithium.run(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size)
-    app.run(host='127.0.0.1', port=rpc_from.port+10)
+    app.run(host='127.0.0.1', port=api_port)
     lithium.stop()
 
 
