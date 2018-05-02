@@ -14,3 +14,4 @@ coincurve
 msgpack-python
 click
 prompt_toolkit
+pylint

@@ -34,46 +34,58 @@ Currently notable flaws in the design:
 * The number of tokens deposited must also equal the funds attempting to be withdrawn i.e. 1:1 exchange
 * Payment references are currently redundant as proofs submitted to verify a withdrawal are only used to prove that the party has deposited on the other chain and is not used to distinguish the funds to be withdrawn as noted in the first point.
 
-## Install
+## Install and Test
 
-Install all the dependencies which need Node v9.0.0, NPM, and Python 2.7.
+Install all the dependencies which need Node v9.0.0, NPM, and Python 2.7. Furthermore it is recommended to use a isolated Python environment with a tool such as `virtualenv`.
 
 ```
-npm install
-pip install -r requirements.txt
+$ make build
 ```
+
+### Testing
+
+Prior to running contract tests please launch an Ethereum client. A simple way to do this is through the `ganache-cli` or alternatively use the `npm run testrpca`.
+
+Test:
+```
+$ make test
+```
+
+This will run both the Javascript tests for the smart contracts and the Python tests for the Lithium RPC relay.
+
+Additionally 
 
 ## Setup
 
 To perform cross-chain payments, the contracts must be deployed on each chain.
 
 Deploy two testrpc networks (if necessary):
-```bash
-npm run testrpca
-npm run testrpcb
+```
+$ npm run testrpca
+$ npm run testrpcb
 ```
 
 Compile and deploy the contracts on to the relevant networks:
-```bash
-npm run compile
-npm run deploya
-npm run deployb
+```
+$ npm run compile
+$ npm run deploya
+$ npm run deployb
 ```
 
 Run the event relay to transmit state between the chains:
-```bash
-python -mion etheventrelay --rpc-from <IP_TESTRPC_A:PORT> --rpc-to <IP_TESTRPC_B:PORT> --from-account <FROM_ACCOUNT_X> --to-account <TO_ACCOUNT_Y> --lock <IONLOCK_ADDRESS_TESTRPC_A> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_A> --batch-size <BATCH_SIZE>
-python -mion etheventrelay --rpc-from <IP_TESTRPC_B:PORT> --rpc-to <IP_TESTRPC_A:PORT> --from-account <FROM_ACCOUNT_Y> --to-account <TO_ACCOUNT_X> --lock <IONLOCK_ADDRESS_TESTRPC_B> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_B> --batch-size <BATCH_SIZE>
+```
+$ python -mion etheventrelay --rpc-from <IP_TESTRPC_B:PORT> --rpc-to <IP_TESTRPC_A:PORT> --from-account <FROM_ACCOUNT_Y> --to-account <TO_ACCOUNT_X> --lock <IONLOCK_ADDRESS_TESTRPC_B> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_B> --api-port <PORT>
+$ python -mion etheventrelay --rpc-from <IP_TESTRPC_A:PORT> --rpc-to <IP_TESTRPC_B:PORT> --from-account <FROM_ACCOUNT_X> --to-account <TO_ACCOUNT_Y> --lock <IONLOCK_ADDRESS_TESTRPC_A> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_A> --api-port <PORT>
 ```
 
 ## Usage
 
 ### Mint Tokens
-```bash
-python -mion ion mint --rpc <ip:port> --account <beneficiary_address> --tkn <token_contract_address> --value <amount_of_token>
+```
+$ python -mion ion mint --rpc <ip:port> --account <beneficiary_address> --tkn <token_contract_address> --value <amount_of_token>
 ```
 
 ### Deposit
-```bash
-python -mion ion deposit --rpc <ip:port> --account <beneficiary_address> --lock <ionlock_contract_address> --tkn <token_contract_address> --value <amount_of_token> --data <arbitrary_data_payment_reference>
+```
+$ python -mion ion deposit --rpc <ip:port> --account <beneficiary_address> --lock <ionlock_contract_address> --tkn <token_contract_address> --value <amount_of_token> --data <arbitrary_data_payment_reference>
 ```
