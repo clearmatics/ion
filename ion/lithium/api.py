@@ -10,17 +10,13 @@ which is required when withdrawing funds from IonLock
 """
 
 from flask import Flask, request, jsonify
-from flask_restful import Resource, Api
 
-# from flask import Flask, url_for
 from ion.merkle import merkle_tree, merkle_path
 
 
 app = Flask(__name__)
 
 @app.route('/')
-def index():
-    return 'index'
 
 @app.route('/api/leaves', methods=['GET'])
 def api_leaves():
@@ -56,11 +52,11 @@ def api_blockid():
     hex_leaves = [x.encode('hex') for x in byte_leaves]
     idx = hex_leaves.index(leaf)
     output = None
-    for el in byte_checkpoints:
-        if idx >= el[0]:
+    for value in byte_checkpoints:
+        if idx >= value[0]:
             pass
         else:
-            output = el[1]
+            output = value[1]
             break
 
     dict = {u'blockId': str(output)}
@@ -72,8 +68,7 @@ def api_proof():
     if request.method == 'POST':
         leaf = request.args.get('leaf')
 
-    byte_leaves = app.lithium.leaves
-    tree, root = merkle_tree(app.lithium.leaves)
+    tree, _ = merkle_tree(app.lithium.leaves)
     hex_leaf = leaf.decode('hex')
 
     path = merkle_path(hex_leaf, tree)
