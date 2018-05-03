@@ -2,7 +2,7 @@ SOLC=solc --optimize
 PYTHON=python
 GANACHE=./node_modules/.bin/ganache-cli
 TRUFFLE=./node_modules/.bin/truffle
-CONTRACTS=Sodium Fluoride IonLock IonLink ERC223 Token HTLC
+CONTRACTS=IonLock IonLink ERC223 Token HTLC
 CONTRACTS_BIN=$(addprefix build/,$(addsuffix .bin,$(CONTRACTS)))
 CONTRACTS_ABI=$(addprefix abi/,$(addsuffix .abi,$(CONTRACTS)))
 
@@ -15,27 +15,8 @@ all: $(CONTRACTS_BIN) $(CONTRACTS_ABI) $(PROTOCOLS_PY) test truffle-test pylint
 
 build:
 	mkdir -p build
-
-pylint:
-	$(PYTHON) -mpylint -d $(PYLINT_IGNORE) ion
-
-dev-yarn:
-	echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-	curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-	apt-get update
-	apt-get install yarn
-
-dev-nodejs:
-	curl -sL https://deb.nodesource.com/setup_8.x | bash -
-	apt install nodejs
-	if [ ! -f /usr/bin/node ]; then ln -s /usr/bin/nodejs  /usr/bin/node; fi
-
-dev-python:
-	$(PYTHON) -mpip install pylint pyflakes pyinstaller
-	# $(PYTHON) -mpip install snakefood pycallgraph
-	apt install protobuf-compiler
-
-dev: dev-python dev-nodejs dev-yarn
+	npm install
+	$(PYTHON) -mpip install -r requirements.txt
 
 .PHONY: docs/deps-modules.dot
 docs/deps-modules.dot:
@@ -51,29 +32,14 @@ docker-build: dist/ion
 docker-run:
 	docker run --rm=true -ti clearmatics/ion:latest shell
 
-shell:
-	$(PYTHON) -mion shell
+python-lint:
+	$(PYTHON) -mpylint ion/
 
-yarn:
-	yarn
-
-$(TRUFFLE): yarn
-$(GANACHE): yarn
-
-truffle-test: $(TRUFFLE)
-	$(TRUFFLE) test
-
-truffle-compile: $(TRUFFLE)
-	$(TRUFFLE) compile
-
-truffle-deploy:
-	$(TRUFFLE) deploy
-
-ion/proto/%_pb2.py: ion/proto/%.proto
-	protoc -I. --python_out=. $<
+solidity-lint:
+	npm run lint
 
 requirements: requirements.txt
-	$(PYTHON) -mpip install -r requirements.txts
+	$(PYTHON) -mpip install -r requirements.txt
 
 abi:
 	mkdir -p abi
@@ -96,13 +62,12 @@ clean:
 	rm -rf *.pyc *.pdf *.egg-info
 
 testrpc:
-	yarn testrpc
+	npm run testrpca
 
 test-js:
-	npm run testrpc &
 	npm run test
 
 test-unit:
 	$(PYTHON) -m unittest discover test/
 
-test: test-unit
+test: test-unit test-js

@@ -12,5 +12,7 @@ python-jsonrpc
 graphviz
 coincurve
 msgpack-python
+coverage
 click
 prompt_toolkit
+pylint
