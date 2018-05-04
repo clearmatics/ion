@@ -12,6 +12,9 @@ import unittest
 import requests
 import json
 
+from ion.lithium.api import app
+
+
 CHECKPOINTS = \
     {
         u'81d9d8277b8f741b859de5455b9b56ff240d2ecf19101df3da9b76b137e5a7e6': 4,
@@ -129,5 +132,4 @@ if __name__ == '__main__':
     import sys
     from os import path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-    from ion.lithium.api import app
     unittest.main()

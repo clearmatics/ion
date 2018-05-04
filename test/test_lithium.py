@@ -14,6 +14,7 @@ gathering and marshalling
 
 import unittest
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian
+from ion.lithium.lithium import Lithium, pack_txn, pack_log
 
 test_tx_hash = u'0x999999'
 test_sender_addr = u'0x123456'
@@ -155,5 +156,4 @@ if __name__ == '__main__':
     from os import path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-    from ion.lithium.lithium import Lithium, pack_txn, pack_log
     unittest.main()
