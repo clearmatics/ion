@@ -108,11 +108,11 @@ It is recommended to use an isolated python environment.
 
 Launch lithium listener A:
 ```
-$ python -mion lithium --rpc-from $IP:PORT_A --rpc-to $IP:PORT_B --from-account $ALICE --to-account $BOB --lock IONLOCK --l$ink IONLINK --a$pi-port $API_PORT_A
+$ python -mion lithium --rpc-from $IP:PORT_A --rpc-to $IP:PORT_B --from-account $ALICE --to-account $BOB --lock IONLOCK --link IONLINK --api-port $API_PORT_A
 ```
 Launch lithium listener B:
 ```
-$ python -mion lithium --rpc-from $IP:PORT_B --rpc-to $IP:PORT_A --from-account $BOB --to-account $ALICE --lock IONLOCK --l$ink IONLINK --a$pi-port $API_PORT_B
+$ python -mion lithium --rpc-from $IP:PORT_B --rpc-to $IP:PORT_A --from-account $BOB --to-account $ALICE --lock IONLOCK --link IONLINK --api-port $API_PORT_B
 ```
 
 ### Step 2: mint token on each chain
@@ -135,14 +135,14 @@ $ New balance = 5000
 
 Alice deposits to IonLock on chain A:
 ```
-$ python -mion ion deposit --rpc $IP_A:$PORT_A --account $ALICE --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --api-port $API_PORT_A
+$ python -mion ion deposit --rpc $IP_A:$PORT_A --account $ALICE --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff
 $ Token transferred.
 $ New balance = 0
 ```
 
 Alice finds her merkle proof on chain A:
 ```
-$ python -mion ion proof --rpc $IP_A:$PORT_A --account $ALICE --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --api-port $API_PORT_A
+$ python -mion ion proof --rpc $IP_A:$PORT_A --account $ALICE --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --lithium-port $API_PORT_A
 $ Received proof:
 $ Path  0  :  96504857948636356700030147503635580074187355628971816059136194586624797022097
 $ Path  1  :  94482339386605321136956967184442353585778610538212146199456190006347461027622
@@ -154,14 +154,14 @@ $ Latest IonLink block 727726316585650703562158012243207658851215693682202055532
 
 Bob deposits to IonLock on chain B:
 ```
-$ python -mion ion deposit --rpc $IP_B:$PORT_B --account $BOB --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --api-port $API_PORT_B
+$ python -mion ion deposit --rpc $IP_B:$PORT_B --account $BOB --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff
 $ Token transferred.
 $ New balance = 0
 ```
 
 Bob finds his merkle proof on chain B:
 ```
-$ python -mion ion proof --rpc $IP_B:$PORT_B --account $BOB --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --api-port $API_PORT_B
+$ python -mion ion proof --rpc $IP_B:$PORT_B --account $BOB --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --lithium-port $API_PORT_B
 $ Received proof:
 $ Path  0  :  59798365828871537698849691593400364996559135249658580970523805101316187754033
 $ Path  1  :  91398783457376278236011129913922372139721274533348447063742181262540672449047
@@ -173,7 +173,7 @@ $ Latest IonLink block 200430256392562228024813907186719945181526666527126336866
 
 Alice withdraws giving her proof and reference:
 ```
-$ python -mion ion withdraw --rpc-from $IP_B:$PORT_B --rpc-to $IP_A:$PORT_A --account $ALICE --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --api-port $API_PORT_B
+$ python -mion ion withdraw --rpc $IP_A:$PORT_A --account $ALICE --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --lithium-port $API_PORT_B
 $ New balance = 5000
 ```
 
@@ -181,6 +181,6 @@ $ New balance = 5000
 
 Bob withdraws giving his proof and reference:
 ```
-$ python -mion ion withdraw --rpc-from $IP_A:$PORT_A --rpc-to $IP_B:$PORT_B --account $BOB --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --api-port $API_PORT_A
+$ python -mion ion withdraw --rpc $IP_B:$PORT_B --account $BOB --lock $LOCK --tkn $TOKEN --value 5000 --ref stuff --lithium-port $API_PORT_A
 $ New balance = 5000
 ```
