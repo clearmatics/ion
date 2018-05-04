@@ -20,7 +20,7 @@ contract IonLink is IonLinkInterface {
 
 	event IonLinkUpdated();
 
-	function IonLink ( uint256 genesis ) public {
+	constructor ( uint256 genesis ) public {
 		Owner = msg.sender;
 		LatestBlock = genesis;
 	}
@@ -87,12 +87,14 @@ contract IonLink is IonLinkInterface {
 
 		LatestBlock = prev_hash;
 
+
 		emit IonLinkUpdated();
 	}
 
 
 	function Verify( uint256 block_id, uint256 leaf_hash, uint256[] proof )
 		public view returns (bool) {
+
 		return Merkle.Verify( GetRoot(block_id), leaf_hash, proof );
 	}
 }
