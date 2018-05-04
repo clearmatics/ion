@@ -22,7 +22,7 @@ from ion.args import arg_bytes20, arg_ethrpc
 from ion.merkle import merkle_tree, merkle_hash, merkle_path, merkle_proof
 from ion.utils import u256be
 
-from ion.lithium.etheventrelay import iter_blocks, lithium_process_block_group, lithium_submit
+from ion.lithium.lithium import iter_blocks, lithium_process_block_group, lithium_submit
 
 # Definition of the fundamental variables required
 chainA  = "127.0.0.1:8545"
@@ -101,7 +101,7 @@ class IntegrationTest(unittest.TestCase):
             blocks.append(i)
         obh = bh
 
-        # Show the blocks to work on and then rename just to keep convention from etheventrelay.py
+        # Show the blocks to work on and then rename just to keep convention from lithium.py
         block_group = blocks
         self.assertEqual(len(blocks), 2)
 
@@ -152,7 +152,7 @@ class IntegrationTest(unittest.TestCase):
             blocks.append(i)
         obh = bh
 
-        # Show the blocks to work on and then rename just to keep convention from etheventrelay.py
+        # Show the blocks to work on and then rename just to keep convention from lithium.py
         block_group = blocks
         self.assertEqual(len(blocks), 2)
 
