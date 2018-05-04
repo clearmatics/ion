@@ -12,7 +12,7 @@ import simplejson
 from ion.merkle import merkle_hash
 from ethereum.utils import keccak
 from .ethrpc import BadStatusCodeError, BadJsonError, BadResponseError, ConnectionError
-from .args import arg_ethrpc, arg_bytes20
+from .args import arg_ethrpc, arg_bytes20, arg_lithium_api
 PRIMITIVE = (int, long, float, str, bool)
 
 def rpc_call_with_exceptions(function, *args):
@@ -114,18 +114,18 @@ def ionlock_deposit(rpc, account, lock, tkn, value, ref):
     return 0
 
 @click.command(help="IonLock Withdraw. Withdraws funds from IonLock contract.")
-@click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server to obtain proof from")
-@click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server to verify against")
+@click.option('--lithium-port', type=int, metavar="8555", required=True, help="Lithium API port")
+@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server to withdraw funds from")
 @click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Beneficiary of funds.")
 @click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
 @click.option('--tkn', callback=arg_bytes20, metavar="0x...20", required=True, help="Token contract address of chain to receive from")
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="0x...20", help="Payment reference")
-def ionlock_withdraw(rpc_from, rpc_to, account, lock, tkn, value, ref):
+def ionlock_withdraw(lithium_port, rpc, account, lock, tkn, value, ref):
     """
     Withdraws to an address from IonLock contract by supplying information from the deposit made on the opposite chain by the account attempting withdrawal
-    :param rpc_from: ip:port of RPC endpoint to the chain that the deposit was made to
-    :param rpc_to: ip:port of RPC endpoint to the chain that the withdrawal is being made from
+    :param lithium_port: port of lithium api
+    :param rpc: ip:port of RPC endpoint to the chain that the withdrawal is being made from
     :param account: address of recipient of withdrawal funds and also address that deposit on opposite chain was made under
     :param lock: IonLock contract address (Currently only works if contract addresses on both chains are identical)
     :param tkn: Token contract address (Currently only works if contract addresses on both chains are identical)
@@ -133,11 +133,11 @@ def ionlock_withdraw(rpc_from, rpc_to, account, lock, tkn, value, ref):
     :param ref: str, the payment reference used in the deposit on the opposite chain
     :return: 0, results are printed to the console
     """
-    ionlock = rpc_to.proxy("abi/IonLock.abi", lock, account)
-    token = rpc_to.proxy("abi/Token.abi", tkn, account)
+    ionlock = rpc.proxy("abi/IonLock.abi", lock, account)
+    token = rpc.proxy("abi/Token.abi", tkn, account)
 
     joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
-    api_url = 'http://127.0.0.1:' + str(rpc_from.port + 10)
+    api_url = 'http://127.0.0.1:' + str(lithium_port)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
 
     try:
@@ -161,21 +161,21 @@ def ionlock_withdraw(rpc_from, rpc_to, account, lock, tkn, value, ref):
     return 0
 
 @click.command(help="IonLink Verify. Checks the supplied proof with IonLink.")
-@click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server to obtain proof from")
-@click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server to verify against")
+@click.option('--lithium-port', type=int, metavar="8555", required=True, help="Lithium API port")
+@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", required=True, help="Ethereum JSON-RPC server to verify against")
 @click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Beneficiary of funds.")
 @click.option('--link', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
 @click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address of chain to receive from")
 @click.option('--tkn', callback=arg_bytes20, metavar="0x...20", required=True, help="Token contract address of chain to receive from")
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="abcd", help="Payment reference")
-def ionlink_verify(rpc_from, rpc_to, account, link, lock, tkn, value, ref):
+def ionlink_verify(lithium_port, rpc, account, link, lock, tkn, value, ref):
     """
     Verifies a supplied merkle leaf of a deposit with a path against the merkle root held by IonLink
     Deposit chain: chain that deposit was made on
     Verification chain: chain that has been updated with merkle roots that is being verified against
-    :param rpc_from: ip:port of RPC endpoint to Deposit chain
-    :param rpc_to: ip:port of RPC endpoint to Verification chain
+    :param lithium_port: port of lithium api
+    :param rpc: ip:port of RPC endpoint to Verification chain
     :param account: address that deposit was made by
     :param link: IonLink contact address on Verification chain
     :param lock: IonLock contract address on Deposit chain
@@ -184,11 +184,11 @@ def ionlink_verify(rpc_from, rpc_to, account, link, lock, tkn, value, ref):
     :param ref: str, reference used in the deposit
     :return: 0, results are printed to console
     """
-    ionlink = rpc_to.proxy("abi/IonLink.abi", link, account)
+    ionlink = rpc.proxy("abi/IonLink.abi", link, account)
 
     joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
     hashed_data = merkle_hash(int(joined_data, 16))
-    api_url = 'http://127.0.0.1:' + str(rpc_from.port + 10)
+    api_url = 'http://127.0.0.1:' + str(lithium_port)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
 
     try:
@@ -214,16 +214,16 @@ def ionlink_verify(rpc_from, rpc_to, account, link, lock, tkn, value, ref):
 
 
 @click.command(help="Merkle proof. Acquires the merkle path to a leaf in Lithium merkle tree for submission during withdraw.")
-@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Source Ethereum JSON-RPC server")
+@click.option('--lithium-port', type=int, metavar="8555", required=True, help="Lithium API port")
 @click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Sender of funds.")
 @click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address of chain to receive from")
 @click.option('--tkn', callback=arg_bytes20, metavar="0x...20", required=True, help="Token contract address of chain to receive from")
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="abcd", help="Payment reference")
-def merkle_proof_path(rpc, account, lock, tkn, value, ref):
+def merkle_proof_path(lithium_port, account, lock, tkn, value, ref):
     """
     Generates a merkle path to a leaf corresponding to a deposit made
-    :param rpc: ip:port of RPC endpoint where deposit was made
+    :param lithium_port: port of lithium api
     :param account: address that deposit was made by
     :param lock: IonLock contract address where deposit was made to
     :param tkn: Token contract address of token deposited
@@ -232,7 +232,7 @@ def merkle_proof_path(rpc, account, lock, tkn, value, ref):
     :return: 0, merkle path is printed to the console
     """
     joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
-    api_url = 'http://127.0.0.1:' + str(rpc.port + 10)
+    api_url = 'http://127.0.0.1:' + str(lithium_port)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
 
     try:
@@ -251,17 +251,17 @@ def merkle_proof_path(rpc, account, lock, tkn, value, ref):
 
 @click.command(help="Merkle Verify. Verifies proof with Lithium merkle tree.")
 @click.argument('proof', nargs=-1)
-@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Source Ethereum JSON-RPC server")
+@click.option('--lithium-port', type=int, metavar="8555", required=True, help="Lithium API port")
 @click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Sender of funds.")
 @click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address of chain to receive from")
 @click.option('--tkn', callback=arg_bytes20, metavar="0x...20", required=True, help="Token contract address of chain to receive from")
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="abcd", help="Payment reference")
-def merkle_verify(proof, rpc, account, lock, tkn, value, ref):
+def merkle_verify(proof, lithium_port, account, lock, tkn, value, ref):
     """
     Verifies a supplied merkle path with a leaf corresponding to a deposit made to the merkle tree held by Lithium
     :param proof: space-separated list of hashes as decimal of the path to the leaf
-    :param rpc: ip:port of RPC endpoint that deposit was made to
+    :param lithium_port: port of lithium api
     :param account: address that deposit was made by
     :param lock: IonLock contract address where deposit was made to
     :param tkn: Token contract address of token deposited
@@ -271,7 +271,7 @@ def merkle_verify(proof, rpc, account, lock, tkn, value, ref):
     """
     joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
     proof = [int(x) for x in proof]
-    api_url = 'http://127.0.0.1:' + str(rpc.port + 10)
+    api_url = 'http://127.0.0.1:' + str(lithium_port)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
 
     try:

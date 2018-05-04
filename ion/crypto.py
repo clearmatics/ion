@@ -12,7 +12,7 @@ from rlp.utils_py2 import ascii_chr
 
 from sha3 import keccak_256
 
-from .utils import Marshalled, u256be, safe_ord
+from utils import Marshalled, u256be, safe_ord
 
 try:
     import coincurve

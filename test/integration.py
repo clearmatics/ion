@@ -9,14 +9,10 @@ This set of tests should test the locking of funds on chain A and the subsequent
 on chain B
 '''
 
-import click
 import unittest
 import socket
-import subprocess
-import binascii
 
-from click.testing import CliRunner
-from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian
+from ethereum.utils import sha3
 
 from ion.args import arg_bytes20, arg_ethrpc
 from ion.merkle import merkle_tree, merkle_hash, merkle_path, merkle_proof

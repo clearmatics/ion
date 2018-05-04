@@ -52,3 +52,12 @@ def arg_ethrpc(ctx, param, value):
     if port == 443:
         return EthJsonRpc(ip_addr, port, True)
     return EthJsonRpc(ip_addr, port)
+
+def arg_lithium_api(ctx, param, value):
+    if value is None:
+        return None
+    ip_addr, port = value.split(':')
+    port = int(port)
+    require(port > 0)
+    require(port < 0xFFFF)
+    return {'ip_addr': ip_addr, 'port': port}
