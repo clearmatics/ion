@@ -13,7 +13,7 @@ import os
 from flask import Flask, request, jsonify
 
 # from flask import Flask, url_for
-from ion.merkle import merkle_tree, merkle_path, merkle_proof, merkle_hash
+from ion.merkle import merkle_tree, merkle_path, merkle_proof
 
 
 app = Flask(__name__)
@@ -22,7 +22,11 @@ app = Flask(__name__)
 
 @app.route('/api/leaves', methods=['GET', 'POST'])
 def api_leaves():
-    """Return all the leaves for the merkle tree"""
+    """
+        GET:    Return: All leaves held by Lithium
+        POST:   Arguments: JSON with a blockid in the form {'blockid': <some_blockid>}
+                Return: All relevant leaves under the specified blockid
+    """
 
     if request.method == 'POST':
         json = request.get_json()
@@ -42,7 +46,9 @@ def api_leaves():
 
 @app.route('/api/root', methods=['GET'])
 def api_root():
-    """Return the root for the merkle tree"""
+    """
+        GET:    Return: The root for the merkle tree of all leaves
+    """
     byte_leaves = app.lithium.leaves
     tree, root = merkle_tree(byte_leaves)
     dict = {u'root': root}
@@ -55,7 +61,10 @@ def api_checkpoint():
 
 @app.route('/api/blockid', methods=['POST'])
 def api_blockid():
-    """If passed a valid leaf returns corresponding ionlink blockId"""
+    """
+        POST:   Arguments: JSON with a leaf in the form {'leaf': <some_leaf>}
+                Return: If passed a valid leaf returns corresponding blockid otherwise returns error string.
+    """
     if request.method == 'POST':
         json = request.get_json()
         leaf = json[u'leaf']
@@ -80,7 +89,10 @@ def api_blockid():
 
 @app.route('/api/proof', methods=['POST'])
 def api_proof():
-    """If passed a valid leaf returns merkle proof"""
+    """
+        POST:   Arguments: JSON with leaf, blockid in the form {'leaf': <some_leaf>, 'blockid': <some_blockid>}
+                Return: If passed valid information returns merkle proof to supplied leaf of relevant blockid
+    """
     if request.method == 'POST':
         json = request.get_json()
         leaf = json[u'leaf']
@@ -105,7 +117,10 @@ def api_proof():
 
 @app.route('/api/verify', methods=['POST'])
 def api_verify_proof():
-    """Verifies a given leaf is part of the merkle tree"""
+    """
+        POST:   Arguments: JSON with leaf, proof, blockid in the form {'leaf': <some_leaf>, 'proof': [<array_of_path>] 'blockid': <some_blockid>}
+                Return: If passed valid information returns a boolean verifying in the supplied leaf is part of the merkle tree
+    """
     if request.method == 'POST':
         json = dict(request.get_json())
         leaf = json[u'leaf']
@@ -125,24 +140,3 @@ def api_verify_proof():
         return jsonify({"verified":proof})
     else:
         return "No valid leaf or path provided."
-
-class ServerError(Exception):
-    status_code = 400
-
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
-
-@app.errorhandler(ServerError)
-def handle_any_error(error):
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response

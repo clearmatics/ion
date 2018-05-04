@@ -57,44 +57,41 @@ class MockRPC():
 class LithiumTest(unittest.TestCase):
 
     def test_pack_txn(self):
-        print("\nTest: Pack Transaction")
+        print("\n==== Test: Pack Transaction ====")
         rpc = MockRPC()
         txn = rpc.eth_getTransactionByHash()
-
-        u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
-        pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( txn['value'] + ('0' * (len(txn['value']) % 2))))), 32).encode('hex')
-        tx_input_hash = sha3( scan_bin( txn['input'] + ('0' * (len(txn['input']) % 2)))).encode('hex')
 
         packed_txn = pack_txn(txn).encode('hex')
         expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])
 
-        self.assertTrue(packed_txn == expected_result)
+        self.assertEqual(packed_txn, expected_result)
         print("Test: Pack Transaction Success")
 
 
     def test_pack_log(self):
-        print("\nTest: Pack Transaction Logs")
+        print("\n==== Test: Pack Transaction Logs ====")
         rpc = MockRPC()
         txn = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
+
         self.assertTrue(len(receipt['logs']) > 0)
+
         for log in receipt['logs']:
             packed_log = pack_log(txn, log)
 
             address = scan_bin(log['address']).encode('hex')
             topic1 = scan_bin(log['topics'][1]).encode('hex')
             topic2 = scan_bin(log['topics'][2]).encode('hex')
-            data = sha3(scan_bin(log['data'])).encode('hex')
 
             expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + address + topic1 + topic2
 
-            self.assertTrue(packed_log.encode('hex') == expected_result)
+            self.assertEqual(packed_log.encode('hex'), expected_result)
 
         print("Test: Pack Transaction Logs Success")
 
 
     def test_process_block(self):
-        print("\nTest: Process Single Block")
+        print("\n==== Test: Process Single Block ====")
         lithium = Lithium()
         rpc = MockRPC()
         transfers = []
@@ -102,59 +99,52 @@ class LithiumTest(unittest.TestCase):
 
         txn = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
-        self.assertTrue(len(receipt['logs']) > 0)
 
-        u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
-        pad_be_tx_value = zpad( int_to_big_endian(decode_int256( scan_bin( txn['value'] + ('0' * (len(txn['value']) % 2))))), 32).encode('hex')
-        tx_input_hash = sha3( scan_bin( txn['input'] + ('0' * (len(txn['input']) % 2)))).encode('hex')
+        self.assertEqual(len(receipt['logs']), 1)
 
-        for log in receipt['logs']:
-            packed_log = pack_log(txn, log)
+        log = receipt['logs'][0]
+        packed_log = pack_log(txn, log)
 
-            address = scan_bin(log['address']).encode('hex')
-            topic1 = scan_bin(log['topics'][1]).encode('hex')
-            topic2 = scan_bin(log['topics'][2]).encode('hex')
-            data = sha3(scan_bin(log['data'])).encode('hex')
+        address = scan_bin(log['address']).encode('hex')
+        topic1 = scan_bin(log['topics'][1]).encode('hex')
+        topic2 = scan_bin(log['topics'][2]).encode('hex')
 
         expected_txn_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
+        self.assertEqual(packed_log.encode('hex'), expected_txn_result)
 
-        self.assertTrue(len(items) == 1)
-        self.assertTrue(items[0].encode('hex') == expected_txn_result)
-        self.assertTrue(tx_count == 1)
-        self.assertTrue(log_count == 1)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0].encode('hex'), expected_txn_result)
+        self.assertEqual(tx_count, 1)
+        self.assertEqual(log_count, 1)
 
         print("Test: Process Single Block Success")
 
 
     def test_process_block_group(self):
-        print("\nTest: Process Block Group")
+        print("\n==== Test: Process Block Group ====")
         lithium = Lithium()
         rpc = MockRPC()
-        transfers = []
         items, group_tx_count, group_log_count, transfers = lithium.process_block_group(rpc, [1])
 
         txn = rpc.eth_getTransactionByHash()
         receipt = rpc.eth_getTransactionReceipt()
-        self.assertTrue(len(receipt['logs']) > 0)
 
-        u256be_block_no_hex = u256be(rpc.eth_blockNumber()).encode('hex')
-        pad_be_tx_value = zpad( int_to_big_endian( decode_int256( scan_bin( txn['value'] + ('0' * (len(txn['value']) % 2))))), 32).encode('hex')
-        tx_input_hash = sha3( scan_bin( txn['input'] + ('0' * (len(txn['input']) % 2)))).encode('hex')
+        self.assertEqual(len(receipt['logs']), 1)
 
-        for log in receipt['logs']:
-            packed_log = pack_log(txn, log)
+        log = receipt['logs'][0]
+        packed_log = pack_log(txn, log)
 
-            address = scan_bin(log['address']).encode('hex')
-            topic1 = scan_bin(log['topics'][1]).encode('hex')
-            topic2 = scan_bin(log['topics'][2]).encode('hex')
-            data = sha3(scan_bin(log['data'])).encode('hex')
+        address = scan_bin(log['address']).encode('hex')
+        topic1 = scan_bin(log['topics'][1]).encode('hex')
+        topic2 = scan_bin(log['topics'][2]).encode('hex')
 
         expected_txn_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
+        self.assertEqual(packed_log.encode('hex'), expected_txn_result)
 
-        self.assertTrue(len(items) == 1)
-        self.assertTrue(items[0].encode('hex') == expected_txn_result)
-        self.assertTrue(group_tx_count == 1)
-        self.assertTrue(group_log_count == 1)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0].encode('hex'), expected_txn_result)
+        self.assertEqual(group_tx_count, 1)
+        self.assertEqual(group_log_count, 1)
 
         print("Test: Process Block Group Success")
 
@@ -166,6 +156,4 @@ if __name__ == '__main__':
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
     from ion.lithium.lithium import Lithium, pack_txn, pack_log
-    # from ion.lithium.etheventrelay import lithium_process_block_group, lithium_process_block, pack_txn, pack_log
-    from ion.utils import u256be
     unittest.main()

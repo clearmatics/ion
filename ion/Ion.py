@@ -11,13 +11,13 @@ import simplejson
 
 from ion.merkle import merkle_hash
 from ethereum.utils import keccak
-from .ethrpc import EthJsonRpc, BadStatusCodeError, BadJsonError, BadResponseError, ConnectionError
-from .args import arg_ethrpc, arg_bytes20, arg_bytes, make_uint_n, make_bytes_n
+from .ethrpc import BadStatusCodeError, BadJsonError, BadResponseError, ConnectionError
+from .args import arg_ethrpc, arg_bytes20
 PRIMITIVE = (int, long, float, str, bool)
 
 def rpc_call_with_exceptions(function, *args):
     """
-    Test the rpc connections
+    Wraps RPC function calls with expected errors
     """
     try:
         result = function(*args)
@@ -43,7 +43,12 @@ def rpc_call_with_exceptions(function, *args):
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 def mint(rpc, account, tkn, value):
     """
-    Mint: Mints token to the owner address
+    Mints specified number of token to address
+    :param rpc: ip:port of RPC endpoint
+    :param account: address of recipient of tokens
+    :param tkn: token contract address
+    :param value: amount of token to mint
+    :return: 0, address balance is printed to console
     """
     token = rpc.proxy("abi/Token.abi", tkn, account)
 
@@ -62,6 +67,13 @@ def mint(rpc, account, tkn, value):
 @click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Account of balance check.")
 @click.option('--tkn', callback=arg_bytes20, metavar="0x...20", required=True, help="Token contract address")
 def balance(rpc, account, tkn):
+    """
+    Returns token balance information for an address
+    :param rpc: ip:port of RPC endpoint
+    :param account: address to check balance of
+    :param tkn: token address of token contract currency of the balance check
+    :return: 0, result is printed to console as int
+    """
     token = rpc.proxy("abi/Token.abi", tkn, account)
 
     result = rpc_call_with_exceptions(token.balanceOf, account)
@@ -79,6 +91,16 @@ def balance(rpc, account, tkn):
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="abcd", help="Some payment reference")
 def ionlock_deposit(rpc, account, lock, tkn, value, ref):
+    """
+    Deposits from an address to IonLock contract with reference
+    :param rpc: ip:port of RPC endpoint
+    :param account: address of source of funds for deposit
+    :param lock: IonLock contract address
+    :param tkn: token contract address
+    :param value: amount to deposit
+    :param ref: str, an arbitrary reference for the payment
+    :return: 0, result is printed to the console
+    """
     token = rpc.proxy("abi/Token.abi", tkn, account)
 
     result = rpc_call_with_exceptions(token.metadataTransfer, lock, value, ref)
@@ -100,6 +122,17 @@ def ionlock_deposit(rpc, account, lock, tkn, value, ref):
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="0x...20", help="Payment reference")
 def ionlock_withdraw(rpc_from, rpc_to, account, lock, tkn, value, ref):
+    """
+    Withdraws to an address from IonLock contract by supplying information from the deposit made on the opposite chain by the account attempting withdrawal
+    :param rpc_from: ip:port of RPC endpoint to the chain that the deposit was made to
+    :param rpc_to: ip:port of RPC endpoint to the chain that the withdrawal is being made from
+    :param account: address of recipient of withdrawal funds and also address that deposit on opposite chain was made under
+    :param lock: IonLock contract address (Currently only works if contract addresses on both chains are identical)
+    :param tkn: Token contract address (Currently only works if contract addresses on both chains are identical)
+    :param value: Amount to be withdrawn (Currently only works if value deposited on other chain is same as amount to be withdrawn)
+    :param ref: str, the payment reference used in the deposit on the opposite chain
+    :return: 0, results are printed to the console
+    """
     ionlock = rpc_to.proxy("abi/IonLock.abi", lock, account)
     token = rpc_to.proxy("abi/Token.abi", tkn, account)
 
@@ -137,6 +170,20 @@ def ionlock_withdraw(rpc_from, rpc_to, account, lock, tkn, value, ref):
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="abcd", help="Payment reference")
 def ionlink_verify(rpc_from, rpc_to, account, link, lock, tkn, value, ref):
+    """
+    Verifies a supplied merkle leaf of a deposit with a path against the merkle root held by IonLink
+    Deposit chain: chain that deposit was made on
+    Verification chain: chain that has been updated with merkle roots that is being verified against
+    :param rpc_from: ip:port of RPC endpoint to Deposit chain
+    :param rpc_to: ip:port of RPC endpoint to Verification chain
+    :param account: address that deposit was made by
+    :param link: IonLink contact address on Verification chain
+    :param lock: IonLock contract address on Deposit chain
+    :param tkn: Token contract address on Deposit chain
+    :param value: amount deposited
+    :param ref: str, reference used in the deposit
+    :return: 0, results are printed to console
+    """
     ionlink = rpc_to.proxy("abi/IonLink.abi", link, account)
 
     joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
@@ -174,7 +221,16 @@ def ionlink_verify(rpc_from, rpc_to, account, link, lock, tkn, value, ref):
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="abcd", help="Payment reference")
 def merkle_proof_path(rpc, account, lock, tkn, value, ref):
-
+    """
+    Generates a merkle path to a leaf corresponding to a deposit made
+    :param rpc: ip:port of RPC endpoint where deposit was made
+    :param account: address that deposit was made by
+    :param lock: IonLock contract address where deposit was made to
+    :param tkn: Token contract address of token deposited
+    :param value: amount of token deposited
+    :param ref: str, reference used for the deposit
+    :return: 0, merkle path is printed to the console
+    """
     joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
     api_url = 'http://127.0.0.1:' + str(rpc.port + 10)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
@@ -191,9 +247,6 @@ def merkle_proof_path(rpc, account, lock, tkn, value, ref):
     except simplejson.errors.JSONDecodeError as e:
         print(e.message)
 
-    # Requests errors have not been formally caught as all errors will pertain to the success of making
-    # connections and requests to the API which will raise the relevant errors
-
     return 0
 
 @click.command(help="Merkle Verify. Verifies proof with Lithium merkle tree.")
@@ -205,7 +258,17 @@ def merkle_proof_path(rpc, account, lock, tkn, value, ref):
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 @click.option('--ref', type=str, required=True, metavar="abcd", help="Payment reference")
 def merkle_verify(proof, rpc, account, lock, tkn, value, ref):
-
+    """
+    Verifies a supplied merkle path with a leaf corresponding to a deposit made to the merkle tree held by Lithium
+    :param proof: space-separated list of hashes as decimal of the path to the leaf
+    :param rpc: ip:port of RPC endpoint that deposit was made to
+    :param account: address that deposit was made by
+    :param lock: IonLock contract address where deposit was made to
+    :param tkn: Token contract address of token deposited
+    :param value: amount of token deposited
+    :param ref: str, reference used for the deposit
+    :return: 0, result is printed to the console
+    """
     joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
     proof = [int(x) for x in proof]
     api_url = 'http://127.0.0.1:' + str(rpc.port + 10)
@@ -219,9 +282,6 @@ def merkle_verify(proof, rpc, account, lock, tkn, value, ref):
 
     except simplejson.errors.JSONDecodeError as e:
         print(e.message)
-
-    # Requests errors have not been formally caught as all errors will pertain to the success of making
-    # connections and requests to the API which will raise the relevant errors
 
     return 0
 
