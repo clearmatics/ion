@@ -1,3 +1,8 @@
+# Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+# SPDX-License-Identifier: LGPL-3.0+
+"""
+Ion: command line tool to allow users to intereact with lithium
+"""
 from __future__ import print_function
 
 import click
@@ -8,23 +13,25 @@ from ion.merkle import merkle_hash
 from ethereum.utils import keccak
 from .ethrpc import EthJsonRpc, BadStatusCodeError, BadJsonError, BadResponseError, ConnectionError
 from .args import arg_ethrpc, arg_bytes20, arg_bytes, make_uint_n, make_bytes_n
-primitive = (int, long, float, str, bool)
+PRIMITIVE = (int, long, float, str, bool)
 
 def rpc_call_with_exceptions(function, *args):
-
+    """
+    Test the rpc connections
+    """
     try:
         result = function(*args)
-        if isinstance( result, primitive ):
+        if isinstance(result, PRIMITIVE):
             return result
         return True
-    except BadStatusCodeError as e:
-        print("Error with status code ", e.message)
-    except BadJsonError as e:
-        print("BadJson Error: ", e.message)
-    except BadResponseError as e:
-        print("BadResponseError: ", e.message)
-    except ConnectionError as e:
-        print("Connection Error: ", e.message)
+    except BadStatusCodeError as err:
+        print("Error with status code ", err.message)
+    except BadJsonError as err:
+        print("BadJson Error: ", err.message)
+    except BadResponseError as err:
+        print("BadResponseError: ", err.message)
+    except ConnectionError as err:
+        print("Connection Error: ", err.message)
 
     return False
 
@@ -35,6 +42,9 @@ def rpc_call_with_exceptions(function, *args):
 @click.option('--tkn', callback=arg_bytes20, metavar="0x...20", required=True, help="Token contract address")
 @click.option('--value', type=int, required=True, metavar="N", help="Value")
 def mint(rpc, account, tkn, value):
+    """
+    Mint: Mints token to the owner address
+    """
     token = rpc.proxy("abi/Token.abi", tkn, account)
 
     result = rpc_call_with_exceptions(token.mint, value)

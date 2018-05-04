@@ -8,7 +8,9 @@
   "license": "LGPL-3.0+",
   "dependencies": {
     "babel-preset-node6": "^11.0.0",
-    "solc": "^0.4.23"
+    "solc": "^0.4.23",
+    "solhint": "^1.1.10",
+    "solidity-coverage": "^0.5.0 "
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
@@ -36,6 +38,7 @@
     "deploya": "rm -rf build/ && truffle deploy --network testrpca",
     "deployb": "rm -rf build/ && truffle deploy --network testrpcb",
     "test": "truffle test",
-    "coverage": "solidity-coverage"
+    "coverage": "solidity-coverage",
+    "lint": "solhint contracts/**/*.sol"
   }
 }
