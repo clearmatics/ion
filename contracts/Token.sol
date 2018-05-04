@@ -15,7 +15,7 @@ contract Token is ERC223 {
 
     event AccountTransfer();
 
-    function Token () public {
+    constructor() public {
         totalSupply = 0;
     }
 

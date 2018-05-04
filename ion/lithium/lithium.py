@@ -49,9 +49,9 @@ def pack_txn(txn):
 def pack_log(txn, log):
     """
     Packs a log entry into one or more entries.
-        from || to || address || topics[1] || topics[2]
+        sender account || token address of opposite chain from sender || ionLock address of opposite chain from sender || value || hash(reference)
     """
-
+    print(scan_bin(log['topics'][2]).encode('hex'))
     return ''.join([
         scan_bin(txn['from']),
         scan_bin(txn['to']),
@@ -80,7 +80,7 @@ class Lithium(object):
     on the rpc_from chains, which are then added to the IonLink of the rpc_to chain.
     """
     def __init__(self):
-        self.checkpoints = []
+        self.checkpoints = {}
         self.leaves = []
         self._run_event = None
         self._relay_to = None
@@ -157,20 +157,23 @@ class Lithium(object):
             old_head = head
 
 
-    def lithium_submit(self, batch, prev_root, rpc, link, account, checkpoints, nleaves):
+    def lithium_submit(self, batch, prev_root, rpc, link, account, checkpoints, leaves):
         """Submit batch of merkle roots to IonLink"""
         ionlink = rpc.proxy("abi/IonLink.abi", link, account)
         if not batch:
             return False
 
         current_block = batch[0][0]
-
+        nleaves = len(leaves)
         for pair in batch:
             if pair[2]:
                 current_root = pair[1]
                 ionlink.Update([prev_root, current_root])
                 ionlink_latest = ionlink.GetLatestBlock()
-                checkpoints.append((nleaves, ionlink_latest))
+                print("Latest submitted root", current_root)
+
+                checkpoints[str(ionlink_latest)] = nleaves
+
                 prev_root = current_root
 
         return prev_root
@@ -195,12 +198,12 @@ class Lithium(object):
 
                 pack_items(self.leaves)
                 print("blocks %d-%d (%d tx, %d events)" % (min(block_group), max(block_group), group_tx_count, group_log_count))
-                _, root = merkle_tree(self.leaves)
+                tree, root = merkle_tree(self.leaves)
                 batch.append((block_group[0], root, transfers[0]))
 
                 if is_latest or len(batch) >= batch_size:
                     print("Submitting batch of", len(batch), "blocks")
-                    prev_root = self.lithium_submit(batch, prev_root, rpc_to, link, to_account, self.checkpoints, len(self.leaves))
+                    prev_root = self.lithium_submit(batch, prev_root, rpc_to, link, to_account, self.checkpoints, self.leaves)
                     batch = []
         return 0
 
@@ -220,14 +223,11 @@ class Lithium(object):
 
 
 @click.command(help="Ethereum event merkle tree relay daemon")
-@click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', \
-              help="Source Ethereum JSON-RPC server")
-@click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8546', \
-              help="Destination Ethereum JSON-RPC server")
+@click.option('--rpc-from', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Source Ethereum JSON-RPC server")
+@click.option('--rpc-to', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8546', help="Destination Ethereum JSON-RPC server")
 @click.option('--from-account', callback=arg_bytes20, metavar="0x...20", required=True, help="Sender")
 @click.option('--to-account', callback=arg_bytes20, metavar="0x...20", required=True, help="Recipient")
-@click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True,
-              help="IonLock contract address")
+@click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
 @click.option('--link', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLink contract address")
 @click.option('--api-port', type=int, default=5000, metavar="N", help="API server endpoint")
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
