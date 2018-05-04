@@ -1,7 +1,11 @@
 # Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 # SPDX-License-Identifier: LGPL-3.0+
 """
-etheventrelay: manages the update of Ionlink and Merkle proof for corresponding chain
+Lithium: Event Relayer between two Ethereum chains
+
+Connects to two RPC endpoints, listens to IonLock events from one chain, packs them, constructs merkle roots and submits them to the IonLink contract of the other chain
+
+This tool was designed to facilitate the information swap between two EVM chains and only works in one direction. To allow two-way communication, two Lithium instances must be initialised.
 """
 from __future__ import print_function
 
@@ -14,7 +18,6 @@ from ethereum.utils import scan_bin, sha3, keccak
 from ion.args import arg_bytes20, arg_ethrpc
 from ion.merkle import merkle_tree, merkle_hash
 
-# from ion.lithium.api import LithiumRestApi
 from ion.lithium.api import app
 
 TRANSFER_SIGNATURE = keccak.new(digest_bits=256) \
@@ -163,7 +166,6 @@ class Lithium(object):
         if not batch:
             return False
 
-        current_block = batch[0][0]
         nleaves = len(leaves)
         for pair in batch:
             if pair[2]:
@@ -183,7 +185,6 @@ class Lithium(object):
                          link, batch_size):
         ionlock = rpc_from.proxy("abi/IonLock.abi", lock, from_account)
         batch = []
-        transfers = []
 
         prev_root = merkle_hash("merkle-tree-extra")
 
@@ -212,8 +213,8 @@ class Lithium(object):
         self._run_event = threading.Event()
         self._run_event.set()
 
-        self._relay_to = threading.Thread(target=(self.lithium_instance), \
-            args=(self._run_event, rpc_from, rpc_to, from_account, to_account, lock, link, batch_size))
+        self._relay_to = threading.Thread(target=self.lithium_instance, \
+                                          args=(self._run_event, rpc_from, rpc_to, from_account, to_account, lock, link, batch_size))
         self._relay_to.start()
 
     def stop(self):
@@ -229,13 +230,17 @@ class Lithium(object):
 @click.option('--to-account', callback=arg_bytes20, metavar="0x...20", required=True, help="Recipient")
 @click.option('--lock', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLock contract address")
 @click.option('--link', callback=arg_bytes20, metavar="0x...20", required=True, help="IonLink contract address")
-@click.option('--api-port', type=int, default=5000, metavar="N", help="API server endpoint")
+@click.option('--api-port', type=int, required=True, metavar="N", help="API server endpoint")
 @click.option('--batch-size', type=int, default=32, metavar="N", help="Upload at most N items per transaction")
 def etheventrelay(rpc_from, rpc_to, from_account, to_account, lock, link, api_port, batch_size):
     lithium = Lithium()
     app.lithium = lithium
-    lithium.run(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size)
-    app.run(host='127.0.0.1', port=api_port)
+    try:
+        lithium.run(rpc_from, rpc_to, from_account, to_account, lock, link, batch_size)
+        app.run(host='127.0.0.1', port=api_port)
+    except Exception as e:
+        print(e.message)
+
     lithium.stop()
 
 

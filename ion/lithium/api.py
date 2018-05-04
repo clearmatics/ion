@@ -9,7 +9,6 @@ Provides a set of endpoints from which users can derive the key information rega
 which is required when withdrawing funds from IonLock
 """
 
-import os
 from flask import Flask, request, jsonify
 
 # from flask import Flask, url_for

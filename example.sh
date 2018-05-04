@@ -11,34 +11,48 @@ IP_A=127.0.0.1
 IP_B=127.0.0.1
 
 echo "==== Chain A ===="
-echo "Minting"
+echo "...Minting"
 python -mion ion mint --rpc $IP_A:$PORT_A --account $ACC_A --tkn $TOKEN_ADDR --value 5000
+echo ""
+echo "Press any key to proceed"
 read enter
 
-echo "Depositing"
+echo "...Depositing"
 python -mion ion deposit --rpc $IP_A:$PORT_A --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+echo ""
+echo "Press any key to proceed"
 read enter
 
-echo "Fetching proof"
-python -mion ion proof --rpc $IP_A:$PORT_A --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+echo "...Fetching proof"
+python -mion ion proof --lithium-port $((PORT_A + 10)) --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+echo ""
+echo "Press any key to proceed"
 read enter
 
 echo "==== Chain B ===="
-echo "Minting"
+echo "...Minting"
 python -mion ion mint --rpc $IP_B:$PORT_B --account $ACC_B --tkn $TOKEN_ADDR --value 5000
+echo ""
+echo "Press any key to proceed"
 read enter
 
-echo "Depositing"
+echo "...Depositing"
 python -mion ion deposit --rpc $IP_B:$PORT_B --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+echo ""
+echo "Press any key to proceed"
 read enter
 
-echo "Fetching proof"
-python -mion ion proof --rpc $IP_B:$PORT_B --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+echo "...Fetching proof"
+python -mion ion proof --lithium-port $((PORT_B + 10)) --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+echo ""
+echo "Press any key to proceed"
 read enter
 
 echo "==== Withdrawing from Chain A ===="
-python -mion ion withdraw --rpc-from $IP_B:$PORT_B --rpc-to $IP_A:$PORT_A --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+python -mion ion withdraw --lithium-port $((PORT_B + 10)) --rpc $IP_A:$PORT_A --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+echo ""
+echo "Press any key to proceed"
 read enter
 
 echo "==== Withdrawing from Chain B ===="
-python -mion ion withdraw --rpc-from $IP_A:$PORT_A --rpc-to $IP_B:$PORT_B --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+python -mion ion withdraw --lithium-port $((PORT_A + 10)) --rpc $IP_B:$PORT_B --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
