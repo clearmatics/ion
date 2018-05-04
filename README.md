@@ -77,12 +77,6 @@ $ npm run deploya
 $ npm run deployb
 ```
 
-Run the event relay to transmit state between the chains, here the two :
-```
-$ python -mion lithium --rpc-from <IP:PORT> --rpc-to <IP:PORT> --from-account <FROM_ACCOUNT_Y> --to-account <TO_ACCOUNT_X> --lock <IONLOCK_ADDRESS_TESTRPC_B> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_B> --api-port <PORT>
-$ python -mion lithium --rpc-from <IP:PORT> --rpc-to <IP_TESTRPC_B:PORT> --from-account <FROM_ACCOUNT_X> --to-account <TO_ACCOUNT_Y> --lock <IONLOCK_ADDRESS_TESTRPC_A> --link <IONLINK_ADDRESS_ADDRESS_TESTRPC_A> --api-port <PORT>
-```
-
 ## Tutorial
 
 The following tutorial describes how to perform token transfer between two accounts on separate blockchains.
@@ -92,30 +86,39 @@ This tutorial leverages Ganache and Truffle but could easily be performed on oth
 To perform cross-chain payments, the contracts must be deployed on each chain, which for the sake of simplicity the account and contract addresses are assumed to be the same on both chains.
 
 ALICE       = 0x22d491bde2303f2f43325b2108d26f1eaba1e32b
+
 BOB         = 0xffcf8fdee72ac11b5c542428b35eef5769c409f0
+
 TOKEN       = 0x254dffcd3277c0b1660f6d42efbb754edababc2b
+
 IONLOCK     = 0xc89ce4735882c9f0f0fe26686c53074e09b0d550
+
 IONLINK     = 0xcfeb869f69431e42cdb54a4f4f105c19c080a601
+
 IP          = 127.0.0.1
+
 PORT_A      = 8545
+
 PORT_B      = 8546
+
 API_PORT_A  = 5000
+
 API_PORT_B  = 5001
 
 It is recommended to use an isolated python environment.
 
-### Step 1: deploy event listeners
+### Step 1: Deploy event listeners
 
-Launch lithium listener A:
+Launch `lithium` listener A:
 ```
 $ python -mion lithium --rpc-from $IP:PORT_A --rpc-to $IP:PORT_B --from-account $ALICE --to-account $BOB --lock IONLOCK --link IONLINK --api-port $API_PORT_A
 ```
-Launch lithium listener B:
+Launch `lithium` listener B:
 ```
 $ python -mion lithium --rpc-from $IP:PORT_B --rpc-to $IP:PORT_A --from-account $BOB --to-account $ALICE --lock IONLOCK --link IONLINK --api-port $API_PORT_B
 ```
 
-### Step 2: mint token on each chain
+### Step 2: Mint token on each chain
 
 Mint for Alice on chain A:
 ```
