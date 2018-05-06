@@ -9,6 +9,8 @@ PORT_A=8545
 PORT_B=8546
 IP_A=127.0.0.1
 IP_B=127.0.0.1
+API_PORT_A=5000
+API_PORT_B=5001
 
 echo "==== Chain A ===="
 echo "...Minting"
@@ -24,7 +26,7 @@ echo "Press any key to proceed"
 read enter
 
 echo "...Fetching proof"
-python -mion ion proof --lithium-port $((PORT_A + 10)) --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+python -mion ion proof --lithium-port $API_PORT_A --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
 echo ""
 echo "Press any key to proceed"
 read enter
@@ -43,16 +45,16 @@ echo "Press any key to proceed"
 read enter
 
 echo "...Fetching proof"
-python -mion ion proof --lithium-port $((PORT_B + 10)) --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+python -mion ion proof --lithium-port $API_PORT_B --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
 echo ""
 echo "Press any key to proceed"
 read enter
 
 echo "==== Withdrawing from Chain A ===="
-python -mion ion withdraw --lithium-port $((PORT_B + 10)) --rpc $IP_A:$PORT_A --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+python -mion ion withdraw --lithium-port $API_PORT_B --rpc $IP_A:$PORT_A --account $ACC_B --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
 echo ""
 echo "Press any key to proceed"
 read enter
 
 echo "==== Withdrawing from Chain B ===="
-python -mion ion withdraw --lithium-port $((PORT_A + 10)) --rpc $IP_B:$PORT_B --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
+python -mion ion withdraw --lithium-port $API_PORT_A --rpc $IP_B:$PORT_B --account $ACC_A --lock $LOCK_ADDR --tkn $TOKEN_ADDR --value 5000 --ref stuff
