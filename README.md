@@ -83,6 +83,11 @@ $ npm run deployb
 
 The following tutorial describes how to perform token transfer between two accounts on separate blockchains.
 
+There is an example script that runs through a basic flow from start to finish that is designed to run on the testrpcs.
+```
+$ ./example.sh
+```
+
 This tutorial leverages Ganache and Truffle but could easily be performed on other test networks.
 
 To perform cross-chain payments, the contracts must be deployed on each chain, which for the sake of simplicity the account and contract addresses are assumed to be the same on both chains.
