@@ -10,6 +10,8 @@ Ion consists of 3 core smart contracts:
 
 A tool called Lithium is an event relay used to facilitate to communication between the chains. Lithium forwards `IonLock` deposit events to the opposite chain's `IonLink` as a state update to inform of a party's escrowing of funds.
 
+Check out the [Wiki](https://github.com/clearmatics/ion/wiki) for more detailed explanations.
+
 ## Cross-chain payment
 
 Cross-chain payment flow of two different tokens on their respective blockchains with Alice and Bob as the parties involved is as follows:
