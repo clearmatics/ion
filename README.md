@@ -101,9 +101,9 @@ PORT_A=8545
 
 PORT_B=8546
 
-API_PORT_A=5000
+API_PORT_A=8555
 
-API_PORT_B=5001
+API_PORT_B=8556
 
 It is recommended to use an isolated python environment.
 
