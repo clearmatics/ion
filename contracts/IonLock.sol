@@ -1,26 +1,25 @@
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
 import "./ERC223Compatible.sol";
 import "./IonCompatible.sol";
 
 
-contract IonLock is ERC223ReceivingContract, IonCompatible
-{
+contract IonLock is ERC223ReceivingContract, IonCompatible{
     uint256 m_balance;
 
     ERC223 m_currency;
 
     IonLinkInterface m_ion;
 
-    // Used to prevent double-withdraw
+    // Logs the unique references that have been submitted
     mapping(bytes32 => bool) m_withdraws;
 
     // Keeps reference to latest block that transfer was performed on
     uint256 public LatestBlock;
 
-    function IonLock( ERC223 currency, IonLinkInterface ion )
-        public
-    {
+    constructor( ERC223 currency, IonLinkInterface ion ) public {
         require( address(currency) != 0 );
 
         m_ion = ion;
@@ -40,9 +39,7 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
     * @param _value Amount of tokens
     * @param _data Arbitrary data, to be used as the payment reference
     */
-    function tokenFallback(address _from, uint _value, bytes _data)
-        public
-    {
+    function tokenFallback(address _from, uint _value, bytes _data) public {
         require( msg.sender == address(m_currency) );
 
         require( _value > 0 );
@@ -53,10 +50,9 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
 
         bytes32 ref = keccak256(_data);
 
-        IonMint( _value, ref );
+        emit IonMint( _value, ref );
 
-        /* IonTransfer( _from, address(this), _value, ref ); */
-        IonTransfer( _from, address(this), _value, ref, _data );
+        emit IonTransfer( _from, address(this), _value, ref, _data );
 
         LatestBlock = block.number;
     }
@@ -71,11 +67,10 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
     * @param _block_id IonLink block ID
     * @param _proof Merkle proof
     */
-    function Withdraw( uint256 _value, bytes32 _ref, uint256 _block_id, uint256[] _proof )
-        public
-    {
+    function Withdraw( uint256 _value, bytes32 _ref, uint256 _block_id, uint256[] _proof ) public {
         require( false == m_withdraws[_ref] );
 
+        // Definition of leaf structure
         uint256 leaf_hash = uint256(keccak256(msg.sender, m_currency, address(this), _value, _ref));
 
         require( m_ion.Verify(_block_id, leaf_hash, _proof) );
@@ -88,6 +83,6 @@ contract IonLock is ERC223ReceivingContract, IonCompatible
 
         m_currency.transfer(msg.sender, _value);
 
-        IonWithdraw(msg.sender, m_currency, _value, _ref);
+        emit IonWithdraw(msg.sender, m_currency, _value, _ref);
     }
 }

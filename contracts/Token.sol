@@ -1,3 +1,5 @@
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
 import "./ERC223Compatible.sol";
@@ -6,33 +8,26 @@ import './SafeMath.sol';
 /**
  * @title Reference implementation of the ERC223 standard token.
  */
-contract Token is ERC223
-{
+contract Token is ERC223 {
     using SafeMath for uint256;
 
     mapping(address => uint256) balances; // List of user balances.
 
     event AccountTransfer();
 
-    function Token ()
-        public
-    {
+    constructor() public {
         totalSupply = 0;
     }
 
 
-    function mint(uint256 _value)
-        public
-    {
+    function mint(uint256 _value) public {
         totalSupply = totalSupply.add(_value);
 
         balances[msg.sender] = balances[msg.sender].add(_value);
     }
 
 
-    function burn(uint256 _value)
-        public
-    {
+    function burn(uint256 _value) public {
         balances[msg.sender] = balances[msg.sender].sub(_value);
 
         totalSupply = totalSupply.sub(_value);
@@ -57,9 +52,7 @@ contract Token is ERC223
      * @param _value Amount of tokens that will be transferred.
      * @param _data  Transaction metadata.
      */
-    function transfer(address _to, uint256 _value, bytes _data)
-        public
-    {
+    function transfer(address _to, uint256 _value, bytes _data) public {
         balances[msg.sender] = balances[msg.sender].sub(_value);
         balances[_to] = balances[_to].add(_value);
 
@@ -76,10 +69,10 @@ contract Token is ERC223
             ERC223ReceivingContract receiver = ERC223ReceivingContract(_to);
             receiver.tokenFallback(msg.sender, _value, _data);
         } else {
-            AccountTransfer();
+            emit AccountTransfer();
         }
 
-        Transfer(msg.sender, _to, _value, _data);
+        emit Transfer(msg.sender, _to, _value, _data);
     }
 
 
@@ -92,9 +85,7 @@ contract Token is ERC223
      * @param _to    Receiver address.
      * @param _value Amount of tokens that will be transferred.
      */
-    function transfer(address _to, uint256 _value)
-        public
-    {
+    function transfer(address _to, uint256 _value) public {
         bytes memory empty;
         return transfer(_to, _value, empty);
     }
@@ -106,9 +97,7 @@ contract Token is ERC223
      * @param _owner   The address whose balance will be returned.
      * @return balance Balance of the `_owner`.
      */
-    function balanceOf(address _owner)
-        public view returns (uint256)
-    {
+    function balanceOf(address _owner) public view returns (uint256) {
         return balances[_owner];
     }
 }

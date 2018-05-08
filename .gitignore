@@ -3,6 +3,7 @@
 /chaindata
 /node_modules
 /coverage
+/.idea
 coverage.json
 *.pyc
 docs/deps-files.dot

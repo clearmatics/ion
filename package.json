@@ -7,7 +7,10 @@
   "author": "opensource@clearmatics.com",
   "license": "LGPL-3.0+",
   "dependencies": {
-    "babel-preset-node6": "^11.0.0"
+    "babel-preset-node6": "^11.0.0",
+    "solc": "^0.4.23",
+    "solhint": "^1.1.10",
+    "solidity-coverage": "^0.5.0 "
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
@@ -22,7 +25,7 @@
     "ganache-cli": "^6.0.0",
     "json-bigint-string": "^1.0.0",
     "solidity-coverage": "^0.4.0",
-    "truffle": "^4.0.0",
+    "truffle": "^4.1.7",
     "web3-eth-abi": "^1.0.0-beta.33",
     "web3-utils": "^1.0.0-beta.33"
   },
@@ -30,10 +33,12 @@
     "testrpc": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 0 --network-id 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "testrpca": "ganache-cli --port 8545 --gasLimit 0xFFFFFFF --gasPrice 0 --networkId 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "testrpcb": "ganache-cli --port 8546 --gasLimit 0xFFFFFFF --gasPrice 0 --networkId 5678 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
-    "testrpc1": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 0 --network-id 12345 --port 8546 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "compile": "truffle compile",
     "deploy": "truffle deploy",
+    "deploya": "truffle deploy --network testrpca",
+    "deployb": "truffle deploy --network testrpcb",
     "test": "truffle test",
-    "coverage": "solidity-coverage"
+    "coverage": "solidity-coverage",
+    "lint": "solhint contracts/**/*.sol"
   }
 }

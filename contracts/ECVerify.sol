@@ -1,3 +1,5 @@
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
 //
@@ -23,7 +25,11 @@ pragma solidity ^0.4.18;
 
 library ECVerify {
     // Duplicate Solidity's ecrecover, but catching the CALL return value
-    function safer_ecrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) constant internal returns (address) {
+    function safer_ecrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s)
+        constant
+        internal
+        returns (address)
+    {
         // We do our own memory management here. Solidity uses memory offset
         // 0x40 to store the current end of memory. We write past it (as
         // writes are memory extensions), but don't update the offset so

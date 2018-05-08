@@ -1,3 +1,6 @@
+## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+## SPDX-License-Identifier: LGPL-3.0+
+
 #!/usr/bin/env python
 '''
 integration tests
@@ -6,20 +9,16 @@ This set of tests should test the locking of funds on chain A and the subsequent
 on chain B
 '''
 
-import click
 import unittest
 import socket
-import subprocess
-import binascii
 
-from click.testing import CliRunner
-from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian
+from ethereum.utils import sha3
 
 from ion.args import arg_bytes20, arg_ethrpc
 from ion.merkle import merkle_tree, merkle_hash, merkle_path, merkle_proof
 from ion.utils import u256be
 
-from ion.lithium.etheventrelay import iter_blocks, lithium_process_block_group, lithium_submit
+from ion.lithium.lithium import iter_blocks, lithium_process_block_group, lithium_submit
 
 # Definition of the fundamental variables required
 chainA  = "127.0.0.1:8545"
@@ -98,7 +97,7 @@ class IntegrationTest(unittest.TestCase):
             blocks.append(i)
         obh = bh
 
-        # Show the blocks to work on and then rename just to keep convention from etheventrelay.py
+        # Show the blocks to work on and then rename just to keep convention from lithium.py
         block_group = blocks
         self.assertEqual(len(blocks), 2)
 
@@ -149,7 +148,7 @@ class IntegrationTest(unittest.TestCase):
             blocks.append(i)
         obh = bh
 
-        # Show the blocks to work on and then rename just to keep convention from etheventrelay.py
+        # Show the blocks to work on and then rename just to keep convention from lithium.py
         block_group = blocks
         self.assertEqual(len(blocks), 2)
 

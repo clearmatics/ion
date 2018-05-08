@@ -1,3 +1,10 @@
+## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+## SPDX-License-Identifier: LGPL-3.0+
+
+#!/usr/bin/env python
+"""
+Crypto: Has a load of useful crypto stuff
+"""
 from collections import namedtuple
 
 from ethereum.utils import big_endian_to_int, encode_int32
@@ -5,7 +12,7 @@ from rlp.utils_py2 import ascii_chr
 
 from sha3 import keccak_256
 
-from .utils import Marshalled, u256be, safe_ord
+from utils import Marshalled, u256be, safe_ord
 
 try:
     import coincurve
