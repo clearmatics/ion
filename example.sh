@@ -9,8 +9,8 @@ PORT_A=8545
 PORT_B=8546
 IP_A=127.0.0.1
 IP_B=127.0.0.1
-API_PORT_A=5000
-API_PORT_B=5001
+API_PORT_A=8555
+API_PORT_B=8556
 
 echo "==== Chain A ===="
 echo "...Minting"
