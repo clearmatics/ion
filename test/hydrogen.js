@@ -1,14 +1,9 @@
-// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
-// SPDX-License-Identifier: LGPL-3.0+
-
 const crypto = require('crypto');
 const web3 = require('web3');
 const Web3Utils = require('web3-utils');
-const merkle = require('./helpers/merkle.js')
 
 const Hydrogen = artifacts.require("Hydrogen");
 const Token = artifacts.require("Token");
-const utils = require('./helpers/utils.js')
 
 require('chai')
  .use(require('chai-as-promised'))
