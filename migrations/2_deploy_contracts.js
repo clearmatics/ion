@@ -1,14 +1,10 @@
-const IonLink = artifacts.require("IonLink");
-const IonLock = artifacts.require("IonLock");
+const Hydrogen = artifacts.require("Hydrogen");
 const Token = artifacts.require("Token");
 
 module.exports = async (deployer) => {
   try {
-    deployer.deploy(IonLink, 0)
-      .then(() => IonLink.deployed)
-      .then(() => deployer.deploy(Token))
-      .then(() => Token.deployed)
-      .then(() => deployer.deploy(IonLock, Token.address, IonLink.address))
+    deployer.deploy(Hydrogen)
+    deployer.deploy(Token)
 
   } catch(err) {
     console.log('ERROR on deploy:',err);
