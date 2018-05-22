@@ -11,24 +11,24 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
     ERC223 internal currency;
 
     /*
-        InitiateTradeAgreement
-            Creates a new trade agreement between a sender and recipient of a token with withdraw and refund hash
-            Hashes are pre-agreed between the parties. The first depositor must choose the refund reference and the
-            second depositor must choose the withdraw reference. Both parties then must share the hash of their chosen
-            reference and construct trade agreements on each chain with this function.
+    InitiateTradeAgreement
+        Creates a new trade agreement between a sender and recipient of a token with withdraw and refund hash
+        Hashes are pre-agreed between the parties. The first depositor must choose the refund reference and the
+        second depositor must choose the withdraw reference. Both parties then must share the hash of their chosen
+        reference and construct trade agreements on each chain with this function.
 
-            Arguments:
-            * _token: ERC223 Token address being traded
-            * _recipient: address of recipient of trade
-            * _value: amount of token being traded
-            * _withdrawHash: keccak256 hash of withdraw reference
-            * _refundHash: keccak256 hash of refund reference
+    Arguments:
+        _token: ERC223 Token address being traded
+        _recipient: address of recipient of trade
+        _value: amount of token being traded
+        _withdrawHash: keccak256 hash of withdraw reference
+        _refundHash: keccak256 hash of refund reference
 
-            Returns:
-            * trade_id: keccak256 hash of the sender, recipient, token address, value, withdraw hash and refund hash
+    Returns:
+        trade_id: keccak256 hash of the sender, recipient, token address, value, withdraw hash and refund hash
 
-            Events:
-            * OnTradeInitiated
+    Events:
+        OnTradeInitiated
     */
     function InitiateTradeAgreement(
         address _token,
@@ -59,17 +59,17 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
     }
 
     /*
-        tokenFallback
-            Fallback function when ERC223 tokens are transferred to this contract. Reverts the payment if a valid trade
-            agreement was not found.
+    tokenFallback
+        Fallback function when ERC223 tokens are transferred to this contract. Reverts the payment if a valid trade
+        agreement was not found.
 
-            Arguments:
-            * _from: address of sender of token
-            * _value: amount of token sent
-            * _data: byte array that should contain the trade_id in the first 32 bytes
+    Arguments:
+        _from: address of sender of token
+        _value: amount of token sent
+        _data: byte array that should contain the trade_id in the first 32 bytes
 
-            Events:
-            * OnDeposit
+    Events:
+        OnDeposit
     */
     function tokenFallback(address _from, uint _value, bytes _data) public {
         require( _data.length == 32, "Data length not 32" );
@@ -90,16 +90,16 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
     }
 
     /*
-        Withdraw
-            Given a valid trade_id and withdraw reference, will verify the trade agreement and credit the caller with
-            funds if they are the designated recipient of the funds under the trade agreement.
+    Withdraw
+        Given a valid trade_id and withdraw reference, will verify the trade agreement and credit the caller with
+        funds if they are the designated recipient of the funds under the trade agreement.
 
-            Arguments:
-            * _trade_id: The trade agreement hash identifying the trade
-            * _withdrawRef: The pre-image of the withdraw hash used to form the trade agreement
+    Arguments:
+        _trade_id: The trade agreement hash identifying the trade
+        _withdrawRef: The pre-image of the withdraw hash used to form the trade agreement
 
-            Events:
-            * OnWithdraw
+    Events:
+        OnWithdraw
     */
     function Withdraw(bytes32 _tradeId, bytes _withdrawRef) public {
         TradeAgreement storage trade = m_trades[_tradeId];
@@ -116,16 +116,16 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
     }
 
     /*
-        Refund
-            Given a valid trade_id and refund reference, will verify the trade agreement and return the funds to the caller
-            if they are the original depositor of the funds under the trade agreement.
+    Refund
+        Given a valid trade_id and refund reference, will verify the trade agreement and return the funds to the caller
+        if they are the original depositor of the funds under the trade agreement.
 
-            Arguments:
-            * _trade_id: The trade agreement hash identifying the trade
-            * _refundRef: The pre-image of the refund hash used to form the trade agreement
+    Arguments:
+        _trade_id: The trade agreement hash identifying the trade
+        _refundRef: The pre-image of the refund hash used to form the trade agreement
 
-            Events:
-            * OnRefund
+    Events:
+        OnRefund
     */
     function Refund(bytes32 _tradeId, bytes _refundRef) public {
         TradeAgreement storage trade = m_trades[_tradeId];
