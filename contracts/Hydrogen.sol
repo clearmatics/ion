@@ -26,13 +26,14 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
         _refundHash: keccak256 hash of refund reference
 
     Returns:
-        trade_id: keccak256 hash of the sender, recipient, token address, value, withdraw hash and refund hash
+        bytes32: keccak256 hash of the sender, recipient, token address, value, withdraw hash and refund hash
 
     Events:
         OnTradeInitiated
     */
     function InitiateTradeAgreement(
-        address _token,
+        address _initiatorToken,
+        address _counterpartyToken,
         address _initiator,
         address _counterparty,
         uint256 _value,
@@ -41,20 +42,22 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
         public returns (bytes32)
     {
         require( _value > 0 );
-        bytes32 tradeId = keccak256(_initiator, _counterparty, _token, _value, _withdrawHash, _refundHash);
+        bytes32 tradeId = keccak256(_initiator, _counterparty, _initiatorToken, _counterpartyToken, _value, _withdrawHash, _refundHash);
 
         TradeAgreement storage trade = m_trades[tradeId];
         require( trade.value == 0, "Identical trade agreement already exists" );
         trade.initiator = _initiator;
         trade.counterparty = _counterparty;
-        trade.token = _token;
+        trade.initiatorToken = _initiatorToken;
+        trade.counterpartyToken = _counterpartyToken;
         trade.value = _value;
         trade.withdrawHash = _withdrawHash;
         trade.refundHash = _refundHash;
+        trade.owner = msg.sender;
 
         if ( msg.sender == _initiator ) {
             trade.fundsUnlocked = false;
-        } else if ( msg.sender = _counterparty ) {
+        } else if ( msg.sender == _counterparty ) {
             trade.fundsUnlocked = true;
         } else {
             revert( "Trade initiated by non-participant" );
@@ -84,38 +87,61 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
     function tokenFallback(address _from, uint _value, bytes _data) public {
         require( _data.length == 32, "Data length not 32" );
 
-        bytes32 trade_id = bytesToBytes32(_data, 0);
+        bytes32 tradeId = bytesToBytes32(_data, 0);
 
-        TradeAgreement storage trade = m_trades[trade_id];
+        TradeAgreement storage trade = m_trades[tradeId];
 
         //TODO: Return the funds to sender if trade agreement is not found
-        require( trade.token == msg.sender, "Trade sender not matched" );
         require( trade.value == _value, "Trade value not matched" );
+        require( _from == trade.owner, "Sender of funds is not the trade initiator" );
 
-        m_trade_deposited[trade_id] = true;
+        if (_from == trade.initiator) {
+            require( trade.initiatorToken == msg.sender, "Token not matched" );
+        } else if (_from == trade.counterparty) {
+            require( trade.counterpartyToken == msg.sender, "Token not matched" );
+        } else {
+            revert("Sender of funds is not a participant of trade");
+        }
 
-        emit OnDeposit(trade_id, _from);
+        m_trade_deposited[tradeId] = true;
+
+        emit OnDeposit(tradeId, _from);
     }
 
     function getTradesWithAddress(address _owner) public view returns (bytes32[]) {
         return m_trades_initiated[_owner];
     }
 
+    function getFundsLockedForTrade(bytes32 _tradeId) public view returns (bool) {
+        TradeAgreement storage trade = m_trades[_tradeId];
+        return trade.fundsUnlocked;
+    }
+
     function UnlockFunds(bytes32 _tradeId) public {
         TradeAgreement storage trade = m_trades[_tradeId];
         require( trade.value > 0, "Trade agreement does not exist" );
-        require( msg.sender == trade.initiator );
+        require( trade.initiator == trade.owner );
+        require( msg.sender == trade.owner );
 
         trade.fundsUnlocked = true;
 
-        emit OnFundsUnlocked(_tradeId);
+        emit OnFundsUnlocked(_tradeId, trade.fundsUnlocked);
     }
 
-    function CheckCounterpartyDeposit(bytes32 _tradeId, address _counterparty) returns (bool) {
+    /*
+    CheckDeposit
+        Given a valid trade id, will check whether or not a trade agreement under the provided trade id has been
+        deposited to and returns a boolean.
+
+    Arguments:
+        _tradeId: The trade agreement hash identifying the trade
+
+    Returns:
+        bool: Returns a boolean of whether the trade agreement has been deposited to
+    */
+    function CheckDeposit(bytes32 _tradeId) returns (bool) {
         TradeAgreement storage trade = m_trades[_tradeId];
         require( trade.value > 0, "Trade agreement does not exist" );
-        require( msg.sender == trade.initiator, "Caller is not Initiator" );
-        require( _counterparty == trade.counterparty, "Supplied counterparty address is not counterparty in trade agreement" );
 
         return m_trade_deposited[_tradeId];
     }
@@ -126,7 +152,7 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
         funds if they are the designated recipient of the funds under the trade agreement.
 
     Arguments:
-        _trade_id: The trade agreement hash identifying the trade
+        _tradeId: The trade agreement hash identifying the trade
         _withdrawRef: The pre-image of the withdraw hash used to form the trade agreement
 
     Events:
@@ -135,16 +161,28 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
     function Withdraw(bytes32 _tradeId, bytes _withdrawRef) public {
         TradeAgreement storage trade = m_trades[_tradeId];
         require( trade.value > 0, "Trade agreement does not exist" );
-        require( msg.sender == trade.recipient );
-        require( trade.fundsUnlocked );
+        require( trade.owner != msg.sender, "Owner of funds cannot withdraw them");
+        require( trade.fundsUnlocked , "Funds are locked" );
+
+        address recipient;
+        address tokenAddress;
+        if ( msg.sender == trade.initiator ) {
+            recipient = trade.initiator;
+            tokenAddress = trade.counterpartyToken;
+        } else if ( msg.sender == trade.counterparty ) {
+            recipient = trade.counterparty;
+            tokenAddress = trade.initiatorToken;
+        } else {
+            revert("Caller is not part of trade agreement");
+        }
 
         bytes32 withdrawHash = keccak256(_withdrawRef);
         require( trade.withdrawHash == withdrawHash, "Withdraw reference provided is incorrect" );
 
-        ERC223 token = ERC223(trade.token);
-        token.transfer(trade.recipient, trade.value);
+        ERC223 token = ERC223(tokenAddress);
+        token.transfer(recipient, trade.value);
 
-        emit OnWithdraw(_tradeId, msg.sender, _withdrawRef);
+        emit OnWithdraw(_tradeId, recipient, _withdrawRef);
     }
 
     /*
@@ -153,7 +191,7 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
         if they are the original depositor of the funds under the trade agreement.
 
     Arguments:
-        _trade_id: The trade agreement hash identifying the trade
+        _tradeId: The trade agreement hash identifying the trade
         _refundRef: The pre-image of the refund hash used to form the trade agreement
 
     Events:
@@ -167,7 +205,16 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
         bytes32 refundHash = keccak256(_refundRef);
         require( trade.refundHash == refundHash, "Refund reference provided is incorrect" );
 
-        ERC223 token = ERC223(trade.token);
+        address tokenAddress;
+        if ( msg.sender == trade.initiator ) {
+            tokenAddress = trade.initiatorToken;
+        } else if ( msg.sender == trade.counterparty ) {
+            tokenAddress = trade.counterpartyToken;
+        } else {
+            revert("Caller is not a participant of trade agreement");
+        }
+
+        ERC223 token = ERC223(tokenAddress);
         token.transfer(trade.owner, trade.value);
 
         emit OnRefund(_tradeId, msg.sender, _refundRef);
@@ -198,6 +245,11 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
             out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
         }
         return out;
+    }
+
+    // Takes a byte array and prunes the first byte into a bytes1 variable
+    function bytesToBytes1(bytes b, uint offset) private pure returns (bytes1) {
+        return bytes1(b[offset] & 0xFF);
     }
 
 }

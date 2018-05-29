@@ -28,7 +28,7 @@
     "solidity-coverage": "^0.4.0",
     "truffle": "^4.1.8",
     "web3-eth-abi": "^1.0.0-beta.33",
-    "web3-utils": "^1.0.0-beta.33"
+    "web3-utils": "^1.0.0-beta.34"
   },
   "scripts": {
     "testrpc": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 0 --network-id 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
