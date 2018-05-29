@@ -7,6 +7,7 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
 
     mapping (bytes32 => TradeAgreement) internal m_trades;
     mapping (address => bytes32[]) internal m_trades_initiated;
+    mapping (bytes32 => bool) internal m_trade_deposited;
 
     ERC223 internal currency;
 
@@ -32,23 +33,32 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
     */
     function InitiateTradeAgreement(
         address _token,
-        address _recipient,
+        address _initiator,
+        address _counterparty,
         uint256 _value,
         bytes32 _withdrawHash,
         bytes32 _refundHash)
         public returns (bytes32)
     {
         require( _value > 0 );
-        bytes32 tradeId = keccak256(msg.sender, _recipient, _token, _value, _withdrawHash, _refundHash);
+        bytes32 tradeId = keccak256(_initiator, _counterparty, _token, _value, _withdrawHash, _refundHash);
 
         TradeAgreement storage trade = m_trades[tradeId];
         require( trade.value == 0, "Identical trade agreement already exists" );
-        trade.owner = msg.sender;
-        trade.recipient = _recipient;
+        trade.initiator = _initiator;
+        trade.counterparty = _counterparty;
         trade.token = _token;
         trade.value = _value;
         trade.withdrawHash = _withdrawHash;
         trade.refundHash = _refundHash;
+
+        if ( msg.sender == _initiator ) {
+            trade.fundsUnlocked = false;
+        } else if ( msg.sender = _counterparty ) {
+            trade.fundsUnlocked = true;
+        } else {
+            revert( "Trade initiated by non-participant" );
+        }
 
         bytes32[] storage tradesInitiatedBySender = m_trades_initiated[msg.sender];
         tradesInitiatedBySender.push(tradeId);
@@ -82,11 +92,32 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
         require( trade.token == msg.sender, "Trade sender not matched" );
         require( trade.value == _value, "Trade value not matched" );
 
+        m_trade_deposited[trade_id] = true;
+
         emit OnDeposit(trade_id, _from);
     }
 
     function getTradesWithAddress(address _owner) public view returns (bytes32[]) {
         return m_trades_initiated[_owner];
+    }
+
+    function UnlockFunds(bytes32 _tradeId) public {
+        TradeAgreement storage trade = m_trades[_tradeId];
+        require( trade.value > 0, "Trade agreement does not exist" );
+        require( msg.sender == trade.initiator );
+
+        trade.fundsUnlocked = true;
+
+        emit OnFundsUnlocked(_tradeId);
+    }
+
+    function CheckCounterpartyDeposit(bytes32 _tradeId, address _counterparty) returns (bool) {
+        TradeAgreement storage trade = m_trades[_tradeId];
+        require( trade.value > 0, "Trade agreement does not exist" );
+        require( msg.sender == trade.initiator, "Caller is not Initiator" );
+        require( _counterparty == trade.counterparty, "Supplied counterparty address is not counterparty in trade agreement" );
+
+        return m_trade_deposited[_tradeId];
     }
 
     /*
@@ -105,6 +136,7 @@ contract Hydrogen is Ion, ERC223ReceivingContract {
         TradeAgreement storage trade = m_trades[_tradeId];
         require( trade.value > 0, "Trade agreement does not exist" );
         require( msg.sender == trade.recipient );
+        require( trade.fundsUnlocked );
 
         bytes32 withdrawHash = keccak256(_withdrawRef);
         require( trade.withdrawHash == withdrawHash, "Withdraw reference provided is incorrect" );
