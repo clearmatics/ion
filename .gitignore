@@ -11,3 +11,7 @@ docs/deps-modules.dot
 *.log
 *.pdf
 *.egg-info/
+lextab.py
+yacctab.py
+*.swp
+*.swo

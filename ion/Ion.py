@@ -12,7 +12,7 @@ import simplejson
 from ion.merkle import merkle_hash
 from ethereum.utils import keccak
 from .ethrpc import BadStatusCodeError, BadJsonError, BadResponseError, ConnectionError
-from .args import arg_ethrpc, arg_bytes20, arg_lithium_api
+from .args import arg_ethrpc, arg_bytes20 #, arg_lithium_api
 PRIMITIVE = (int, long, float, str, bool)
 
 def rpc_call_with_exceptions(function, *args):

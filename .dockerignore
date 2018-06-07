@@ -1,0 +1,12 @@
+node_modules
+*.egg-info
+build
+dist
+chaindata
+contracts
+docs
+migrations
+test
+*.log
+*.swp
+*.swo

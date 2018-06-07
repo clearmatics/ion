@@ -1,36 +1,111 @@
-SOLC=solc --optimize
-PYTHON=python
-GANACHE=./node_modules/.bin/ganache-cli
-TRUFFLE=./node_modules/.bin/truffle
+ROOT_DIR := $(shell dirname $(realpath $(MAKEFILE_LIST)))
 
-build:
-	mkdir -p build
-	npm install
-	$(PYTHON) -mpip install -r requirements.txt
+SOLC=$(ROOT_DIR)/node_modules/.bin/solcjs --optimize
+PYTHON=python
+NPM=npm
+GANACHE=$(ROOT_DIR)/node_modules/.bin/ganache-cli
+TRUFFLE=$(ROOT_DIR)/node_modules/.bin/truffle
+
+DOCKER_TAG_NAME=clearmatics/ion:latest
+
+UTIL_IMPORTS=$(ROOT_DIR)/utils/extract-imports.sh
+
+CONTRACTS=IonLock IonLink ERC223 Token
+CONTRACTS_BIN=$(addprefix build/,$(addsuffix .bin,$(CONTRACTS)))
+CONTRACTS_ABI=$(addprefix abi/,$(addsuffix .abi,$(CONTRACTS)))
+
+all: contracts python-pyflakes test truffle-test pylint
+
+clean:
+	rm -rf build chaindata dist
+	find . -name '*.pyc' -exec rm '{}' ';'
+	rm -rf *.pyc *.pdf *.egg-info
+
+
+#######################################################################
+#
+# Packaging and distribution
 
 docker-build: dist/ion
-	docker build --rm=true -t clearmatics/ion:latest -f Dockerfile.alpine-glibc .
+	docker build --rm=true -t $(DOCKER_TAG_NAME) -f Dockerfile.alpine-glibc .
 
 docker-run:
-	docker run --rm=true -ti clearmatics/ion:latest shell
+	docker run --rm=true -ti $(DOCKER_TAG_NAME) --help
 
-python-lint:
-	$(PYTHON) -mpylint ion/
+bdist:
+	$(PYTHON) setup.py bdist_egg --exclude-source-files
+	$(PYTHON) setup.py bdist_wheel --universal
+
+dist:
+	mkdir -p $@
+
+dist/ion: dist
+	$(PYTHON) -mPyInstaller ion.spec
+
+
+#######################################################################
+#
+# Linting and anti-retardery measures
+
+python-pyflakes:
+	$(PYTHON) -mpyflakes ion
+
+python-pylint:
+	$(PYTHON) -mpylint ion
+
+python-lint: python-pyflakes python-pylint
 
 solidity-lint:
-	npm run lint
+	$(NPM) run lint
 
-requirements: requirements.txt
-	$(PYTHON) -mpip install -r requirements.txt
+
+#######################################################################
+#
+# Install dependencies / requirements etc. for Python and NodeJS
+#
+
+nodejs-requirements:
+	$(NPM) install
+
+python-requirements: requirements.txt
+	$(PYTHON) -mpip install --user -r $<
+
+python-dev-requirements: requirements-dev.txt
+	$(PYTHON) -mpip install --user -r $<
+
+requirements-dev: nodejs-requirements python-dev-requirements
+
+requirements: python-requirements
+
+fedora-dev:
+	# use `nvm` to manage nodejs versions, rather than relying on system node
+	curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+	nvm install --lts
+
+
+#######################################################################
+#
+# Builds Solidity contracts and ABI files
+#
+
+contracts: $(CONTRACTS_BIN) $(CONTRACTS_ABI)
 
 abi:
 	mkdir -p abi
 
-abi/%.abi: build/%.abi abi
+abi/%.abi: build/%.abi abi contracts/%.sol
 	cp $< $@
 
-build/%.bin: contracts/%.sol
-	$(SOLC) -o build --asm --bin --overwrite --abi $<
+build:
+	mkdir -p build
+
+build/%.abi: build/%.bin
+
+build/%.bin: contracts/%.sol build
+	$(eval contract_name := $(shell echo $(shell basename $<) | cut -f 1 -d .))
+	cd $(shell dirname $<) && $(SOLC) -o ../build --asm --bin --overwrite --abi $(shell basename $<) $(shell $(UTIL_IMPORTS) $<)
+	cp build/$(contract_name)_sol_$(contract_name).bin build/$(contract_name).bin
+	cp build/$(contract_name)_sol_$(contract_name).abi build/$(contract_name).abi
 
 build/%.combined.bin: build/%.combined.sol
 	$(SOLC) -o build --asm --bin --overwrite --abi $<
@@ -38,16 +113,17 @@ build/%.combined.bin: build/%.combined.sol
 build/%.combined.sol: contracts/%.sol build
 	cat $< | sed -e 's/\bimport\(\b.*\);/#include \1/g' | cpp -Icontracts | sed -e 's/^#.*$$//g' > $@
 
-clean:
-	rm -rf build chaindata dist
-	find . -name '*.pyc' -exec rm '{}' ';'
-	rm -rf *.pyc *.pdf *.egg-info
+
+#######################################################################
+#
+# Testing and unit test harnesses
+#
 
 testrpc:
-	npm run testrpca
+	$(NPM) run testrpca
 
 test-js:
-	npm run test
+	$(NPM) run test
 
 test-unit:
 	$(PYTHON) -m unittest discover test/
