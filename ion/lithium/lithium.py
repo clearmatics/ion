@@ -15,10 +15,10 @@ import string
 import click
 from ethereum.utils import scan_bin, sha3, keccak
 
-from ion.args import arg_bytes20, arg_ethrpc
-from ion.merkle import merkle_tree, merkle_hash
+from ..args import arg_bytes20, arg_ethrpc
+from ..merkle import merkle_tree, merkle_hash
 
-from ion.lithium.api import app
+from .api import app
 
 TRANSFER_SIGNATURE = keccak.new(digest_bits=256) \
     .update('IonTransfer(address,address,uint256,bytes32,bytes)') \
