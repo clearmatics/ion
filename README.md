@@ -38,10 +38,10 @@ Currently notable flaws in the design:
 
 ## Install and Test
 
-Install all the dependencies which need Node v9.0.0, NPM, and Python 2.7. Furthermore it is recommended to use a isolated Python environment with a tool such as `virtualenv`.
+Install all the dependencies which need Node v8+, NPM, and Python 2.7. Furthermore it is recommended to use a isolated Python environment with a tool such as `virtualenv`, Vagrant or Docker.
 
 ```
-$ make build
+$ make
 ```
 
 ### Testing

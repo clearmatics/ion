@@ -1,6 +1,6 @@
 ROOT_DIR := $(shell dirname $(realpath $(MAKEFILE_LIST)))
 
-SOLC=$(ROOT_DIR)/node_modules/.bin/solcjs --optimize
+SOLC=$(ROOT_DIR)/node_modules/.bin/solcjs
 PYTHON=python
 NPM=npm
 GANACHE=$(ROOT_DIR)/node_modules/.bin/ganache-cli
@@ -14,7 +14,13 @@ CONTRACTS=IonLock IonLink ERC223 Token
 CONTRACTS_BIN=$(addprefix build/,$(addsuffix .bin,$(CONTRACTS)))
 CONTRACTS_ABI=$(addprefix abi/,$(addsuffix .abi,$(CONTRACTS)))
 
-all: contracts python-pyflakes test truffle-test pylint
+all: check-prereqs contracts python-pyflakes test python-pylint
+
+check-prereqs:
+	@if [ ! -f "$(SOLC)" ]; then \
+		echo -e "Dependencies not found!\nInstall prerequisites first! See README.md"; \
+		false; \
+	fi
 
 clean:
 	rm -rf build chaindata dist
@@ -103,7 +109,7 @@ build/%.abi: build/%.bin
 
 build/%.bin: contracts/%.sol build
 	$(eval contract_name := $(shell echo $(shell basename $<) | cut -f 1 -d .))
-	cd $(shell dirname $<) && $(SOLC) -o ../build --asm --bin --overwrite --abi $(shell basename $<) $(shell $(UTIL_IMPORTS) $<)
+	cd $(shell dirname $<) && $(SOLC) --optimize -o ../build --asm --bin --overwrite --abi $(shell basename $<) $(shell $(UTIL_IMPORTS) $<)
 	cp build/$(contract_name)_sol_$(contract_name).bin build/$(contract_name).bin
 	cp build/$(contract_name)_sol_$(contract_name).abi build/$(contract_name).abi
 
