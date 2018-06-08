@@ -10,7 +10,7 @@ DOCKER_TAG_NAME=clearmatics/ion:latest
 
 UTIL_IMPORTS=$(ROOT_DIR)/utils/extract-imports.sh
 
-CONTRACTS=IonLock IonLink ERC223 Token
+CONTRACTS=IonLock IonLink ERC223 Token HTLC
 CONTRACTS_BIN=$(addprefix build/,$(addsuffix .bin,$(CONTRACTS)))
 CONTRACTS_ABI=$(addprefix abi/,$(addsuffix .abi,$(CONTRACTS)))
 
