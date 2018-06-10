@@ -51,24 +51,27 @@ contract HTLC
   }
 
 
-  function Deposit ( address receiver, bytes32 image, uint256 expiry )
+  function Deposit ( address in_receiver, bytes32 in_image, uint256 in_expiry )
     public payable
   {
-    require( exchanges[image].state == ExchangeState.Invalid, "Duplicate exchange" );
+    require( exchanges[in_image].state == ExchangeState.Invalid,
+             "Duplicate exchange" );
 
-    require( receiver != address(0x0), "Invalid receiver address" );
+    require( in_receiver != address(0x0),
+             "Invalid receiver address" );
 
-    require( expiry > block.timestamp, "Expiry not in future" );
+    require( in_expiry > block.timestamp,
+             "Expiry not in future" );
 
-    exchanges[image] = Exchange(
+    exchanges[in_image] = Exchange(
       msg.sender,
-      receiver,
+      in_receiver,
       msg.value,
-      expiry,
+      in_expiry,
       ExchangeState.Deposited
     );
 
-    emit OnDeposit( receiver, image, expiry );
+    emit OnDeposit( in_receiver, in_image, in_expiry );
   }
 
 
@@ -77,13 +80,17 @@ contract HTLC
   {
     Exchange storage exch = exchanges[in_image];
 
-    require( exch.state == ExchangeState.Deposited, "Unknown exchange, or invalid state" );
+    require( exch.state == ExchangeState.Deposited,
+             "Unknown exchange, or invalid state" );
 
-    require( exch.receiver == msg.sender, "Only receiver can Withdraw" );
+    require( exch.receiver == msg.sender,
+             "Only receiver can Withdraw" );
 
-    require( block.timestamp <= exch.expiry, "Exchange expired" );
+    require( block.timestamp <= exch.expiry,
+              "Exchange expired" );
 
-    require( sha256(abi.encodePacked(in_preimage)) == in_image, "Bad preimage" );
+    require( sha256(abi.encodePacked(in_preimage)) == in_image,
+             "Bad preimage" );
 
     exch.state = ExchangeState.Withdrawn;
 
@@ -98,11 +105,14 @@ contract HTLC
   {
     Exchange storage exch = exchanges[in_image];
 
-    require( exch.sender == msg.sender, "Only depositor can refund" );
+    require( exch.sender == msg.sender,
+             "Only depositor can refund" );
 
-    require( block.timestamp > exch.expiry, "Exchange not expired, cannot refund" );
+    require( block.timestamp > exch.expiry,
+             "Exchange not expired, cannot refund" );
 
-    require( exch.state == ExchangeState.Deposited, "Unknown exchange, or invalid state" );
+    require( exch.state == ExchangeState.Deposited,
+             "Unknown exchange, or invalid state" );
 
     exch.state = ExchangeState.Refunded;
 

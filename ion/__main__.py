@@ -2,7 +2,7 @@ import click
 
 from .Ion import commands as ion_commands
 from .lithium.lithium import etheventrelay as lithium
-from .htlc import commands as htlc_commands
+from .htlc.cli import commands as htlc_commands
 
 commands = click.Group('commands')
 commands.add_command(ion_commands, "ion")

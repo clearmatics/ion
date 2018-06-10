@@ -3,12 +3,11 @@
 from __future__ import print_function
 import time
 import os
-from os import urandom
 from hashlib import sha256
 
 import click
 
-from .args import arg_ethrpc, arg_bytes20, arg_bytes32
+from ..args import arg_ethrpc, arg_bytes20, arg_bytes32
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -82,3 +81,7 @@ commands = click.Group("htlc", help="Hash-Time-Lock Contract Interface")
 commands.add_command(deposit, "deposit")
 commands.add_command(withdraw, "withdraw")
 commands.add_command(refund, "refund")
+
+
+if __name__ == "__main__":
+	commands.main()
