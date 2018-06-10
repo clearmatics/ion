@@ -41,46 +41,62 @@ def get_random_secret_32():
 	return '0x' + os.urandom(32).encode('hex')
 
 
-@click.command(help="Deposit into Hash-Time-Lock contract")
-@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server")
-@click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Account to transfer from.")
-@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="HTLC contract address")
+#######################################################################
+#
+# Command-line interface to the HTLC contract
+#
+#   $ ion htlc contract [options] sub-command [sub-options]
+#
+# e.g.
+#
+#   $ ion htlc contract --account X --contract Y deposit --receiver Z ...
+#
+
+
+@click.command()
+@click.pass_obj
 @click.option('--receiver', callback=arg_bytes20, metavar="0x...20", required=True, help="Receiver address")
 @click.option('--secret', callback=arg_bytes32, metavar="0x...32", default=get_random_secret_32, help="Secret to be supplied upon withdraw")
 @click.option('--expires', metavar="seconds|unixtime", callback=arg_expiry, type=int, default=get_default_expiry, help="Expiry time, as duration (seconds), or UNIX epoch")
-def deposit(rpc, account, contract, receiver, secret, expires):
+def contract_deposit(contract, receiver, secret, expires):
 	now = int(time.time())
 	print("Expires in", expires - now, "seconds")
-	api = make_htlc_proxy(rpc, contract, account)
+
 	image = sha256(secret).digest()		# the hash pre-image is the 'secret'
-	api.Deposit( receiver, image, expires )
+	contract.Deposit( receiver, image, expires )
 
 
-@click.command(help="Withdraw from Hash-Time-Lock contract")
-@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server")
-@click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Account to withdraw to")
-@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="HTLC contract address")
+@click.command()
+@click.pass_obj
 @click.option('--secret', callback=arg_bytes32, metavar="0x...32", required=True, help="Exchange ID")
-def withdraw(rpc, account, contract, secret):
-	api = make_htlc_proxy(rpc, contract, account)
+def contract_withdraw(contract, secret):
 	image = sha256(secret).digest()		# the hash pre-image is the 'secret'
-	api.Withdraw( image, secret )
+	contract.Withdraw( image, secret )
 
 
-@click.command(help="Refund a Hash-Time-Lock contract")
-@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server")
-@click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Account to withdraw to")
-@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="HTLC contract address")
+@click.command()
+@click.pass_obj
 @click.option('--image', callback=arg_bytes32, metavar="0x...32", required=True, help="Exchange hash image")
-def refund(rpc, account, contract, image):
-	api = make_htlc_proxy(rpc, contract, account)
-	api.Refund( image )
+def contract_refund(contract, image):
+	contract.Refund( image )
 
 
-commands = click.Group("htlc", help="Hash-Time-Lock Contract Interface")
-commands.add_command(deposit, "deposit")
-commands.add_command(withdraw, "withdraw")
-commands.add_command(refund, "refund")
+@click.group('contract', help='Command-line interface to Ethereum HTLC contract')
+@click.pass_context
+@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server")
+@click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Account to transfer from.")
+@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="HTLC contract address")
+def contract(ctx, rpc, account, contract):
+	ctx.obj = make_htlc_proxy(rpc, contract, account)
+
+
+contract.add_command(contract_deposit, "deposit")
+contract.add_command(contract_withdraw, "withdraw")
+contract.add_command(contract_refund, "refund")
+
+
+commands = click.Group("htlc", help="Hash-Time-Lock Atomic Swap")
+commands.add_command(contract, 'contract')
 
 
 if __name__ == "__main__":

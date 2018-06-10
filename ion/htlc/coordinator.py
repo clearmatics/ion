@@ -75,14 +75,22 @@ class CoordinatorBlueprint(Blueprint):
 		self.add_url_rule("/", 'index', self.index)
 		self.add_url_rule("/advertise", 'advertise', self.exch_advertise, methods=['POST'])
 		self.add_url_rule("/<bytes20:exch_id>", 'get', self.exch_get, methods=['GET'])
+		self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>", 'proposal_get', self.exch_proposal_get, methods=['GET'])
 		self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>", 'propose', self.exch_propose, methods=['POST'])
 		self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>/confirm", 'confirm', self.exch_confirm, methods=['POST'])
-		self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>/finish", 'finish', self.exch_finish, methods=['POST'])
+		self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>/release", 'release', self.exch_release, methods=['POST'])
 
 	def _get_exch(self, exch_id):
 		if exch_id not in self._exchanges:
 			return abort(404)
 		return self._exchanges[exch_id]
+
+	def _get_proposal(self, exch_id, secret_hashed):
+		exch = self._get_exch(exch_id)
+		proposal = exch['proposals'].get(secret_hashed)
+		if not proposal:
+			return abort(404)
+		return exch, proposal
 
 	def index(self):
 		"""
@@ -95,11 +103,7 @@ class CoordinatorBlueprint(Blueprint):
 		Advertise a potential exchange, advertiser offers N of X, wants M of Y
 		The address of the 'offer' side is advertised, as only that address can withdraw.
 
-		---
-		
-		Bob = offerer
-		Bob wants, 100 of B in return for 150 of A
-		Bob requests exchange
+		This is performed by Alice
 		"""
 		# Parse and validate input parameters
 		offer_address = param_bytes20(request.data, 'offer_address')
@@ -125,6 +129,7 @@ class CoordinatorBlueprint(Blueprint):
 		)
 
 		return jsonify(dict(
+			id=exch_id,
 			ok=1
 		))
 
@@ -140,6 +145,8 @@ class CoordinatorBlueprint(Blueprint):
 		Somebody who has what the offerer wants proves they have deposited it.
 		They post proof as a proposal for exchange, this includes a hash of the secret they chose.
 		They post details of this deposit as the proposal.
+
+		This is performed by Bob
 		"""
 		exch = self._get_exch(exch_id)
 
@@ -169,21 +176,49 @@ class CoordinatorBlueprint(Blueprint):
 			ok=1
 		))
 
+	def exch_proposal_get(self, exch_id, secret_hashed):
+		"""
+		Retrieve details for a specific exchange proposal
+		"""
+		exch, proposal = self._get_proposal(exch_id, secret_hashed)
+		return jsonify(proposal)
+
 	def exch_confirm(self, exch_id, secret_hashed):
 		"""
 		The initial offerer (A), who wants M of Y and offers N of X
 		Upon seeing the proposal by B for M of Y, posts their confirmation of the specific deal
 		The offerer (A) must have deposited N of X, using the same hash image that (B) proposed 
-		"""
-		exch = self._get_exch(exch_id)
 
-		# TODO: verify 
+		This is performed by Alice
+		"""
+		exch, proposal = self._get_proposal(exch_id, secret_hashed)
+		# TODO: verify on-chain details match the proposal
 
-	def exch_finish(self):
+	def exch_release(self, exch_id, secret_hashed):
 		"""
-		Finish the exchange, by withdrawing the original deposit
+		Bob releases the secret to withdraw funds that Alice deposited.
+
+		This is performed by Bob
 		"""
-		pass
+		exch, proposal = self._get_proposal(exch_id, secret_hashed)
+
+		# XXX: technically a web API call isn't necessary for this step
+		#      the API should monitor the state of both sides of the exchange
+		#      and update the status / information automagically
+
+	def exch_finish(self, exch_id, secret_hashed):
+		"""
+		Alice uses the secret revealed by Bob to withdraw the funds he deposited.
+
+		This is performed by Alice.
+
+		This completes the exchange.
+		"""
+		exch, proposal = self._get_proposal(exch_id, secret_hashed)
+
+		# XXX: technically a web API call isn't necessary for this step
+		#      the API should monitor the state of both sides of the exchange
+		#      and update the status / information automagically
 
 
 def main():
