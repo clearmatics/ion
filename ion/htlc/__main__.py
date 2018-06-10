@@ -1,4 +1,4 @@
-from .cli import commands
+from .cli import COMMANDS
 
 if __name__ == "__main__":
-	commands.main()
+    COMMANDS.main()

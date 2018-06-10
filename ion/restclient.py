@@ -6,7 +6,6 @@
 
 __all__ = ('RestClient',)
 
-import sys
 try:
     from urllib.parse import quote_plus
 except ImportError:

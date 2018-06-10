@@ -19,26 +19,27 @@ DURATION_OR_EPOCH_SPLIT = ONE_YEAR
 
 
 def make_htlc_proxy(rpc, contract, account):
-	return rpc.proxy('abi/HTLC.abi', contract, account)
+    # TODO: embed 'abi/HTLC.abi' file in package resources?
+    return rpc.proxy('abi/HTLC.abi', contract, account)
 
 
 def get_default_expiry():
-	return int(time.time()) + DEFAULT_EXPIRY_DURATION
+    return int(time.time()) + DEFAULT_EXPIRY_DURATION
 
 
 def arg_expiry(ctx, param, value):
-	"""
-	Accepts either a duration, or an absolute UNIX epoch time
-	Returns absolute UNIX epoch time
-	"""
-	value = int(value)
-	if value < DURATION_OR_EPOCH_SPLIT:
-		return int(time.time()) + value
-	return value
+    """
+    Accepts either a duration, or an absolute UNIX epoch time
+    Returns absolute UNIX epoch time
+    """
+    value = int(value)
+    if value < DURATION_OR_EPOCH_SPLIT:
+        return int(time.time()) + value
+    return value
 
 
 def get_random_secret_32():
-	return '0x' + os.urandom(32).encode('hex')
+    return '0x' + os.urandom(32).encode('hex')
 
 
 #######################################################################
@@ -59,26 +60,26 @@ def get_random_secret_32():
 @click.option('--secret', callback=arg_bytes32, metavar="0x...32", default=get_random_secret_32, help="Secret to be supplied upon withdraw")
 @click.option('--expires', metavar="seconds|unixtime", callback=arg_expiry, type=int, default=get_default_expiry, help="Expiry time, as duration (seconds), or UNIX epoch")
 def contract_deposit(contract, receiver, secret, expires):
-	now = int(time.time())
-	print("Expires in", expires - now, "seconds")
+    now = int(time.time())
+    print("Expires in", expires - now, "seconds")
 
-	image = sha256(secret).digest()		# the hash pre-image is the 'secret'
-	contract.Deposit( receiver, image, expires )
+    image = sha256(secret).digest()     # the hash pre-image is the 'secret'
+    contract.Deposit(receiver, image, expires)
 
 
 @click.command()
 @click.pass_obj
 @click.option('--secret', callback=arg_bytes32, metavar="0x...32", required=True, help="Exchange ID")
 def contract_withdraw(contract, secret):
-	image = sha256(secret).digest()		# the hash pre-image is the 'secret'
-	contract.Withdraw( image, secret )
+    image = sha256(secret).digest()     # the hash pre-image is the 'secret'
+    contract.Withdraw(image, secret)
 
 
 @click.command()
 @click.pass_obj
 @click.option('--image', callback=arg_bytes32, metavar="0x...32", required=True, help="Exchange hash image")
 def contract_refund(contract, image):
-	contract.Refund( image )
+    contract.Refund(image)
 
 
 @click.group('contract', help='Command-line interface to Ethereum HTLC contract')
@@ -86,18 +87,24 @@ def contract_refund(contract, image):
 @click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server")
 @click.option('--account', callback=arg_bytes20, metavar="0x...20", required=True, help="Account to transfer from.")
 @click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="HTLC contract address")
-def contract(ctx, rpc, account, contract):
-	ctx.obj = make_htlc_proxy(rpc, contract, account)
+def contract_multicommand(ctx, rpc, account, contract):
+    # Contract will get passed to sub-commands as first object when using `@click.pass_obj`
+    ctx.obj = make_htlc_proxy(rpc, contract, account)
 
 
-contract.add_command(contract_deposit, "deposit")
-contract.add_command(contract_withdraw, "withdraw")
-contract.add_command(contract_refund, "refund")
+contract_multicommand.add_command(contract_deposit, "deposit")
+contract_multicommand.add_command(contract_withdraw, "withdraw")
+contract_multicommand.add_command(contract_refund, "refund")
 
 
-commands = click.Group("htlc", help="Hash-Time-Lock Atomic Swap")
-commands.add_command(contract, 'contract')
+#######################################################################
+#
+# Multi-command entry-point
+#
+
+COMMANDS = click.Group("htlc", help="Hash-Time-Lock Atomic Swap")
+COMMANDS.add_command(contract_multicommand, 'contract')
 
 
 if __name__ == "__main__":
-	commands.main()
+    COMMANDS.main()
