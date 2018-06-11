@@ -1,7 +1,7 @@
 # Copyright (c) 2018 Harry Roberts. All Rights Reserved.
 # SPDX-License-Identifier: LGPL-3.0+
 
-# Adapted from https://gist.githubusercontent.com/HarryR/d2373f421c39353cd462/raw/c3f726455bbbc03fe791dda0dabbf4f73b5d2ec9/restclient.py
+# Derived from https://gist.githubusercontent.com/HarryR/d2373f421c39353cd462/raw/c3f726455bbbc03fe791dda0dabbf4f73b5d2ec9/restclient.py
 # Except the command-line interface has been removed (so it doesn't depend on Plugin and Host components)
 
 __all__ = ('RestClient',)
@@ -10,15 +10,16 @@ try:
     from urllib.parse import quote_plus
 except ImportError:
     from urllib import quote_plus
+
 import requests
 
 
-class Resource(object):
+class RestClient(object):
     __slots__ = ('_api', '_url')
 
-    def __init__(self, url=None, api=None):
+    def __init__(self, url, api=None):
         self._url = url
-        self._api = api
+        self._api = self if api is None else api
 
     def __getattr__(self, name):
         if name[0] == '_':
@@ -37,7 +38,7 @@ class Resource(object):
                                   url=self._url,
                                   params=kwargs)
         resp.raise_for_status()
-        return resp
+        return resp.json()
 
     def GET(self, **kwargs):
         return self._do('GET', kwargs)
@@ -56,19 +57,4 @@ class Resource(object):
                                   url=url,
                                   data=kwargs)
         resp.raise_for_status()
-        return resp
-
-
-class RestClient(object):
-    __slots__ = ('_base_url', '_session')
-    def __init__(self, base_url):
-        self._base_url = base_url.rstrip('/')
-        self._session = requests.Session()
-
-    def _request(self, **kwargs):
-        req = requests.Request(**kwargs)
-        # TODO: setup authentication on `req`
-        return self._session.send(req.prepare())
-
-    def __getattr__(self, name):        
-        return Resource(self._base_url + '/' + name, self)
+        return resp.json()

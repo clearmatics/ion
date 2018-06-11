@@ -73,6 +73,7 @@ class CoordinatorBlueprint(Blueprint):
         self.url_map.converters['bytes20'] = Bytes20Converter
 
         self.add_url_rule("/", 'index', self.index)
+        self.add_url_rule("/list", 'list', self.index)
         self.add_url_rule("/advertise", 'advertise', self.exch_advertise, methods=['POST'])
         self.add_url_rule("/<bytes20:exch_id>", 'get', self.exch_get, methods=['GET'])
         self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>", 'proposal_get',
