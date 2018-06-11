@@ -6,20 +6,12 @@ from hashlib import sha256
 
 import click
 
-from ..args import arg_ethrpc, arg_bytes20, arg_bytes32
+from ..args import arg_ethrpc, arg_bytes20, arg_bytes32, arg_expiry
 
-from .common import (DURATION_OR_EPOCH_SPLIT, get_random_secret_32,
-                     get_default_expiry, make_htlc_proxy)
+from .common import get_random_secret_32, get_default_expiry, make_htlc_proxy
 
-def arg_expiry(ctx, param, value):
-    """
-    Accepts either a duration, or an absolute UNIX epoch time
-    Returns absolute UNIX epoch time
-    """
-    value = int(value)
-    if value < DURATION_OR_EPOCH_SPLIT:
-        return int(time.time()) + value
-    return value
+# TODO: move to ..args
+
 
 
 #######################################################################
@@ -34,6 +26,7 @@ def arg_expiry(ctx, param, value):
 #
 
 
+# TODO: add value...
 @click.command()
 @click.pass_obj
 @click.option('--receiver', callback=arg_bytes20, metavar="0x...20", required=True, help="Receiver address")

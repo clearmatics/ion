@@ -114,6 +114,9 @@ class CoordinatorBlueprint(Blueprint):
         offer_amount = param_uint256(request.data, 'offer_amount')
         want_amount = param_uint256(request.data, 'want_amount')
 
+        # TODO: offer_htlc_address
+        # TODO: want_htlc_address
+
         # TODO: validate contract addresses etc. and verify on-chain stuff
 
         exch_id = os.urandom(20).encode('hex')
@@ -154,6 +157,8 @@ class CoordinatorBlueprint(Blueprint):
         if secret_hashed in exch['proposals']:
             return abort(409) # Duplicate proposal secret
 
+        # TODO: verify either side of the exchange aren't the same
+
         expiry = param_uint256(request.data, 'expiry')
         depositor = param_bytes20(request.data, 'depositor')
 
@@ -168,6 +173,7 @@ class CoordinatorBlueprint(Blueprint):
 
         # Store proposal
         exch['proposals'][secret_hashed] = dict(
+            secret_hashed=secret_hashed,
             expiry=expiry,
             depositor=depositor
         )
@@ -192,6 +198,7 @@ class CoordinatorBlueprint(Blueprint):
         This is performed by Alice
         """
         exch, proposal = self._get_proposal(exch_id, secret_hashed)
+        # XXX: one side of the expiry must be twice as long as the other to handle failure case
         # TODO: verify on-chain details match the proposal
 
     def exch_release(self, exch_id, secret_hashed):
@@ -201,10 +208,8 @@ class CoordinatorBlueprint(Blueprint):
         This is performed by Bob
         """
         exch, proposal = self._get_proposal(exch_id, secret_hashed)
-
-        # XXX: technically a web API call isn't necessary for this step
-        #      the API should monitor the state of both sides of the exchange
-        #      and update the status / information automagically
+        secret = param_bytes32(request.data, 'secret')
+        # TODO: verify secret matches secret_hashed
 
     def exch_finish(self, exch_id, secret_hashed):
         """

@@ -1,12 +1,27 @@
 #!/usr/bin/env python
 ## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+## Copyright (c) 2018 Harry Roberts.
 ## SPDX-License-Identifier: LGPL-3.0+
 
 """
 Provides a set of useful arguements for interacting with ethrpc
 """
+
+import time
+
 from .ethrpc import EthJsonRpc
 from .utils import require, scan_bin
+
+
+def arg_expiry(ctx, param, value):
+    """
+    Accepts either a duration, or an absolute UNIX epoch time
+    Returns absolute UNIX epoch time
+    """
+    value = int(value)
+    if value < DURATION_OR_EPOCH_SPLIT:
+        return int(time.time()) + value
+    return value
 
 
 def arg_bytes(ctx, param, value):
