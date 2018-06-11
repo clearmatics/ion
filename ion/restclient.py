@@ -13,11 +13,14 @@ except ImportError:
 
 import requests
 
+from .utils import require
+
 
 class RestClient(object):
     __slots__ = ('_api', '_url')
 
     def __init__(self, url, api=None):
+        require(url is not None, "Must provide REST API HTTP URL")
         self._url = url
         self._api = self if api is None else api
 

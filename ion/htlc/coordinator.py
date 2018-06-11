@@ -10,8 +10,7 @@ from werkzeug.routing import BaseConverter
 
 from ..args import arg_bytes32, arg_bytes20, arg_uint256
 
-ONE_MINUTE = 60
-MINIMUM_EXPIRY = 2 * ONE_MINUTE
+from .common import MINIMUM_EXPIRY_DURATION
 
 
 def param(the_dict, key):
@@ -112,22 +111,18 @@ class CoordinatorBlueprint(Blueprint):
         """
         # Parse and validate input parameters
         offer_address = param_bytes20(request.data, 'offer_address')
-        offer_contract = param_bytes20(request.data, 'offer_contract')
         offer_amount = param_uint256(request.data, 'offer_amount')
-        want_contract = param_bytes20(request.data, 'want_contract')
         want_amount = param_uint256(request.data, 'want_amount')
 
         # TODO: validate contract addresses etc. and verify on-chain stuff
 
-        exch_id = os.urandom(20)
+        exch_id = os.urandom(20).encode('hex')
 
         # Save exchange details
         # TODO: replace with class instance, `Exchange`
         self._exchanges[exch_id] = dict(
             offer_address=offer_address,
-            offer_contract=offer_contract,
             offer_amount=offer_amount,
-            want_contract=want_contract,
             want_amount=want_amount,
             proposals=dict(),
             chosen_proposal=None,
@@ -167,7 +162,7 @@ class CoordinatorBlueprint(Blueprint):
         # Verify expiry time is acceptable
         # XXX: should minimum expiry be left to the contract, or the coordinator?
         now = int(time.time())
-        min_expiry = now + MINIMUM_EXPIRY
+        min_expiry = now + MINIMUM_EXPIRY_DURATION
         if expiry < min_expiry:
             return abort(400)   # TODO: add descriptive error message
 
