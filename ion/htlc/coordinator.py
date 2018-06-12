@@ -16,7 +16,7 @@ from .common import MINIMUM_EXPIRY_DURATION
 
 def param(the_dict, key):
     if key not in the_dict:
-        return abort(400, "Parameter required: " + key)
+        return abort(400, description="Parameter required: " + key)
     return the_dict[key]
 
 
@@ -27,18 +27,18 @@ def param_filter_arg(the_dict, key, filter_fn):
     """
     value = param(the_dict, key)
     try:
-        filter_fn(None, None, value)
+        value = filter_fn(None, None, value)
     except Exception as ex:
-        return abort(400, "Invalid parameter %s - %s" % (key, str(ex)))
+        return abort(400, description="Invalid parameter %s - %s" % (key, str(ex)))
     return value
 
 
 def param_bytes32(the_dict, key):
-    return param_filter_arg(the_dict, key, arg_bytes32)
+    return param_filter_arg(the_dict, key, arg_bytes32).encode('hex')
 
 
 def param_bytes20(the_dict, key):
-    return param_filter_arg(the_dict, key, arg_bytes20)
+    return param_filter_arg(the_dict, key, arg_bytes20).encode('hex')
 
 
 def param_uint256(the_dict, key):
@@ -58,10 +58,8 @@ class BytesConverter(BaseConverter):
         self.regex = '(0x)?[a-fA-F0-9]{' + str(self.BYTES_LEN * 2) + '}'
 
     def to_python(self, value):
-        return scan_bin(value)
-
-    def to_url(self, value):
-        return value.encode('hex')
+        # Normalise hex encoding...
+        return scan_bin(value).encode('hex')
 
 
 class Bytes32Converter(BytesConverter):
@@ -104,14 +102,14 @@ class CoordinatorBlueprint(Blueprint):
 
     def _get_exch(self, exch_id):
         if exch_id not in self._exchanges:
-            return abort(404)
+            return abort(404, description="Unknown exchange")
         return self._exchanges[exch_id]
 
     def _get_proposal(self, exch_id, secret_hashed):
         exch = self._get_exch(exch_id)
         proposal = exch['proposals'].get(secret_hashed)
         if not proposal:
-            return abort(404)
+            return abort(404, description="Unknown proposal")
         return exch, proposal
 
     def index(self):
@@ -128,13 +126,13 @@ class CoordinatorBlueprint(Blueprint):
         This is performed by Alice
         """
         # Parse and validate input parameters
-        offer_address = param_bytes20(request.data, 'offer_address').encode('hex')
-        offer_amount = param_uint256(request.data, 'offer_amount')
-        want_amount = param_uint256(request.data, 'want_amount')
+        offer_address = param_bytes20(request.form, 'offer_address')
+        offer_amount = param_uint256(request.form, 'offer_amount')
+        want_amount = param_uint256(request.form, 'want_amount')
 
         # TODO: validate contract addresses etc. and verify on-chain stuff
 
-        exch_id = os.urandom(20)
+        exch_id = os.urandom(20).encode('hex')
 
         # Save exchange details
         # TODO: replace with class instance, `Exchange`
@@ -146,12 +144,12 @@ class CoordinatorBlueprint(Blueprint):
             chosen_proposal=None,
 
             # Temporary placeholders
-            offer_htlc_address=self._htlc_address,
-            want_htlc_address=self._htlc_address
+            offer_htlc_address=self._htlc_address.encode('hex'),
+            want_htlc_address=self._htlc_address.encode('hex')
         )
 
         return jsonify(dict(
-            id=exch_id.encode('hex'),
+            id=exch_id,
             ok=1
         ))
 
@@ -160,6 +158,7 @@ class CoordinatorBlueprint(Blueprint):
         Retrieve details of exchange
         """
         exch = self._get_exch(exch_id)
+        print("Exch is", exch)
         return jsonify(exch)
 
     def exch_propose(self, exch_id, secret_hashed):
@@ -174,12 +173,12 @@ class CoordinatorBlueprint(Blueprint):
 
         # Hashed secret is the 'image', pre-image can be supplied to prove knowledge of secret
         if secret_hashed in exch['proposals']:
-            return abort(409) # Duplicate proposal secret
+            return abort(409, description="Duplicate proposal secret")
 
         # TODO: verify either side of the exchange aren't the same
 
-        expiry = param_uint256(request.data, 'expiry')
-        depositor = param_bytes20(request.data, 'depositor')
+        expiry = param_uint256(request.form, 'expiry')
+        depositor = param_bytes20(request.form, 'depositor')
 
         # TODO: verify details on-chain, expiry, depositor and secret must match
 
@@ -188,7 +187,7 @@ class CoordinatorBlueprint(Blueprint):
         now = int(time.time())
         min_expiry = now + MINIMUM_EXPIRY_DURATION
         if expiry < min_expiry:
-            return abort(400)   # TODO: add descriptive error message
+            return abort(400, description="Expiry too short")
 
         # Store proposal
         exch['proposals'][secret_hashed] = dict(
@@ -227,7 +226,7 @@ class CoordinatorBlueprint(Blueprint):
         This is performed by Bob
         """
         exch, proposal = self._get_proposal(exch_id, secret_hashed)
-        secret = param_bytes32(request.data, 'secret')
+        secret = param_bytes32(request.form, 'secret')
         # TODO: verify secret matches secret_hashed
 
     def exch_finish(self, exch_id, secret_hashed):
@@ -245,17 +244,26 @@ class CoordinatorBlueprint(Blueprint):
         #      and update the status / information automagically
 
 
-def main():
-    htlc_address = scan_bin(sys.argv[1])
+def main(htlc_address):
+    """
+    Development server for coordinator
+
+    NOTE: not suitable for 'production'
+    SEE: http://flask.pocoo.org/docs/1.0/deploying/#deployment
+    """
+    if len(htlc_address) != 20:
+        htlc_address = scan_bin(htlc_address)
     print("HTLC address:", htlc_address.encode('hex'))
-    # XXX: not suitable for 'production'
-    # see: http://flask.pocoo.org/docs/1.0/deploying/#deployment
+
     coordinator = CoordinatorBlueprint(htlc_address)
     app = Flask(__name__)
+    # app.debug = 1
     app.register_blueprint(coordinator, url_prefix='/htlc')
-    app.run()
+
+    # NOTE: Flask reloader is DAF, doesn't work well with packages *shakes-fists*
+    app.run(use_reloader=False)
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1]))

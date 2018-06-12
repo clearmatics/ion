@@ -39,32 +39,24 @@ class RestClient(object):
             raise AttributeError
         return RestClient(self._url + '/' + quote_plus(name), self._api)
 
-    def _request(self, method, kwargs):
+    def _request(self, method, params=None, data=None):
         sess = self._api._session
         req = requests.Request(method=method,
                                url=self._url,
-                               params=kwargs)
+                               params=params,
+                               data=data)
         resp = sess.send(req.prepare())
         resp.raise_for_status()
         return resp.json()
 
     def GET(self, **kwargs):
-        return self._request('GET', kwargs)
+        return self._request('GET', params=kwargs)
 
     def POST(self, **kwargs):
-        return self._request('POST', kwargs)
+        return self._request('POST', data=kwargs)
 
     def PUT(self, **kwargs):
-        return self._request('PUT', kwargs)
+        return self._request('PUT', data=kwargs)
 
     def DELETE(self, id=None, **kwargs):
-        url = self._url
-        if id is not None:
-            url += "/" + str(id)
-        sess = self._api._session
-        req = requests.Request(method='DELETE',
-                               url=url,
-                               data=kwargs)
-        resp = sess.send(req.prepare())
-        resp.raise_for_status()
-        return resp.json()
+        return self._request('DELETE', data=kwargs)

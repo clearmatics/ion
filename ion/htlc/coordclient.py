@@ -139,7 +139,7 @@ class Exchange(object):
         if data_dict is None:
             self.refresh()
         else:
-            self.data = data_dict
+            self.set_data(data_dict)
 
     def _make_proposal(self, secret_hashed_hex, propdata=None):
         return Proposal(self._coordapi, self, self._resource(secret_hashed_hex), propdata)
@@ -148,14 +148,13 @@ class Exchange(object):
     def data(self):
         return self._data
 
-    @data.setter
     def set_data(self, value):
         value['proposals'] = [self._make_proposal(key, propdata)
                               for key, propdata in value['proposals'].items()]
         self._data = value
 
     def refresh(self):
-        self.data = self._resource.GET()
+        self.set_data(self._resource.GET())
 
     @property
     def proposals(self):

@@ -75,8 +75,21 @@ contract_multicommand.add_command(contract_refund, "refund")
 # Multi-command entry-point
 #
 
+@click.command()
+@click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="HTLC contract address")
+def coordinator(contract):
+    from .coordinator import main
+    main(contract)
+
+
+#######################################################################
+#
+# Multi-command entry-point
+#
+
 COMMANDS = click.Group("htlc", help="Hash-Time-Lock Atomic Swap")
 COMMANDS.add_command(contract_multicommand, 'contract')
+COMMANDS.add_command(coordinator, 'coordinator')
 
 
 if __name__ == "__main__":

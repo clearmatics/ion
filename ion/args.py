@@ -52,8 +52,9 @@ def make_uint_n(num):
         if value is None:
             return None
         value = int(value)
-        require(value >= 0)
-        require(value <= (1 << (num-1)))
+        value_max = 1 << (num - 1)
+        require(value >= 0, "Must be abover 0")
+        require(value <= value_max, "Must be below " + str(value_max))
         return value
     return arg_uint_n
 
