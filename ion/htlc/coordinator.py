@@ -5,6 +5,7 @@ import sys
 import os
 import time
 
+from ethereum.utils import scan_bin
 from flask import Flask, Blueprint, request, abort, jsonify
 from werkzeug.routing import BaseConverter
 
@@ -44,18 +45,33 @@ def param_uint256(the_dict, key):
     return param_filter_arg(the_dict, key, arg_uint256)
 
 
-class Bytes32Converter(BaseConverter):
+class BytesConverter(BaseConverter):
+    """
+    Accepts hex encoded bytes as an argument
+    Provides raw bytes to Python
+    Marshals between raw bytes and hex encoded
+    """
+    BYTES_LEN = None
+    def __init__(self, url_map, *items):
+        assert self.BYTES_LEN is not None
+        super(BytesConverter, self).__init__(url_map)
+        self.regex = '(0x)?[a-fA-F0-9]{' + str(self.BYTES_LEN * 2) + '}'
+
+    def to_python(self, value):
+        return scan_bin(value)
+
+    def to_url(self, value):
+        return value.encode('hex')
+
+
+class Bytes32Converter(BytesConverter):
     """Accept 32 hex-encoded bytes as URL param"""
-    def __init__(self, url_map, *items):
-        super(Bytes32Converter, self).__init__(url_map)
-        self.regex = r'[a-fA-F0-9]{64}'
+    BYTES_LEN = 32
 
 
-class Bytes20Converter(BaseConverter):
+class Bytes20Converter(BytesConverter):
     """Accept 20 hex-encoded bytes as URL param"""
-    def __init__(self, url_map, *items):
-        super(Bytes20Converter, self).__init__(url_map)
-        self.regex = r'[a-fA-F0-9]{40}'
+    BYTES_LEN = 20
 
 
 class CoordinatorBlueprint(Blueprint):
@@ -63,13 +79,15 @@ class CoordinatorBlueprint(Blueprint):
     Provides a web API for coordinating cross-chain HTLC exchanges
     """
 
-    def __init__(self, **kwa):
+    def __init__(self, htlc_address, **kwa):
         Blueprint.__init__(self, 'htlc', __name__, **kwa)
 
+        self._htlc_address = htlc_address
         self._exchanges = dict()
 
-        self.url_map.converters['bytes32'] = Bytes32Converter
-        self.url_map.converters['bytes20'] = Bytes20Converter
+        # XXX: This sure looks hacky... assignment not allowed in lambda, callback etc.
+        self.record(lambda s: s.app.url_map.converters.__setitem__('bytes32', Bytes32Converter))
+        self.record(lambda s: s.app.url_map.converters.__setitem__('bytes20', Bytes20Converter))
 
         self.add_url_rule("/", 'index', self.index)
         self.add_url_rule("/list", 'list', self.index)
@@ -110,16 +128,13 @@ class CoordinatorBlueprint(Blueprint):
         This is performed by Alice
         """
         # Parse and validate input parameters
-        offer_address = param_bytes20(request.data, 'offer_address')
+        offer_address = param_bytes20(request.data, 'offer_address').encode('hex')
         offer_amount = param_uint256(request.data, 'offer_amount')
         want_amount = param_uint256(request.data, 'want_amount')
 
-        # TODO: offer_htlc_address
-        # TODO: want_htlc_address
-
         # TODO: validate contract addresses etc. and verify on-chain stuff
 
-        exch_id = os.urandom(20).encode('hex')
+        exch_id = os.urandom(20)
 
         # Save exchange details
         # TODO: replace with class instance, `Exchange`
@@ -129,10 +144,14 @@ class CoordinatorBlueprint(Blueprint):
             want_amount=want_amount,
             proposals=dict(),
             chosen_proposal=None,
+
+            # Temporary placeholders
+            offer_htlc_address=self._htlc_address,
+            want_htlc_address=self._htlc_address
         )
 
         return jsonify(dict(
-            id=exch_id,
+            id=exch_id.encode('hex'),
             ok=1
         ))
 
@@ -227,9 +246,11 @@ class CoordinatorBlueprint(Blueprint):
 
 
 def main():
+    htlc_address = scan_bin(sys.argv[1])
+    print("HTLC address:", htlc_address.encode('hex'))
     # XXX: not suitable for 'production'
     # see: http://flask.pocoo.org/docs/1.0/deploying/#deployment
-    coordinator = CoordinatorBlueprint()
+    coordinator = CoordinatorBlueprint(htlc_address)
     app = Flask(__name__)
     app.register_blueprint(coordinator, url_prefix='/htlc')
     app.run()

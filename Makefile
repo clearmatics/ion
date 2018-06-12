@@ -135,3 +135,12 @@ test-unit:
 	$(PYTHON) -m unittest discover test/
 
 test: test-unit test-js
+
+
+#######################################################################
+#
+# Truffle utils
+#
+
+truffle-deploy:
+	$(TRUFFLE) deploy

@@ -5,6 +5,7 @@ import os
 from hashlib import sha256
 
 from ..utils import require
+from ..ethrpc import EthJsonRpc
 from ..restclient import RestClient
 
 from .common import get_default_expiry, make_htlc_proxy
@@ -115,11 +116,15 @@ class Proposal(object):
         my_address = self._coordapi.my_address
         exch_data = self._exch_obj.data
 
+        secret_hashed_hex = self._data['secret_hashed']
+        secret_hashed = secret_hashed_hex.decode('hex')
+
         # TODO: detertmine which side we're on, automagically call correct one
         if x:
             htlc_address = self._data['depositor']
         else:
             htlc_address = exch_data['want_htlc_address']
+    
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
         htlc_contract.Refund(secret_hashed)
 
@@ -213,6 +218,8 @@ class CoordinatorClient(object):
         self._my_address = my_address
         self._resource = RestClient(api_url) if resource is None else resource
         self._ethrpc = ethrpc
+        assert isinstance(self._resource, RestClient)
+        assert isinstance(ethrpc, EthJsonRpc)
 
     @property
     def ethrpc(self):

@@ -13,6 +13,9 @@ from .ethrpc import EthJsonRpc
 from .utils import require, scan_bin
 
 
+DURATION_OR_EPOCH_SPLIT = 60 * 60 * 24 * 365
+
+
 def arg_expiry(ctx, param, value):
     """
     Accepts either a duration, or an absolute UNIX epoch time
@@ -67,6 +70,7 @@ def arg_ethrpc(ctx, param, value):
     if port == 443:
         return EthJsonRpc(ip_addr, port, True)
     return EthJsonRpc(ip_addr, port)
+
 
 def arg_lithium_api(ctx, param, value):
     if value is None:
