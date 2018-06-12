@@ -1,8 +1,26 @@
 # Copyright (c) 2018 Harry Roberts. All Rights Reserved.
 # SPDX-License-Identifier: LGPL-3.0+
 
-# Derived from https://gist.githubusercontent.com/HarryR/d2373f421c39353cd462/raw/c3f726455bbbc03fe791dda0dabbf4f73b5d2ec9/restclient.py
-# Except the command-line interface has been removed (so it doesn't depend on Plugin and Host components)
+"""
+Derived from https://gist.githubusercontent.com/HarryR/d2373f421c39353cd462/raw/c3f726455bbbc03fe791dda0dabbf4f73b5d2ec9/restclient.py
+
+Except the command-line interface has been removed (so it doesn't depend on
+Plugin and Host components). I didn't realise how broken the original Gist was,
+this is less broken and much cleaner....
+
+This class provides a friendly Pythonic interface to a REST-ish HTTP JSON API.
+Form parameters are posted as normal form encoded data, Response is returned as
+JSON.
+
+e.g.
+
+    x = RestClient('http://example.com/')
+    x('test').POST(abc=123) # POST /test abc=123
+    x.test.derp.GET()       # GET /test/derp
+    x.test()                # GET /test
+
+see... it's nice, and predictable, and Pythonic, and flexible, etc...
+"""
 
 __all__ = ('RestClient',)
 
@@ -26,6 +44,7 @@ class RestClient(object):
         if api is None:
             self._session = requests.Session()
         self._api = self if api is None else api
+        require(isinstance(self._api, RestClient))
 
     def __getattr__(self, name):
         if name[0] == '_':
@@ -46,6 +65,7 @@ class RestClient(object):
                                params=params,
                                data=data)
         resp = sess.send(req.prepare())
+        # TODO: verify if 'error' is in result, raise with error message...
         resp.raise_for_status()
         return resp.json()
 

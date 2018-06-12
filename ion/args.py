@@ -33,6 +33,7 @@ def arg_bytes(ctx, param, value):
     value = scan_bin(value)
     return value
 
+
 def make_bytes_n(num_bytes):
     def arg_bytes_n(ctx, param, value):
         value = arg_bytes(ctx, param, value)
@@ -44,6 +45,7 @@ def make_bytes_n(num_bytes):
 
 
 arg_bytes20 = make_bytes_n(20)
+
 arg_bytes32 = make_bytes_n(32)
 
 

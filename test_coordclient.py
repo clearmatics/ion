@@ -27,5 +27,6 @@ def main(api_url='http://127.0.0.1:5000/htlc'):
 
     print("B list", client_B.list())
 
+
 if __name__ == "__main__":
     main(*sys.argv[1:])

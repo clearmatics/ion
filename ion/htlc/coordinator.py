@@ -10,7 +10,6 @@ from flask import Flask, Blueprint, request, abort, jsonify
 from werkzeug.routing import BaseConverter
 
 from ..args import arg_bytes32, arg_bytes20, arg_uint256
-
 from .common import MINIMUM_EXPIRY_DURATION
 
 
@@ -135,7 +134,7 @@ class CoordinatorBlueprint(Blueprint):
         exch_id = os.urandom(20).encode('hex')
 
         # Save exchange details
-        # TODO: replace with class instance, `Exchange`
+        # TODO: replace with class instance, `Exchange` ?
         self._exchanges[exch_id] = dict(
             offer_address=offer_address,
             offer_amount=offer_amount,
@@ -144,6 +143,7 @@ class CoordinatorBlueprint(Blueprint):
             chosen_proposal=None,
 
             # Temporary placeholders
+            # TODO: replace with correct contracts
             offer_htlc_address=self._htlc_address.encode('hex'),
             want_htlc_address=self._htlc_address.encode('hex')
         )
@@ -158,7 +158,6 @@ class CoordinatorBlueprint(Blueprint):
         Retrieve details of exchange
         """
         exch = self._get_exch(exch_id)
-        print("Exch is", exch)
         return jsonify(exch)
 
     def exch_propose(self, exch_id, secret_hashed):
@@ -170,6 +169,9 @@ class CoordinatorBlueprint(Blueprint):
         This is performed by Bob
         """
         exch = self._get_exch(exch_id)
+
+        if exch['chosen_proposal']:
+            return abort(409, description="Proposal has already been chosen")
 
         # Hashed secret is the 'image', pre-image can be supplied to prove knowledge of secret
         if secret_hashed in exch['proposals']:
@@ -195,6 +197,7 @@ class CoordinatorBlueprint(Blueprint):
             expiry=expiry,
             depositor=depositor
         )
+        exch['chosen_proposal'] = secret_hashed
 
         return jsonify(dict(
             ok=1
