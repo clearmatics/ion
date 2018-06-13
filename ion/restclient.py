@@ -65,9 +65,13 @@ class RestClient(object):
                                params=params,
                                data=data)
         resp = sess.send(req.prepare())
-        # TODO: verify if 'error' is in result, raise with error message...
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            data = resp.json()
+            if '_error' in data:
+                raise RuntimeError(data['error'])
+            return data
+        except ValueError as ex:
+            resp.raise_for_status()
 
     def GET(self, **kwargs):
         return self._request('GET', params=kwargs)

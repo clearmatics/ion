@@ -3,19 +3,25 @@
 
 import sys
 import os
+import json
 import time
 
-from ethereum.utils import scan_bin
-from flask import Flask, Blueprint, request, abort, jsonify
+from flask import Flask, Blueprint, request, abort, jsonify, make_response
 from werkzeug.routing import BaseConverter
 
 from ..args import arg_bytes32, arg_bytes20, arg_uint256
+from ..utils import scan_bin
+
 from .common import MINIMUM_EXPIRY_DURATION
+
+
+def api_abort(message, code=400):
+    return abort(make_response(jsonify(dict(_error=message)), code))
 
 
 def param(the_dict, key):
     if key not in the_dict:
-        return abort(400, description="Parameter required: " + key)
+        return api_abort("Parameter required: " + key)
     return the_dict[key]
 
 
@@ -28,7 +34,7 @@ def param_filter_arg(the_dict, key, filter_fn):
     try:
         value = filter_fn(None, None, value)
     except Exception as ex:
-        return abort(400, description="Invalid parameter %s - %s" % (key, str(ex)))
+        return api_abort("Invalid parameter '%s' - %s" % (key, str(ex)))
     return value
 
 
@@ -101,14 +107,14 @@ class CoordinatorBlueprint(Blueprint):
 
     def _get_exch(self, exch_id):
         if exch_id not in self._exchanges:
-            return abort(404, description="Unknown exchange")
+            return api_abort("Unknown exchange", code=404)
         return self._exchanges[exch_id]
 
     def _get_proposal(self, exch_id, secret_hashed):
         exch = self._get_exch(exch_id)
         proposal = exch['proposals'].get(secret_hashed)
         if not proposal:
-            return abort(404, description="Unknown proposal")
+            return api_abort("Unknown proposal", code=404)
         return exch, proposal
 
     def index(self):
@@ -171,11 +177,11 @@ class CoordinatorBlueprint(Blueprint):
         exch = self._get_exch(exch_id)
 
         if exch['chosen_proposal']:
-            return abort(409, description="Proposal has already been chosen")
+            return api_abort("Proposal has already been chosen", code=409)
 
         # Hashed secret is the 'image', pre-image can be supplied to prove knowledge of secret
         if secret_hashed in exch['proposals']:
-            return abort(409, description="Duplicate proposal secret")
+            return api_abort("Duplicate proposal secret", code=409)
 
         # TODO: verify either side of the exchange aren't the same
 
@@ -189,7 +195,7 @@ class CoordinatorBlueprint(Blueprint):
         now = int(time.time())
         min_expiry = now + MINIMUM_EXPIRY_DURATION
         if expiry < min_expiry:
-            return abort(400, description="Expiry too short")
+            return api_abort("Expiry too short")
 
         # Store proposal
         exch['proposals'][secret_hashed] = dict(
@@ -197,7 +203,6 @@ class CoordinatorBlueprint(Blueprint):
             expiry=expiry,
             depositor=depositor
         )
-        exch['chosen_proposal'] = secret_hashed
 
         return jsonify(dict(
             ok=1
@@ -219,8 +224,15 @@ class CoordinatorBlueprint(Blueprint):
         This is performed by Alice
         """
         exch, proposal = self._get_proposal(exch_id, secret_hashed)
+        
         # XXX: one side of the expiry must be twice as long as the other to handle failure case
         # TODO: verify on-chain details match the proposal
+
+        exch['chosen_proposal'] = secret_hashed
+
+        return jsonify(dict(
+            ok=1
+        ))
 
     def exch_release(self, exch_id, secret_hashed):
         """
@@ -231,6 +243,10 @@ class CoordinatorBlueprint(Blueprint):
         exch, proposal = self._get_proposal(exch_id, secret_hashed)
         secret = param_bytes32(request.form, 'secret')
         # TODO: verify secret matches secret_hashed
+
+        return jsonify(dict(
+            ok=1
+        ))
 
     def exch_finish(self, exch_id, secret_hashed):
         """
@@ -245,6 +261,10 @@ class CoordinatorBlueprint(Blueprint):
         # XXX: technically a web API call isn't necessary for this step
         #      the API should monitor the state of both sides of the exchange
         #      and update the status / information automagically
+
+        return jsonify(dict(
+            ok=1
+        ))
 
 
 def main(htlc_address):

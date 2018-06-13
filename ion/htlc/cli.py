@@ -29,7 +29,7 @@ from .common import get_random_secret_32, get_default_expiry, make_htlc_proxy
 @click.pass_obj
 @click.option('--receiver', callback=arg_bytes20, metavar="0x...20", required=True, help="Receiver address")
 @click.option('--secret', callback=arg_bytes32, metavar="0x...32", default=get_random_secret_32, help="Secret to be supplied upon withdraw")
-@click.option('--amount', calback=arg_uint256, metavar='wei', help='Amount of WEI to deposit')
+@click.option('--amount', callback=arg_uint256, metavar='wei', help='Amount of WEI to deposit')
 @click.option('--expires', metavar="seconds|unixtime", callback=arg_expiry, type=int, default=get_default_expiry, help="Expiry time, as duration (seconds), or UNIX epoch")
 def contract_deposit(contract, receiver, secret, amount, expires):
     now = int(time.time())

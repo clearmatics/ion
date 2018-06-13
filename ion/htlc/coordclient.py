@@ -179,12 +179,15 @@ class Exchange(object):
         ethrpc = self._coordapi.ethrpc
         my_address = self._coordapi.my_address
 
+        # TODO: verify adequate balance to cover the deposit
+
         # XXX: for testing, we can be both sides...
         #require(my_address != prop_receiver, "Cannot be both sides of exchange")
 
         htlc_address = self._data['want_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        htlc_contract.Deposit(prop_receiver, secret_hashed, prop_expiry, value=prop_value)
+        result = htlc_contract.Deposit(prop_receiver, secret_hashed, prop_expiry, value=prop_value)
+        print("Deposit result is", result)
 
         # TODO: wait for deposit to go through?
         #       or provide some kind of receipt...
@@ -195,7 +198,7 @@ class Exchange(object):
         proposal_resource = self._resource(secret_hashed_hex)
         response = proposal_resource.POST(
             expiry=prop_expiry,
-            depositor=my_address.encode('hex'),
+            depositor=my_address,
             # TODO: add transaction receipt
         )
         require(response['ok'] == 1, "Proposal coordinator API error")

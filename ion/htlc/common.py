@@ -20,14 +20,14 @@ def make_htlc_proxy(rpc, contract, account):
 
 
 def get_default_expiry():
-	"""
-	Default expiry, from now, that a deal should expire
-	"""
+    """
+    Default expiry, from now, that a deal should expire
+    """
     return int(time.time()) + DEFAULT_EXPIRY_DURATION
 
 
 def get_random_secret_32():
-	"""
-	Random secret, to be used as the image (revealed later)
-	"""
+    """
+    Random secret, to be used as the image (revealed later)
+    """
     return '0x' + os.urandom(32).encode('hex')

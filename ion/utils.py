@@ -1,3 +1,7 @@
+## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+## Copyright (c) 2018 Harry Roberts.
+## SPDX-License-Identifier: LGPL-3.0+
+
 import sys
 from base64 import b64encode, b64decode
 import binascii
@@ -55,7 +59,8 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 dict_dump = lambda diff: {c: dict(d.items()) for c, d in diff.items()}
 
 
-def is_numeric(x): return isinstance(x, (int, long))
+def is_numeric(x):
+    return isinstance(x, (int, long))
 
 
 def encode_int(v):
@@ -75,6 +80,14 @@ def scan_bin(v):
 def require(arg, msg=None):
     if not arg:
         raise RuntimeError(msg or "Requirement failed")
+
+def normalise_address(addr):
+    if len(addr) == 20:
+        addr = addr.encode('hex')
+    if addr[:2] == '0x':
+        addr = addr[2:]
+    require(len(addr) == 40, "Invalid address: " + addr)
+    return addr
 
 
 class Marshalled(object):

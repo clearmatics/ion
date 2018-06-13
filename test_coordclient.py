@@ -22,10 +22,19 @@ def main(api_url='http://127.0.0.1:5000/htlc'):
     balance_A = ethrpc.eth_getBalance(addr_A)
     balance_B = ethrpc.eth_getBalance(addr_B)
 
-    print("A list", client_A.list())
+    # A advertises exchange, offers 1000 for 500
     client_A.advertise(1000, 500)
 
-    print("B list", client_B.list())
+    # B retrieves exchanges
+    exchanges_B = client_B.list()
+    print("B list", exchanges_B)
+
+    exch = exchanges_B[0]
+    exch_data = exch.data
+    print("Data", exch.data)
+
+    proposal = exch.propose()
+    print("Proposal is", proposal)
 
 
 if __name__ == "__main__":
