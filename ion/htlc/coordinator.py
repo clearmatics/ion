@@ -206,11 +206,19 @@ class CoordinatorBlueprint(Blueprint):
         if expiry < min_expiry:
             return api_abort("Expiry too short")
 
+        # GUID used for the exchanges
+        # offer_guid = Deposit() by B (the proposer)
+        offer_guid = sha256(exch['offer_address'].decode('hex') + secret_hashed.decode('hex')).digest()
+        # taker_guid = Deposit() by A (the initial offerer)
+        taker_guid = sha256(depositor.decode('hex') + secret_hashed.decode('hex')).digest()
+
         # Store proposal
         exch['proposals'][secret_hashed] = dict(
             secret_hashed=secret_hashed,
             expiry=expiry,
-            depositor=depositor
+            depositor=depositor,
+            offer_guid=offer_guid.encode('hex'),
+            taker_guid=taker_guid.encode('hex'),
         )
 
         # TODO: redirect to proposal URL? - or avoid another GET request...

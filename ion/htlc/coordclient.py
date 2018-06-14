@@ -55,11 +55,12 @@ class Proposal(object):
         conf_expiry = self._data['expiry']
         conf_receiver = self._data['depositor']
         conf_secret_hashed = self._data['secret_hashed']
+        conf_value = exch_data['offer_amount']
 
         # Offerer deposits their side of the deal, locked to same hashed secret 
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        htlc_contract.Deposit(conf_receiver, conf_secret_hashed.decode('hex'), conf_expiry)
+        htlc_contract.Deposit(conf_receiver, conf_secret_hashed.decode('hex'), conf_expiry, value=conf_value)
 
         # TODO: wait for Deposit to complete, or submit transaction receipt
 
@@ -86,9 +87,11 @@ class Proposal(object):
         require(my_address == self._data['depositor'], "Only proposer can release")
         require(self._data['secret_hashed'] == secret_hashed_hex, "Secrets don't match!")
 
+        exch_guid = self._data['taker_guid'].decode('hex')
+
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        htlc_contract.Withdraw(secret_hashed, secret)
+        htlc_contract.Withdraw(exch_guid, secret)
 
         # Reveal secret, posting back to server
         self._resource.release.POST(
@@ -112,9 +115,11 @@ class Proposal(object):
 
         # TODO: verify secret hashes to hashed image
 
+        exch_guid = self._data['offer_guid'].decode('hex')
+
         htlc_address = exch_data['want_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        htlc_contract.Withdraw(secret_hashed, secret)
+        htlc_contract.Withdraw(exch_guid, secret)
 
         self._resource.finish.POST(
             xxx=123,
