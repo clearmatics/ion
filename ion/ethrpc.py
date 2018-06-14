@@ -29,6 +29,7 @@ import json
 import requests
 import time
 import warnings
+
 from collections import namedtuple
 from ethereum.abi import encode_abi, decode_abi
 from requests.adapters import HTTPAdapter
@@ -203,14 +204,13 @@ class EthJsonRpc(object):
         sig = method['name'] + '(' + ','.join(ins) + ')'
         # XXX: messy...
         if method['constant']:
-            return lambda *args, **kwa: (self.call(address, sig, args, outs, **kwa)
-                                         if len(outs) > 1 else
-                                         self.call(address, sig, args, outs, **kwa)[0])
+            # XXX: document len(outs) and different behaviour...
+            if len(outs) > 1:
+                return lambda *args, **kwa: self.call(address, sig, args, outs, **kwa)
+            return lambda *args, **kwa: self.call(address, sig, args, outs, **kwa)[0]
         if account is None:
             raise RuntimeError("Without account, cannot call non-constant methods")
-        return lambda *args, **kwa: (self.call_with_transaction(account, address, sig, args, **kwa)
-                                     if len(outs) > 1 else
-                                     self.call_with_transaction(account, address, sig, args, **kwa)[0])
+        return lambda *args, **kwa: self.call_with_transaction(account, address, sig, args, **kwa)
 
     def proxy(self, abi, address, account=None):
         """
