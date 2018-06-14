@@ -38,7 +38,7 @@ class Proposal(object):
     def secret_hashed(self):
         return self._data['secret_hashed']
 
-    def confirm(self):
+    def confirm(self, wait=True):
         """
         Confirm the exchange by depositing your side of the deal
         You must be the original deal offerer to confirm the exchange
@@ -60,16 +60,19 @@ class Proposal(object):
         # Offerer deposits their side of the deal, locked to same hashed secret 
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        htlc_contract.Deposit(conf_receiver, conf_secret_hashed.decode('hex'), conf_expiry, value=conf_value)
+        txn = htlc_contract.Deposit(conf_receiver, conf_secret_hashed.decode('hex'), conf_expiry, value=conf_value)
 
-        # TODO: wait for Deposit to complete, or submit transaction receipt
+        receipt = txn.receipt(wait=wait)
+        if receipt and int(receipt['status'], 16) == 0:
+            raise RuntimeError("Confirm failed, txn: " + txn.txid)
 
         self._resource.confirm.POST(
-            xxx=123 #... what to do here?
-            # TODO: add transaction receipt
+            txid=txn.txid
         )
 
-    def release(self, secret):
+        return txn
+
+    def release(self, secret, wait=True):
         """
         Reveal the secret by withdrawing from your side of the exchange
         This must be performed by party B (the proposer)
@@ -91,15 +94,19 @@ class Proposal(object):
 
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        htlc_contract.Withdraw(exch_guid, secret)
+        txn = htlc_contract.Withdraw(exch_guid, secret)
+
+        receipt = txn.receipt(wait=wait)
+        if receipt and int(receipt['status'], 16) == 0:
+            raise RuntimeError("Release failed, txn: " + txn.txid)
 
         # Reveal secret, posting back to server
         self._resource.release.POST(
             secret=secret_hex,
-            # TODO: add transaction receipt
+            txid=txn.txid
         )
 
-    def finish(self):
+    def finish(self, wait=True):
         """
         After the secret has been revealed by the proposer the offerer
         can withdraws funds using the same secret.
@@ -110,8 +117,6 @@ class Proposal(object):
 
         secret_hex = self._data['secret']
         secret = secret_hex.decode('hex')
-        secret_hashed_hex = self._data['secret_hashed']
-        secret_hashed = secret_hashed_hex.decode('hex')
 
         # TODO: verify secret hashes to hashed image
 
@@ -119,11 +124,14 @@ class Proposal(object):
 
         htlc_address = exch_data['want_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        htlc_contract.Withdraw(exch_guid, secret)
+        txn = htlc_contract.Withdraw(exch_guid, secret)
+
+        receipt = txn.receipt(wait=wait)
+        if receipt and int(receipt['status'], 16) == 0:
+            raise RuntimeError("Finish failed, txn: " + txn.txid)
 
         self._resource.finish.POST(
-            xxx=123,
-            # TODO: add transaction receipt
+            txid=txn.txid,
         )
 
     def refund(self):
@@ -191,7 +199,7 @@ class Exchange(object):
     def proposal(self, secret_hashed_hex):
         return self.proposals[secret_hashed_hex]
 
-    def propose(self):
+    def propose(self, wait=True):
         """
         Submit a proposal for the exchange by depositing your tokens
         into a HTLC contract.
@@ -217,20 +225,18 @@ class Exchange(object):
 
         htlc_address = self._data['want_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        result = htlc_contract.Deposit(prop_receiver, secret_hashed, prop_expiry, value=prop_value)
-        print("Deposit result is", result)
+        txn = htlc_contract.Deposit(prop_receiver, secret_hashed, prop_expiry, value=prop_value)
 
-        # TODO: wait for deposit to go through?
-        #       or provide some kind of receipt...
-        #       should be able to wait for the OnDeposit event to be emitted
-        # TODO: add 'wait for event' method to ethrpc
+        receipt = txn.receipt(wait=wait)
+        if receipt and int(receipt['status'], 16) == 0:
+            raise RuntimeError("Propose deposit failed, txn: " + txn.txid)
 
         # Notify coordinator of proposal
         proposal_resource = self._resource(secret_hashed_hex)
         response = proposal_resource.POST(
             expiry=prop_expiry,
             depositor=my_address,
-            # TODO: add transaction receipt
+            txid=txn.txid
         )
         require(response['ok'] == 1, "Proposal coordinator API error")
 
