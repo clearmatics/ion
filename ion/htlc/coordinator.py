@@ -3,8 +3,8 @@
 
 import sys
 import os
-import json
 import time
+from hashlib import sha256
 
 from flask import Flask, Blueprint, request, abort, jsonify, make_response
 from werkzeug.routing import BaseConverter
@@ -14,6 +14,9 @@ from ..utils import scan_bin
 
 from .common import MINIMUM_EXPIRY_DURATION
 
+
+#######################################################################
+# TODO: move to ..webutils or something
 
 def api_abort(message, code=400):
     return abort(make_response(jsonify(dict(_error=message)), code))
@@ -77,6 +80,9 @@ class Bytes20Converter(BytesConverter):
     BYTES_LEN = 20
 
 
+#######################################################################
+
+
 class CoordinatorBlueprint(Blueprint):
     """
     Provides a web API for coordinating cross-chain HTLC exchanges
@@ -104,6 +110,8 @@ class CoordinatorBlueprint(Blueprint):
                           self.exch_confirm, methods=['POST'])
         self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>/release", 'release',
                           self.exch_release, methods=['POST'])
+        self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>/finish", 'finish',
+                          self.exch_finish, methods=['POST'])
 
     def _get_exch(self, exch_id):
         if exch_id not in self._exchanges:
@@ -142,6 +150,7 @@ class CoordinatorBlueprint(Blueprint):
         # Save exchange details
         # TODO: replace with class instance, `Exchange` ?
         self._exchanges[exch_id] = dict(
+            guid=exch_id,
             offer_address=offer_address,
             offer_amount=offer_amount,
             want_amount=want_amount,
@@ -204,6 +213,7 @@ class CoordinatorBlueprint(Blueprint):
             depositor=depositor
         )
 
+        # TODO: redirect to proposal URL? - or avoid another GET request...
         return jsonify(dict(
             ok=1
         ))
@@ -225,7 +235,7 @@ class CoordinatorBlueprint(Blueprint):
         """
         exch, proposal = self._get_proposal(exch_id, secret_hashed)
         
-        # XXX: one side of the expiry must be twice as long as the other to handle failure case
+        # XXX: one side of the expiry must be longer than the other to handle failure case
         # TODO: verify on-chain details match the proposal
 
         exch['chosen_proposal'] = secret_hashed
@@ -241,8 +251,16 @@ class CoordinatorBlueprint(Blueprint):
         This is performed by Bob
         """
         exch, proposal = self._get_proposal(exch_id, secret_hashed)
-        secret = param_bytes32(request.form, 'secret')
-        # TODO: verify secret matches secret_hashed
+
+        secret_hex = param_bytes32(request.form, 'secret')
+        secret = secret_hex.decode('hex')
+        secret_hashed_check = sha256(secret).digest()
+        secret_hashed_check_hex = secret_hashed_check.encode('hex')
+
+        if secret_hashed_check_hex != secret_hashed:
+            return api_abort(' '.join(["Secret doesn't match! Got", secret_hashed_check_hex, 'expected', secret_hashed]))
+
+        proposal['secret'] = secret_hex
 
         return jsonify(dict(
             ok=1

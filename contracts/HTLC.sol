@@ -1,123 +1,113 @@
 // Copyright (c) 2018 Harry Roberts. All Rights Reserved.
 // SPDX-License-Identifier: LGPL-3.0+
 
-pragma solidity ^0.4.23;
-
-contract HTLC
-{
-  event OnDeposit( address indexed receiver, bytes32 image, uint256 expiry );
-
-  event OnRefund( bytes32 indexed image );
-
-  event OnWithdraw( bytes32 indexed image, bytes32 preimage );
-
-  enum ExchangeState
-  {
-    Invalid,    // Default state, invalid
-    Deposited,
-    Withdrawn,
-    Refunded,
-    Expired
-  }
-
-  struct Exchange
-  {
-    address sender;
-    address receiver;
-    uint256 amount;
-    uint256 expiry;
-    ExchangeState state;
-  }
-
-  mapping (bytes32 => Exchange) public exchanges;
+pragma solidity 0.4.24;
 
 
-  function GetState ( bytes32 in_image )
-    public view returns (ExchangeState)
-  {
-    Exchange storage exch = exchanges[in_image];
+contract HTLC {
 
-    if( exch.state == ExchangeState.Invalid )
-    {
-      return ExchangeState.Invalid;
+    event OnDeposit( bytes32 exchGUID, address indexed receiver, bytes32 secretHashed, uint256 expiry );
+
+    event OnRefund( bytes32 indexed exchGUID );
+
+    event OnWithdraw( bytes32 indexed exchGUID, bytes32 secret );
+
+    enum ExchangeState {
+        Invalid,    // Default state, invalid
+        Deposited,
+        Withdrawn,
+        Refunded,
+        Expired
     }
 
-    if( exch.expiry < block.timestamp )
-    {
-      return ExchangeState.Expired;
+    struct Exchange {
+        bytes32 secretHashed;
+        address sender;
+        address receiver;
+        uint256 amount;
+        uint256 expiry;
+        ExchangeState state;
     }
 
-    return exch.state;
-  }
+    mapping (bytes32 => Exchange) public exchanges;
 
+    function GetState ( bytes32 inExchGUID )
+        public view returns (ExchangeState)
+    {
+        Exchange storage exch = exchanges[inExchGUID];
 
-  function Deposit ( address in_receiver, bytes32 in_image, uint256 in_expiry )
-    public payable
-  {
-    require( exchanges[in_image].state == ExchangeState.Invalid,
-             "Duplicate exchange" );
+        if (exch.state == ExchangeState.Invalid) {
+            return ExchangeState.Invalid;
+        }
 
-    require( in_receiver != address(0x0),
-             "Invalid receiver address" );
+        if (exch.expiry < block.timestamp) {
+            return ExchangeState.Expired;
+        }
 
-    require( in_expiry > block.timestamp,
-             "Expiry not in future" );
+        return exch.state;
+    }
 
-    exchanges[in_image] = Exchange(
-      msg.sender,
-      in_receiver,
-      msg.value,
-      in_expiry,
-      ExchangeState.Deposited
-    );
+    function Deposit ( address inReceiver, bytes32 inSecretHashed, uint256 inExpiry )
+        public payable returns (bytes32)
+    {
+        // GUID must be predictable
+        bytes32 exchGUID = sha256(abi.encodePacked(inReceiver, inSecretHashed));
 
-    emit OnDeposit( in_receiver, in_image, in_expiry );
-  }
+        require(exchanges[exchGUID].state == ExchangeState.Invalid, "Duplicate exchange");
 
+        require(inReceiver != address(0x0), "Invalid receiver address");
 
-  function Withdraw ( bytes32 in_image, bytes32 in_preimage )
-    public
-  {
-    Exchange storage exch = exchanges[in_image];
+        require(inExpiry > block.timestamp, "Expiry not in future");
 
-    require( exch.state == ExchangeState.Deposited,
-             "Unknown exchange, or invalid state" );
+        exchanges[exchGUID] = Exchange(
+            inSecretHashed,
+            msg.sender,
+            inReceiver,
+            msg.value,
+            inExpiry,
+            ExchangeState.Deposited
+        );
 
-    require( exch.receiver == msg.sender,
-             "Only receiver can Withdraw" );
+        emit OnDeposit( exchGUID, inReceiver, inSecretHashed, inExpiry);
 
-    require( block.timestamp <= exch.expiry,
-              "Exchange expired" );
+        return exchGUID;
+    }
 
-    require( sha256(abi.encodePacked(in_preimage)) == in_image,
-             "Bad preimage" );
+    function Withdraw ( bytes32 inExchGUID, bytes32 inSecret )
+        public
+    {
+        Exchange storage exch = exchanges[inExchGUID];
 
-    exch.state = ExchangeState.Withdrawn;
+        require(exch.state == ExchangeState.Deposited, "Unknown exchange, or invalid state");
 
-    msg.sender.transfer( exch.amount );
+        require(exch.receiver == msg.sender, "Only receiver can Withdraw");
 
-    emit OnWithdraw( in_image, in_preimage );
-  }
+        require(block.timestamp <= exch.expiry, "Exchange expired");
 
+        require(sha256(abi.encodePacked(inSecret)) == exch.secretHashed, "Bad secret");
 
-  function Refund ( bytes32 in_image )
-    public
-  {
-    Exchange storage exch = exchanges[in_image];
+        exch.state = ExchangeState.Withdrawn;
 
-    require( exch.sender == msg.sender,
-             "Only depositor can refund" );
+        msg.sender.transfer(exch.amount);
 
-    require( block.timestamp > exch.expiry,
-             "Exchange not expired, cannot refund" );
+        emit OnWithdraw(inExchGUID, inSecret);
+    }
 
-    require( exch.state == ExchangeState.Deposited,
-             "Unknown exchange, or invalid state" );
+    function Refund ( bytes32 inExchGUID )
+        public
+    {
+        Exchange storage exch = exchanges[inExchGUID];
 
-    exch.state = ExchangeState.Refunded;
+        require(exch.sender == msg.sender, "Only depositor can refund");
 
-    exch.sender.transfer( exch.amount );
+        require(block.timestamp > exch.expiry, "Exchange not expired, cannot refund");
 
-    emit OnRefund( in_image );
-  }
+        require(exch.state == ExchangeState.Deposited, "Unknown exchange, or invalid state");
+
+        exch.state = ExchangeState.Refunded;
+
+        exch.sender.transfer(exch.amount);
+
+        emit OnRefund(inExchGUID);
+    }
 }

@@ -14,6 +14,9 @@ CONTRACTS=IonLock IonLink ERC223 Token HTLC
 CONTRACTS_BIN=$(addprefix build/,$(addsuffix .bin,$(CONTRACTS)))
 CONTRACTS_ABI=$(addprefix abi/,$(addsuffix .abi,$(CONTRACTS)))
 
+PYLINT_IGNORE=C0330,invalid-name,line-too-long,missing-docstring,bad-whitespace,consider-using-ternary,wrong-import-position,wrong-import-order,trailing-whitespace
+
+
 all: check-prereqs contracts python-pyflakes test python-pylint
 
 check-prereqs:
@@ -57,7 +60,7 @@ python-pyflakes:
 	$(PYTHON) -mpyflakes ion
 
 python-pylint:
-	$(PYTHON) -mpylint ion
+	$(PYTHON) -mpylint -d $(PYLINT_IGNORE) ion
 
 python-lint: python-pyflakes python-pylint
 
@@ -144,3 +147,6 @@ test: test-unit test-js
 
 truffle-deploy:
 	$(TRUFFLE) deploy
+
+truffle-console:
+	$(TRUFFLE) console

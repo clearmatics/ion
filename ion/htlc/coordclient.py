@@ -4,7 +4,7 @@
 import os
 from hashlib import sha256
 
-from ..utils import require
+from ..utils import require, normalise_address
 from ..ethrpc import EthJsonRpc
 from ..restclient import RestClient
 
@@ -26,6 +26,18 @@ class Proposal(object):
     def refresh(self):
         self._data = self._resource.GET()
 
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def secret(self):
+        return self._data.get('secret')
+
+    @property
+    def secret_hashed(self):
+        return self._data['secret_hashed']
+
     def confirm(self):
         """
         Confirm the exchange by depositing your side of the deal
@@ -36,7 +48,8 @@ class Proposal(object):
         my_address = self._coordapi.my_address
         exch_data = self._exch_obj.data
 
-        require(my_address == exch_data['offer_address'], "Only offerer can confirm")
+        require(my_address == exch_data['offer_address'],
+                ' '.join(["Only offerer can confirm", my_address, '!=', exch_data['offer_address']]))
 
         # XXX: one side of the expiry must be twice as long as the other to handle failure case
         conf_expiry = self._data['expiry']
@@ -46,7 +59,7 @@ class Proposal(object):
         # Offerer deposits their side of the deal, locked to same hashed secret 
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        htlc_contract.Deposit(conf_receiver, conf_secret_hashed, conf_expiry)
+        htlc_contract.Deposit(conf_receiver, conf_secret_hashed.decode('hex'), conf_expiry)
 
         # TODO: wait for Deposit to complete, or submit transaction receipt
 
@@ -145,20 +158,33 @@ class Exchange(object):
         return Proposal(self._coordapi, self, self._resource(secret_hashed_hex), propdata)
 
     @property
+    def guid(self):
+        return self._data['guid']
+
+    @property
     def data(self):
         return self._data
 
     def set_data(self, value):
-        value['proposals'] = [self._make_proposal(key, propdata)
-                              for key, propdata in value['proposals'].items()]
+        value['proposals'] = {key: self._make_proposal(key, propdata)
+                              for key, propdata in value['proposals'].items()}
         self._data = value
 
     def refresh(self):
         self.set_data(self._resource.GET())
 
     @property
+    def chosen_proposal(self):
+        prop_id = self._data['chosen_proposal']
+        if prop_id:
+            return self.proposal(prop_id)
+
+    @property
     def proposals(self):
         return self._data['proposals']
+
+    def proposal(self, secret_hashed_hex):
+        return self.proposals[secret_hashed_hex]
 
     def propose(self):
         """
@@ -205,8 +231,8 @@ class Exchange(object):
 
         # Add proposal to list, then return it
         proposal = self._make_proposal(secret_hashed_hex)
-        self.proposals.append(proposal)
-        return proposal
+        self.proposals[secret_hashed_hex] = proposal
+        return secret, proposal
 
 
 class CoordinatorClient(object):
@@ -217,7 +243,7 @@ class CoordinatorClient(object):
     essentially the glue between the coordinator and the contract.
     """
     def __init__(self, my_address, ethrpc, api_url=None, resource=None):
-        self._my_address = my_address
+        self._my_address = normalise_address(my_address)
         self._resource = RestClient(api_url) if resource is None else resource
         self._ethrpc = ethrpc
         assert isinstance(self._resource, RestClient)
