@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
-import "./ERC223Compatible.sol";
-import './SafeMath.sol';
+import "./ERC223.sol";
+import "./SafeMath.sol";
 
 /**
  * @title Reference implementation of the ERC223 standard token.

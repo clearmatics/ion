@@ -188,13 +188,16 @@ class EthJsonRpc(object):
                                          if len(outs) > 1 else
                                          self.call(address, sig, args, outs, **kwa)[0])
         if account is None:
-            # Without account, cannot call non-constant methods
-            return None
+            raise RuntimeError("Without account, cannot call non-constant methods")
         return lambda *args, **kwa: (self.call_with_transaction(account, address, sig, args, **kwa)
                                      if len(outs) > 1 else
                                      self.call_with_transaction(account, address, sig, args, **kwa)[0])
 
     def proxy(self, abi, address, account=None):
+        """
+        Provides a Python proxy object which exposes the contract ABI as 
+        callable methods, allowing for seamless use of contracts from Python... 
+        """
         # XXX: specific to Ethereum addresses, 20 octets
         if len(address) == 20:
             address = address.encode('hex')

@@ -12,7 +12,7 @@ which is required when withdrawing funds from IonLock
 from flask import Flask, request, jsonify
 
 # from flask import Flask, url_for
-from ion.merkle import merkle_tree, merkle_path, merkle_proof
+from ..merkle import merkle_tree, merkle_path, merkle_proof
 
 
 app = Flask(__name__)

@@ -1,0 +1,4 @@
+py-cffi
+libffi-dev
+openssl-dev
+gmp-dev

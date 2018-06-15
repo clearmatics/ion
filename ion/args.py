@@ -1,7 +1,7 @@
+#!/usr/bin/env python
 ## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 ## SPDX-License-Identifier: LGPL-3.0+
 
-#!/usr/bin/env python
 """
 Provides a set of useful arguements for interacting with ethrpc
 """
