@@ -1,22 +1,42 @@
 """
-For licensing information, see:
+This is free and unencumbered software released into the public domain.
 
-https://github.com/ConsenSys/ethjsonrpc/blob/master/LICENSE
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
 
-This file contains the public domain interface definition
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <http://unlicense.org/>
 """
 
 import json
 import requests
 import time
 import warnings
+
 from collections import namedtuple
 from ethereum.abi import encode_abi, decode_abi
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from .crypto import keccak_256
-from .utils import require, big_endian_to_int, zpad, encode_int
+from .utils import require, big_endian_to_int, zpad, encode_int, normalise_address
 
 GETH_DEFAULT_RPC_PORT = 8545
 ETH_DEFAULT_RPC_PORT = 8545
@@ -184,14 +204,13 @@ class EthJsonRpc(object):
         sig = method['name'] + '(' + ','.join(ins) + ')'
         # XXX: messy...
         if method['constant']:
-            return lambda *args, **kwa: (self.call(address, sig, args, outs, **kwa)
-                                         if len(outs) > 1 else
-                                         self.call(address, sig, args, outs, **kwa)[0])
+            # XXX: document len(outs) and different behaviour...
+            if len(outs) > 1:
+                return lambda *args, **kwa: self.call(address, sig, args, outs, **kwa)
+            return lambda *args, **kwa: self.call(address, sig, args, outs, **kwa)[0]
         if account is None:
             raise RuntimeError("Without account, cannot call non-constant methods")
-        return lambda *args, **kwa: (self.call_with_transaction(account, address, sig, args, **kwa)
-                                     if len(outs) > 1 else
-                                     self.call_with_transaction(account, address, sig, args, **kwa)[0])
+        return lambda *args, **kwa: self.call_with_transaction(account, address, sig, args, **kwa)
 
     def proxy(self, abi, address, account=None):
         """
@@ -199,13 +218,10 @@ class EthJsonRpc(object):
         callable methods, allowing for seamless use of contracts from Python... 
         """
         # XXX: specific to Ethereum addresses, 20 octets
-        if len(address) == 20:
-            address = address.encode('hex')
-        require(len(address) == 40)
+        address = normalise_address(address)
+
         if account is not None:
-            if len(account) == 20:
-                account = account.encode('hex')
-            require(len(account) == 40)
+            account = normalise_address(account)
 
         if isinstance(abi, file):
             abi = json.load(abi)
