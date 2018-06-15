@@ -10,7 +10,7 @@ def get_encoded_block(rpc_host, rpc_port, number):
     block = rlp_encoder.get_block(number)
     click.echo('0x'+rlp_encoder.encode_block(block).hex())
 
-@click.command(help="Returns an RLP encoded block in hexadecimal format.")
+@click.command(help="Returns block hash in hexadecimal format.")
 @click.argument('rpc-host', nargs=1, type=str)
 @click.argument('rpc-port', nargs=1, type=int)
 @click.argument('number', nargs=1, type=int)
