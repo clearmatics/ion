@@ -6,6 +6,7 @@ import sys
 from base64 import b64encode, b64decode
 import binascii
 import json
+from functools import reduce
 
 from rlp.sedes import big_endian_int
 from rlp.utils import decode_hex, str_to_bytes
@@ -60,7 +61,7 @@ dict_dump = lambda diff: {c: dict(d.items()) for c, d in diff.items()}
 
 
 def is_numeric(x):
-    return isinstance(x, (int, long))
+    return isinstance(x, int)
 
 
 def encode_int(v):
@@ -107,9 +108,9 @@ def tojson(x):
 
 
 def marshal(x):
-    if isinstance(x, (int, long, type(None))):
+    if isinstance(x, (int, type(None))):
         return x
-    if isinstance(x, (str, bytes, unicode)):
+    if isinstance(x, (str, bytes)):
         return b64encode(x)
     if isinstance(x, (tuple, list)):
         return map(marshal, x)
@@ -119,9 +120,9 @@ def marshal(x):
 
 
 def unmarshal(x):
-    if x is None or isinstance(x, (int, long)):
+    if x is None or isinstance(x, int):
         return x
-    if isinstance(x, (str, bytes, unicode)):
+    if isinstance(x, (str, bytes)):
         return b64decode(x)
     if isinstance(x, (tuple, list)):
         return map(unmarshal, x)

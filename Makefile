@@ -1,7 +1,7 @@
 ROOT_DIR := $(shell dirname $(realpath $(MAKEFILE_LIST)))
 
 SOLC=$(ROOT_DIR)/node_modules/.bin/solcjs
-PYTHON=python
+PYTHON=python3
 NPM=npm
 GANACHE=$(ROOT_DIR)/node_modules/.bin/ganache-cli
 TRUFFLE=$(ROOT_DIR)/node_modules/.bin/truffle

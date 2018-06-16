@@ -13,16 +13,15 @@ import threading
 import random
 import string
 import click
-from ethereum.utils import scan_bin, sha3, keccak
+from sha3 import keccak_256
 
+from ..utils import scan_bin
 from ..args import arg_bytes20, arg_ethrpc
 from ..merkle import merkle_tree, merkle_hash
 
 from .api import app
 
-TRANSFER_SIGNATURE = keccak.new(digest_bits=256) \
-    .update('IonTransfer(address,address,uint256,bytes32,bytes)') \
-    .hexdigest()
+TRANSFER_SIGNATURE = keccak_256(b'IonTransfer(address,address,uint256,bytes32,bytes)').hexdigest()
 
 EVENT_SIGNATURES = [TRANSFER_SIGNATURE]
 
@@ -40,10 +39,10 @@ def pack_txn(txn):
     Packs all the information about a transaction into a deterministic fixed-sized array of bytes
         from || to
     """
-    tx_from, tx_to, tx_value, tx_input = [scan_bin(x + ('0' * (len(x) % 2))) \
+    tx_from, tx_to, tx_value, tx_input = [scan_bin(x + (b'0' * (len(x) % 2))) \
         for x in [txn['from'], txn['to'], txn['value'], txn['input']]]
 
-    return ''.join([
+    return b''.join([
         tx_from,
         tx_to
     ])
@@ -54,8 +53,7 @@ def pack_log(txn, log):
     Packs a log entry into one or more entries.
         sender account || token address of opposite chain from sender || ionLock address of opposite chain from sender || value || hash(reference)
     """
-    print(scan_bin(log['topics'][2]).encode('hex'))
-    return ''.join([
+    return b''.join([
         scan_bin(txn['from']),
         scan_bin(txn['to']),
         scan_bin(log['address']),
@@ -72,9 +70,7 @@ def pack_items(items):
     if start < 4:
         for _ in range(start, 4):
             new_item = random_string(16)
-            items.append(sha3(new_item))
-    else:
-        pass
+            items.append(keccak_256(new_item).digest())
 
 
 class Lithium(object):

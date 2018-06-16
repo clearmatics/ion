@@ -29,6 +29,7 @@ import json
 import requests
 import time
 import warnings
+from io import IOBase
 
 from collections import namedtuple
 from ethereum.abi import encode_abi, decode_abi
@@ -93,7 +94,7 @@ def clean_hex(d):
     return hex(d).rstrip('L')
 
 def validate_block(block):
-    if isinstance(block, basestring):
+    if isinstance(block, str):
         if block not in BLOCK_TAGS:
             raise ValueError('invalid block tag')
     if isinstance(block, int):
@@ -223,7 +224,7 @@ class EthJsonRpc(object):
         if account is not None:
             account = normalise_address(account)
 
-        if isinstance(abi, file):
+        if isinstance(abi, IOBase):
             abi = json.load(abi)
         elif isinstance(abi, str):
             with open(abi) as jsonfile:
@@ -479,7 +480,7 @@ class EthJsonRpc(object):
 
         NEEDS TESTING
         '''
-        if isinstance(default_block, basestring):
+        if isinstance(default_block, str):
             if default_block not in BLOCK_TAGS:
                 raise ValueError
         return self._call('eth_getCode', [address, default_block])
@@ -535,7 +536,7 @@ class EthJsonRpc(object):
 
         NEEDS TESTING
         '''
-        if isinstance(default_block, basestring):
+        if isinstance(default_block, str):
             if default_block not in BLOCK_TAGS:
                 raise ValueError
         if from_address is not None and len(from_address) == 20:
@@ -563,7 +564,7 @@ class EthJsonRpc(object):
 
         NEEDS TESTING
         '''
-        if isinstance(default_block, basestring):
+        if isinstance(default_block, str):
             if default_block not in BLOCK_TAGS:
                 raise ValueError
         obj = {}

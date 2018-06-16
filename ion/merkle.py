@@ -17,13 +17,15 @@ from .utils import zpad, int_to_big_endian, bit_clear, bit_test, bit_set, bytes_
 def serialize(v):
     """Convert to value to a hashable scalar"""
     if isinstance(v, str):
+        return v.encode('utf8')
+    if isinstance(v, bytes):
         return v
-    if isinstance(v, (int, long)):
+    if isinstance(v, int):
         return zpad(int_to_big_endian(v), 32)
-    raise NotImplementedError(v)
+    raise NotImplementedError((v, type(v)))
 
 
-hashs = lambda *x: bytes_to_int(keccak_256(''.join(map(serialize, x))).digest())
+hashs = lambda *x: bytes_to_int(keccak_256(b''.join(map(serialize, x))).digest())
 
 merkle_hash = lambda *x: bit_clear(hashs(*x), 0xFF)
 
@@ -119,7 +121,7 @@ def merkle_proof(leaf, path, root):
 def main():
     # Create 99 trees of 1..N items
     for i in range(1, 100):
-        items = range(0, i)
+        items = list(range(0, i))
         tree, root = merkle_tree(items)
 
         # Verify all items exist within the root

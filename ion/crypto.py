@@ -5,10 +5,9 @@
 """
 Crypto: Has a load of useful crypto stuff
 """
+import struct
 from collections import namedtuple
-
 from ethereum.utils import big_endian_to_int, encode_int32
-from rlp.utils_py2 import ascii_chr
 
 from sha3 import keccak_256
 
@@ -21,6 +20,10 @@ except ImportError:
     import warnings
     warnings.warn('could not import coincurve', ImportWarning)
     coincurve = None
+
+
+def ascii_chr(x):
+    return struct.back('B', x)
 
 
 # --------------------------------------------------------------------
