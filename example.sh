@@ -12,6 +12,10 @@ IP_B=127.0.0.1
 API_PORT_A=8555
 API_PORT_B=8556
 
+echo python3 -mion lithium --from-account $ACC_A --to-account $ACC_B --rpc-from $IP_A:$PORT_A --rpc-to $IP_B:$PORT_B --lock $LOCK_ADDR --link $LINK_ADDR --api-port $API_PORT_A
+echo python3 -mion lithium --from-account $ACC_A --to-account $ACC_B --rpc-from $IP_B:$PORT_B --rpc-to $IP_A:$PORT_A --lock $LOCK_ADDR --link $LINK_ADDR --api-port $API_PORT_B
+read enter
+
 echo "==== Chain A ===="
 echo "...Minting"
 python -mion ion mint --rpc $IP_A:$PORT_A --account $ACC_A --tkn $TOKEN_ADDR --value 5000

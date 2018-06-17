@@ -4,7 +4,7 @@
 
 import sys
 from base64 import b64encode, b64decode
-import binascii
+from binascii import hexlify, unhexlify
 import json
 from functools import reduce
 
@@ -41,7 +41,7 @@ def packl(lnum):
     s = hex(lnum)[2:].rstrip('L')
     if len(s) & 1:
         s = '0' + s
-    return binascii.unhexlify(s)
+    return unhexlify(s)
 
 int_to_big_endian = packl
 
@@ -84,10 +84,10 @@ def require(arg, msg=None):
 
 def normalise_address(addr):
     if len(addr) == 20:
-        addr = addr.encode('hex')
+        addr = hexlify(addr)
     if addr[:2] == '0x':
         addr = addr[2:]
-    require(len(addr) == 40, "Invalid address: " + addr)
+    require(len(addr) == 40, "Invalid address: " + str(addr))
     return addr
 
 

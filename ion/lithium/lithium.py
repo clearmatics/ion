@@ -9,10 +9,12 @@ This tool was designed to facilitate the information swap between two EVM chains
 """
 from __future__ import print_function
 
+import time
 import threading
-import random
-import string
+from os import urandom
+
 import click
+
 from sha3 import keccak_256
 
 from ..utils import scan_bin
@@ -26,21 +28,13 @@ TRANSFER_SIGNATURE = keccak_256(b'IonTransfer(address,address,uint256,bytes32,by
 EVENT_SIGNATURES = [TRANSFER_SIGNATURE]
 
 
-def random_string(amount):
-    """
-    Returns a random string to hash as pseudo data
-    """
-    return ''.join(random.SystemRandom() \
-        .choice(string.ascii_uppercase + string.digits) for _ in range(amount))
-
-
 def pack_txn(txn):
     """
     Packs all the information about a transaction into a deterministic fixed-sized array of bytes
         from || to
     """
     tx_from, tx_to, tx_value, tx_input = [scan_bin(x + (b'0' * (len(x) % 2))) \
-        for x in [txn['from'], txn['to'], txn['value'], txn['input']]]
+        for x in [_.encode('utf-8') for _ in [txn['from'], txn['to'], txn['value'], txn['input']]]]
 
     return b''.join([
         tx_from,
@@ -69,7 +63,7 @@ def pack_items(items):
     start = len(items)
     if start < 4:
         for _ in range(start, 4):
-            new_item = random_string(16)
+            new_item = urandom(16)
             items.append(keccak_256(new_item).digest())
 
 
@@ -154,6 +148,10 @@ class Lithium(object):
                     blocks = []
                     is_latest = False
             old_head = head
+            try:
+                time.sleep(interval)
+            except KeyboardInterrupt:
+                raise StopIteration
 
 
     def lithium_submit(self, batch, prev_root, rpc, link, account, checkpoints, leaves):
@@ -185,7 +183,7 @@ class Lithium(object):
         prev_root = merkle_hash("merkle-tree-extra")
 
         print("Starting block iterator")
-        print("Latest Block: ", ionlock.LatestBlock)
+        print("Latest Block: ", ionlock.LatestBlock())
 
         for is_latest, block_group in self.iter_blocks(run_event, rpc_from, ionlock.LatestBlock()):
             items, group_tx_count, group_log_count, transfers = self.process_block_group(rpc_from, block_group)

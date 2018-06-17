@@ -131,6 +131,9 @@ build/%.combined.sol: contracts/%.sol build
 testrpc:
 	$(NPM) run testrpca
 
+testrpc-b:
+	$(NPM) run testrpcb
+
 test-js:
 	$(NPM) run test
 
@@ -147,6 +150,12 @@ test: test-unit test-js
 
 truffle-deploy:
 	$(TRUFFLE) deploy
+
+truffle-deploy-a:
+	$(TRUFFLE) deploy --network testrpca --reset
+
+truffle-deploy-b:
+	$(TRUFFLE) deployb --network testrpcb --reset
 
 truffle-console:
 	$(TRUFFLE) console

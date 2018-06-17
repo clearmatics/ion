@@ -5,14 +5,16 @@ Ion: command line tool to allow users to intereact with lithium
 """
 from __future__ import print_function
 
+from binascii import hexlify
+
 import click
 import requests
-import simplejson
+from sha3 import keccak_256
 
 from .merkle import merkle_hash
-from ethereum.utils import keccak
 from .ethrpc import BadStatusCodeError, BadJsonError, BadResponseError, ConnectionError
 from .args import arg_ethrpc, arg_bytes20 #, arg_lithium_api
+
 PRIMITIVE = (int, float, str, bool)
 
 def rpc_call_with_exceptions(function, *args):
@@ -136,7 +138,7 @@ def ionlock_withdraw(lithium_port, rpc, account, lock, tkn, value, ref):
     ionlock = rpc.proxy("abi/IonLock.abi", lock, account)
     token = rpc.proxy("abi/Token.abi", tkn, account)
 
-    joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    joined_data = hexlify(account) + hexlify(tkn) + hexlify(lock) + "{0:0{1}x}".format(value,64) + keccak_256(ref).hexdigest()
     api_url = 'http://127.0.0.1:' + str(lithium_port)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
 
@@ -146,9 +148,9 @@ def ionlock_withdraw(lithium_port, rpc, account, lock, tkn, value, ref):
 
         path = r.json()['proof']
         path = [int(x) for x in path]
-        hashed_ref = keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+        hashed_ref = keccak_256(ref).hexdigest()
 
-        result = rpc_call_with_exceptions(ionlock.Withdraw, value, hashed_ref.decode('hex'), int(blockid), path)
+        result = rpc_call_with_exceptions(ionlock.Withdraw, value, unhexlify(hashed_ref), int(blockid), path)
 
         result = rpc_call_with_exceptions(token.balanceOf, account)
         if result is not None:
@@ -186,7 +188,7 @@ def ionlink_verify(lithium_port, rpc, account, link, lock, tkn, value, ref):
     """
     ionlink = rpc.proxy("abi/IonLink.abi", link, account)
 
-    joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    joined_data = hexlify(account) + hexlify(tkn) + hexlify(lock) + "{0:0{1}x}".format(value,64) + keccak_256(ref).hexdigest()
     hashed_data = merkle_hash(int(joined_data, 16))
     api_url = 'http://127.0.0.1:' + str(lithium_port)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
@@ -231,7 +233,7 @@ def merkle_proof_path(lithium_port, account, lock, tkn, value, ref):
     :param ref: str, reference used for the deposit
     :return: 0, merkle path is printed to the console
     """
-    joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    joined_data = hexlify(account) + hexlify(tkn) + hexlify(lock) + "{0:0{1}x}".format(value,64) + keccak_256(ref).hexdigest()
     api_url = 'http://127.0.0.1:' + str(lithium_port)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
 
@@ -269,7 +271,7 @@ def merkle_verify(proof, lithium_port, account, lock, tkn, value, ref):
     :param ref: str, reference used for the deposit
     :return: 0, result is printed to the console
     """
-    joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    joined_data = hexlify(account) + hexlify(tkn) + hexlify(lock) + "{0:0{1}x}".format(value,64) + keccak_256(ref).hexdigest()
     proof = [int(x) for x in proof]
     api_url = 'http://127.0.0.1:' + str(lithium_port)
     r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
