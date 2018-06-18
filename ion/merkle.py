@@ -17,7 +17,7 @@ from .utils import zpad, int_to_big_endian, bit_clear, bit_test, bit_set, bytes_
 def serialize(v):
     """Convert to value to a hashable scalar"""
     if isinstance(v, str):
-        return v.encode('ascii', 'backslashreplace')
+        return v.encode('utf-8', 'backslashreplace')
     if isinstance(v, bytes):
         return v
     if isinstance(v, int):
@@ -50,7 +50,7 @@ def merkle_tree(items):
     :return: list, long
     """
     tree = [sorted(map(merkle_hash, items))]
-    extra = merkle_hash("merkle-tree-extra")
+    extra = merkle_hash(b"merkle-tree-extra")
     while True:
         level = tree[-1]
         # Ensure level has an even number of items, pad it with an 'extra item'

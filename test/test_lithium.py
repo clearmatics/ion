@@ -18,11 +18,11 @@ from binascii import hexlify
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian
 from ion.lithium.lithium import Lithium, pack_txn, pack_log
 
-test_tx_hash = b'0x999999'
-test_sender_addr = b'0x123456'
-test_recipient_addr = b'0x678910'
-test_input = b'0x11111111'
-test_value = b'0xfffd'
+test_tx_hash = '0x999999'
+test_sender_addr = '0x123456'
+test_recipient_addr = '0x678910'
+test_input = '0x11111111'
+test_value = '0xfffd'
 
 class MockRPC():
     def port():
@@ -65,7 +65,7 @@ class LithiumTest(unittest.TestCase):
         txn = rpc.eth_getTransactionByHash()
 
         packed_txn = hexlify(pack_txn(txn))
-        expected_result = b'' + (test_sender_addr[2:]) + (test_recipient_addr[2:])
+        expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])
 
         self.assertEqual(packed_txn, expected_result)
         print("Test: Pack Transaction Success")
@@ -86,7 +86,7 @@ class LithiumTest(unittest.TestCase):
             topic1 = hexlify(scan_bin(log['topics'][1]))
             topic2 = hexlify(scan_bin(log['topics'][2]))
 
-            expected_result = b'' + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + address + topic1 + topic2
+            expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + address + topic1 + topic2
 
             self.assertEqual(hexlify(packed_log), expected_result)
 
@@ -112,7 +112,7 @@ class LithiumTest(unittest.TestCase):
         topic1 = hexlify(scan_bin(log['topics'][1]))
         topic2 = hexlify(scan_bin(log['topics'][2]))
 
-        expected_txn_result = b'' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
+        expected_txn_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
         self.assertEqual(hexlify(packed_log), expected_txn_result)
 
         self.assertEqual(len(items), 1)
@@ -137,11 +137,11 @@ class LithiumTest(unittest.TestCase):
         log = receipt['logs'][0]
         packed_log = pack_log(txn, log)
 
-        address = hexlify(scan_bin(log['address']))
-        topic1 = hexlify(scan_bin(log['topics'][1]))
-        topic2 = hexlify(scan_bin(log['topics'][2]))
+        address = hexlify(scan_bin(log['address'])).decode('ascii')
+        topic1 = hexlify(scan_bin(log['topics'][1])).decode('ascii')
+        topic2 = hexlify(scan_bin(log['topics'][2])).decode('ascii')
 
-        expected_txn_result = b'' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
+        expected_txn_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
         self.assertEqual(hexlify(packed_log), expected_txn_result)
 
         self.assertEqual(len(items), 1)
