@@ -34,7 +34,6 @@ def pack_txn(txn):
         from || to
     """
     fields = [txn['from'], txn['to'], txn['value'], txn['input']]
-    print("Fields is", fields)
     encoded_fields = [scan_bin(x + ('0' * (len(x) % 2))) for x in fields]
     tx_from, tx_to, tx_value, tx_input = encoded_fields
 
