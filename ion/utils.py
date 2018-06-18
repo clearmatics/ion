@@ -3,9 +3,9 @@
 ## SPDX-License-Identifier: LGPL-3.0+
 
 import sys
+import json
 from base64 import b64encode, b64decode
 from binascii import hexlify, unhexlify
-import json
 from functools import reduce
 
 from rlp.sedes import big_endian_int
@@ -129,3 +129,13 @@ def unmarshal(x):
     if isinstance(x, Marshalled):
         return x.unmarshal(x)
     raise ValueError("Cannot unmarshal type: %r - %r" % (type(x), x))
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return obj.decode('utf-8', 'backslashreplace')
+        return json.JSONEncoder.default(self, obj)
+
+def json_dumps(obj):
+    return json.dumps(obj, cls=CustomJSONEncoder)

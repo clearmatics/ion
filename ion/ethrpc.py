@@ -38,7 +38,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from .crypto import keccak_256
-from .utils import require, big_endian_to_int, zpad, encode_int, normalise_address
+from .utils import CustomJSONEncoder, require, big_endian_to_int, zpad, encode_int, normalise_address
 
 GETH_DEFAULT_RPC_PORT = 8545
 ETH_DEFAULT_RPC_PORT = 8545
@@ -76,8 +76,6 @@ class BadJsonError(EthJsonRpcError):
 
 class BadResponseError(EthJsonRpcError):
     pass
-
-
 
 
 def hex_to_dec(x):
@@ -172,7 +170,7 @@ class EthJsonRpc(object):
         url = '{}://{}:{}'.format(scheme, self.host, self.port)
         headers = {'Content-Type': JSON_MEDIA_TYPE}
         try:
-            encoded_data = json.dumps(data) 
+            encoded_data = json.dumps(data, cls=CustomJSONEncoder) 
             r = self.session.post(url, headers=headers, data=encoded_data)
         except RequestsConnectionError:
             raise ConnectionError(url)
