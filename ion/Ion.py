@@ -14,7 +14,7 @@ from sha3 import keccak_256
 from .merkle import merkle_hash
 from .ethrpc import BadStatusCodeError, BadJsonError, BadResponseError, ConnectionError
 from .args import arg_ethrpc, arg_bytes20 #, arg_lithium_api
-from .utils import json_dumps
+
 
 PRIMITIVE = (int, float, str, bool, bytes)
 
