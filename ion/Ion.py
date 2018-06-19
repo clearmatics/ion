@@ -5,15 +5,18 @@ Ion: command line tool to allow users to intereact with lithium
 """
 from __future__ import print_function
 
+from binascii import hexlify, unhexlify
+
 import click
 import requests
-import simplejson
+from sha3 import keccak_256
 
 from .merkle import merkle_hash
-from ethereum.utils import keccak
 from .ethrpc import BadStatusCodeError, BadJsonError, BadResponseError, ConnectionError
 from .args import arg_ethrpc, arg_bytes20 #, arg_lithium_api
-PRIMITIVE = (int, long, float, str, bool)
+
+
+PRIMITIVE = (int, float, str, bool, bytes)
 
 def rpc_call_with_exceptions(function, *args):
     """
@@ -136,27 +139,22 @@ def ionlock_withdraw(lithium_port, rpc, account, lock, tkn, value, ref):
     ionlock = rpc.proxy("abi/IonLock.abi", lock, account)
     token = rpc.proxy("abi/Token.abi", tkn, account)
 
-    joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    joined_data = hexlify(account) + hexlify(tkn) + hexlify(lock) + "{0:0{1}x}".format(value,64).encode('utf-8') + hexlify(keccak_256(ref.encode('utf-8')).digest())
     api_url = 'http://127.0.0.1:' + str(lithium_port)
-    r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
+    r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data.decode('ascii')})
 
-    try:
-        blockid = r.json()['blockid']
-        r = requests.post(api_url + "/api/proof", json={'leaf': joined_data, 'blockid': blockid})
+    blockid = r.json()['blockid']
+    r = requests.post(api_url + "/api/proof", json={'leaf': joined_data.decode('ascii'), 'blockid': blockid})
 
-        path = r.json()['proof']
-        path = [int(x) for x in path]
-        hashed_ref = keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    path = r.json()['proof']
+    path = [int(x) for x in path]
+    hashed_ref = hexlify(keccak_256(ref.encode('utf-8')).digest())
 
-        result = rpc_call_with_exceptions(ionlock.Withdraw, value, hashed_ref.decode('hex'), int(blockid), path)
+    result = rpc_call_with_exceptions(ionlock.Withdraw, value, unhexlify(hashed_ref), int(blockid), path)
 
-        result = rpc_call_with_exceptions(token.balanceOf, account)
-        if result is not None:
-            print("New balance =", result)
-
-
-    except simplejson.errors.JSONDecodeError as e:
-        print(e.message)
+    result = rpc_call_with_exceptions(token.balanceOf, account)
+    if result is not None:
+        print("New balance =", result)
 
     return 0
 
@@ -186,28 +184,24 @@ def ionlink_verify(lithium_port, rpc, account, link, lock, tkn, value, ref):
     """
     ionlink = rpc.proxy("abi/IonLink.abi", link, account)
 
-    joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    joined_data = hexlify(account) + hexlify(tkn) + hexlify(lock) + "{0:0{1}x}".format(value,64).encode('utf-8') + hexlify(keccak_256(ref.encode('utf-8')).digest())
     hashed_data = merkle_hash(int(joined_data, 16))
     api_url = 'http://127.0.0.1:' + str(lithium_port)
-    r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
+    r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data.decode('ascii')})
 
-    try:
-        blockid = r.json()['blockid']
-        r = requests.post(api_url + "/api/proof", json={'leaf': joined_data, 'blockid': blockid})
+    blockid = r.json()['blockid']
+    r = requests.post(api_url + "/api/proof", json={'leaf': joined_data.decode('ascii'), 'blockid': blockid})
 
-        path = r.json()['proof']
-        path = [int(x) for x in path]
+    path = r.json()['proof']
+    path = [int(x) for x in path]
 
-        r = requests.post(api_url + "/api/verify", json={'leaf': joined_data, 'proof': path, 'blockid': blockid})
-        print("Lithium proof:")
-        print(r.text)
+    r = requests.post(api_url + "/api/verify", json={'leaf': joined_data.decode('ascii'), 'proof': path, 'blockid': blockid})
+    print("Lithium proof:")
+    print(r.text)
 
-        print("IonLink Proof at block id", blockid)
-        result = rpc_call_with_exceptions(ionlink.Verify, int(blockid), hashed_data, path)
-        print(result)
-
-    except simplejson.errors.JSONDecodeError as e:
-        print(e.message)
+    print("IonLink Proof at block id", blockid)
+    result = rpc_call_with_exceptions(ionlink.Verify, int(blockid), hashed_data, path)
+    print(result)
 
     return 0
 
@@ -231,21 +225,19 @@ def merkle_proof_path(lithium_port, account, lock, tkn, value, ref):
     :param ref: str, reference used for the deposit
     :return: 0, merkle path is printed to the console
     """
-    joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    joined_data = hexlify(account) + hexlify(tkn) + hexlify(lock) + "{0:0{1}x}".format(value,64).encode('utf-8') + hexlify(keccak_256(ref.encode('utf-8')).digest())
+    print("Joined data", joined_data)
+
     api_url = 'http://127.0.0.1:' + str(lithium_port)
-    r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
+    r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data.decode('ascii')})
 
-    try:
-        blockid = r.json()['blockid']
-        r = requests.post(api_url + "/api/proof", json={'leaf': joined_data, 'blockid':blockid})
+    blockid = r.json()['blockid']
+    r = requests.post(api_url + "/api/proof", json={'leaf': joined_data.decode('ascii'), 'blockid':blockid})
 
-        print("Received proof:")
-        [print("Path ", r.json()['proof'].index(x), " : ",  x) for x in r.json()['proof']]
+    print("Received proof:")
+    [print("Path ", r.json()['proof'].index(x), " : ",  x) for x in r.json()['proof']]
 
-        print("Latest IonLink block",blockid)
-
-    except simplejson.errors.JSONDecodeError as e:
-        print(e.message)
+    print("Latest IonLink block",blockid)
 
     return 0
 
@@ -269,19 +261,15 @@ def merkle_verify(proof, lithium_port, account, lock, tkn, value, ref):
     :param ref: str, reference used for the deposit
     :return: 0, result is printed to the console
     """
-    joined_data = account.encode('hex') + tkn.encode('hex') + lock.encode('hex') + "{0:0{1}x}".format(value,64) + keccak.new(digest_bits=256).update(str(ref)).hexdigest()
+    joined_data = hexlify(account) + hexlify(tkn) + hexlify(lock) + "{0:0{1}x}".format(value,64).encode('utf-8') + hexlify(keccak_256(ref.encode('utf-8')).digest())
     proof = [int(x) for x in proof]
     api_url = 'http://127.0.0.1:' + str(lithium_port)
-    r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data})
+    r = requests.post(api_url + "/api/blockid", json={'leaf': joined_data.decode('ascii')})
 
-    try:
-        blockid = r.json()['blockid']
-        r = requests.post(api_url + "/api/verify", json={'leaf': joined_data, 'proof': proof, 'blockid':blockid})
-        print("Received proof:")
-        print(r.text)
-
-    except simplejson.errors.JSONDecodeError as e:
-        print(e.message)
+    blockid = r.json()['blockid']
+    r = requests.post(api_url + "/api/verify", json={'leaf': joined_data.decode('ascii'), 'proof': proof, 'blockid':blockid})
+    print("Received proof:")
+    print(r.text)
 
     return 0
 

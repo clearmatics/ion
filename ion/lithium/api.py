@@ -9,6 +9,7 @@ Provides a set of endpoints from which users can derive the key information rega
 which is required when withdrawing funds from IonLock
 """
 
+from binascii import hexlify, unhexlify
 from flask import Flask, request, jsonify
 
 # from flask import Flask, url_for
@@ -16,6 +17,7 @@ from ..merkle import merkle_tree, merkle_path, merkle_proof
 
 
 app = Flask(__name__)
+app.config['JSON_AS_ASCII'] = False
 
 @app.route('/')
 
@@ -33,15 +35,15 @@ def api_leaves():
         if blockid is not None:
             nleaves = app.lithium.checkpoints[blockid]
             byte_leaves = app.lithium.leaves[0:nleaves]
-            hex_leaves = [x.encode('hex') for x in byte_leaves]
+            hex_leaves = [hexlify(x) for x in byte_leaves]
 
     elif request.method == 'GET':
         byte_leaves = app.lithium.leaves
-        hex_leaves = [x.encode('hex') for x in byte_leaves]
+        hex_leaves = [hexlify(x) for x in byte_leaves]
 
-    dict = {u'leaves': hex_leaves}
-
-    return jsonify(dict)
+    # XXX: python3, json.dumps doesn't handle `bytes` very well....
+    data = {u'leaves': [_.decode('utf-8') for _ in hex_leaves]}
+    return jsonify(data)
 
 @app.route('/api/root', methods=['GET'])
 def api_root():
@@ -50,8 +52,7 @@ def api_root():
     """
     byte_leaves = app.lithium.leaves
     tree, root = merkle_tree(byte_leaves)
-    dict = {u'root': root}
-    return jsonify(dict)
+    return jsonify({u'root': root})
 
 @app.route('/api/checkpoints', methods=['GET'])
 def api_checkpoint():
@@ -66,9 +67,9 @@ def api_blockid():
     """
     if request.method == 'POST':
         json = request.get_json()
-        leaf = json[u'leaf']
+        leaf = json[u'leaf'].encode('utf-8')
 
-    hex_leaves = [x.encode('hex') for x in app.lithium.leaves]
+    hex_leaves = [hexlify(x) for x in app.lithium.leaves]
     byte_checkpoints = app.lithium.checkpoints
 
     if leaf is not None:
@@ -81,8 +82,7 @@ def api_blockid():
                 blockid = block
                 break
 
-        dict = {u'blockid': str(blockid)}
-        return jsonify(dict)
+        return jsonify({u'blockid': str(blockid)})
     else:
         return "No valid leaf received."
 
@@ -104,7 +104,7 @@ def api_proof():
         nleaves = app.lithium.checkpoints[blockid]
         tree, root = merkle_tree(app.lithium.leaves[:nleaves])
 
-        hex_leaf = leaf.decode('hex')
+        hex_leaf = unhexlify(leaf)
 
         path = merkle_path(hex_leaf, tree)
 
@@ -133,7 +133,7 @@ def api_verify_proof():
         leaves = app.lithium.leaves[0:nleaves]
         tree, root = merkle_tree(leaves)
 
-        hex_leaf = leaf.decode('hex')
+        hex_leaf = unhexlify(leaf)
         proof = merkle_proof(hex_leaf, proof, root)
 
         return jsonify({"verified":proof})

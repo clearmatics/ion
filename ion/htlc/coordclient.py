@@ -146,7 +146,7 @@ class Proposal(object):
         secret_hashed = secret_hashed_hex.decode('hex')
 
         # TODO: detertmine which side we're on, automagically call correct one
-        if x:
+        if False:
             htlc_address = self._data['depositor']
         else:
             htlc_address = exch_data['want_htlc_address']
