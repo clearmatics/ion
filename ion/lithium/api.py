@@ -72,7 +72,6 @@ def api_blockid():
     hex_leaves = [hexlify(x) for x in app.lithium.leaves]
     byte_checkpoints = app.lithium.checkpoints
 
-    # XXX: this is an O(n) operation.... ewwww
     if leaf is not None:
         leaf_index = hex_leaves.index(leaf)
         blockid = None

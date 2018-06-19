@@ -35,15 +35,14 @@ LEAVES = \
 
 EXPECTED_BLOCKID = \
     {
-        u'blockid': u'6ce75c011eac6f587c54493784ce2139b70e38b5b04fedab2bf5a84b500d0d92'
+        u'blockid': u'81d9d8277b8f741b859de5455b9b56ff240d2ecf19101df3da9b76b137e5a7e6'
     }
 
 PROOF = \
         {
             u'proof': [
-                u'54014011439648363204354998496393219114331058923926644452979013882180058964973',
-                u'111156487848132035204691335325227635200969078435864690888530225168808220587159',
-                u'112042151246272191572954036892630855408766946838390755837084327398547991526295'
+                u'97923772266235395715382770652917280357200452858347804453224054177914019790625',
+                u'98712613182025294006941209131503858290191202453957227771980554773023716000070'
             ]
         }
 
@@ -111,7 +110,7 @@ class TestFlaskApi(unittest.TestCase):
     def test_proof(self):
         print("\nTest: /api/proof Internals")
         value = '45b6d9232f9a2d8808fef6ee5339482aed37a8588a8668cb88fde5ffaab67ba1'
-        blockid = '6ce75c011eac6f587c54493784ce2139b70e38b5b04fedab2bf5a84b500d0d92'
+        blockid = '81d9d8277b8f741b859de5455b9b56ff240d2ecf19101df3da9b76b137e5a7e6'
         response = self.app.post('/api/proof', json={'leaf': value, 'blockid': blockid})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), PROOF)
@@ -120,7 +119,7 @@ class TestFlaskApi(unittest.TestCase):
     def test_proof_verification(self):
         print("\nTest: /api/verify Internals")
         value = '45b6d9232f9a2d8808fef6ee5339482aed37a8588a8668cb88fde5ffaab67ba1'
-        blockid = '6ce75c011eac6f587c54493784ce2139b70e38b5b04fedab2bf5a84b500d0d92'
+        blockid = '81d9d8277b8f741b859de5455b9b56ff240d2ecf19101df3da9b76b137e5a7e6'
         response = self.app.post('/api/proof', json={'leaf': value, 'blockid': blockid})
         proof = response.get_json()
         self.assertEqual(response.status_code, 200)
