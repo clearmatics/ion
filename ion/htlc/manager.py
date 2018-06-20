@@ -167,7 +167,7 @@ class ExchangeManager(object):
         onchain_sender = normalise_address(contract.GetSender(taker_guid))
         if onchain_sender != deposited_for:
             raise ExchangeError("Sender address differs from depositor")
-
+        
 
     def release(self, exch_guid, secret_hashed, **kwa):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
