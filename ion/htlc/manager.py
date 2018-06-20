@@ -40,8 +40,6 @@ class ExchangeManager(object):
     def advertise(self, **kwa):
         exch_guid = hexlify(os.urandom(20)).decode('ascii')
 
-        # TODO: replace with class instance, `Exchange` ?
-
         exch = dict(
             guid=exch_guid,
             offer_address=kwa['offer_address'],
@@ -51,11 +49,10 @@ class ExchangeManager(object):
             chosen_proposal=None,
 
             # Temporary placeholders
-            # TODO: replace with correct contracts
+            # TODO: replace with correct contracts depending on network
             offer_htlc_address=self._htlc_address,
             want_htlc_address=self._htlc_address
         )
-        print("Exch is", exch)
 
         self._exchanges[exch_guid] = exch
 
@@ -87,7 +84,7 @@ class ExchangeManager(object):
         # taker_guid = Deposit() by A (the initial offerer)
         taker_guid = sha256(unhexlify(depositor) + unhexlify(secret_hashed)).digest()
 
-        # TODO: verify details on-chain, expiry, depositor and secret must match
+        # TODO: make sure we have the right contract address
         contract = make_htlc_proxy(self._rpc, exch['want_htlc_address'])
 
         # Verify on-chain expiry matches
@@ -116,7 +113,7 @@ class ExchangeManager(object):
 
         # Ensure deposited amount is more or greater than what was wanted
         onchain_amount = contract.GetAmount(offer_guid)
-        if onchain_amount >= exch['want_amount']:
+        if onchain_amount < exch['want_amount']:
             raise ExchangeError("Propose amount differs from want amount")
 
         # Store proposal
@@ -136,6 +133,42 @@ class ExchangeManager(object):
 
         exch['chosen_proposal'] = secret_hashed
 
+        contract = make_htlc_proxy(self._rpc, exch['offer_htlc_address'])
+
+        taker_guid = unhexlify(proposal['taker_guid'])
+
+        # 1 = Deposited
+        if contract.GetState(taker_guid) != 1:
+            raise ExchangeError("Exchange is in wrong state")
+
+        # Ensure deposited amount is more or greater than what was wanted
+        onchain_amount = contract.GetAmount(taker_guid)
+        if onchain_amount < exch['offer_amount']:
+            raise ExchangeError("Confirm amount differs from offer amount")
+
+        # Verify on-chain hashed secret
+        onchain_sechash = contract.GetSecretHashed(taker_guid)
+        if hexlify(onchain_sechash).decode('ascii') != secret_hashed:
+            raise ExchangeError("Submitted hashed secret doesn't match on-chain data")
+
+        # Verify on-chain expiry matches
+        expiry = proposal['expiry']
+        onchain_expiry = contract.GetExpiry(taker_guid)
+        if expiry != onchain_expiry:
+            raise ExchangeError("Submitted expiry doesn't match on-chain data")
+
+        # Verify receiver
+        onchain_receiver = normalise_address(contract.GetReceiver(taker_guid))
+        if onchain_receiver != proposal['depositor']:
+            raise ExchangeError("Offer address differs from receiver")
+
+        # Verify sender
+        deposited_for = exch['offer_address']
+        onchain_sender = normalise_address(contract.GetSender(taker_guid))
+        if onchain_sender != deposited_for:
+            raise ExchangeError("Sender address differs from depositor")
+
+
     def release(self, exch_guid, secret_hashed, **kwa):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
 
@@ -147,7 +180,11 @@ class ExchangeManager(object):
         if secret_hashed_check_hex != secret_hashed:
             raise ExchangeError(' '.join(["Secret doesn't match! Got", secret_hashed_check_hex, 'expected', secret_hashed]))
 
+        contract = make_htlc_proxy(self._rpc, exch['want_htlc_address'])
+
         proposal['secret'] = secret_hex
 
     def finish(self, exch_guid, secret_hashed, **kwa):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
+
+        contract = make_htlc_proxy(self._rpc, exch['offer_htlc_address'])
