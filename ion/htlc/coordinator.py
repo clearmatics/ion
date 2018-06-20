@@ -92,7 +92,8 @@ class CoordinatorBlueprint(Blueprint):
         """
         params = params_parse(request.form, dict(
             expiry=param_uint256,
-            depositor=param_bytes20
+            depositor=param_bytes20,
+            txid=param_bytes32,
         ))
 
         try:
@@ -121,8 +122,12 @@ class CoordinatorBlueprint(Blueprint):
 
         This is performed by Alice
         """
+        params = params_parse(request.form, dict(
+            txid=param_bytes32,
+        ))
+
         try:
-            self._manager.confirm(exch_id, secret_hashed)
+            self._manager.confirm(exch_id, secret_hashed, **params)
         except ExchangeError as ex:
             return api_abort(str(ex))
 

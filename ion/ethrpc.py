@@ -116,10 +116,19 @@ def ether_to_wei(ether):
 
 
 class EthTransaction(namedtuple('_TxStruct', ('rpc', 'txid'))):
+    def details(self):
+        txid = self.txid
+        if txid[:2] != '0x':
+            txid = '0x' + txid
+        return self.rpc.eth_getTransactionByHash(txid)
+
     def receipt(self, wait=False, tick_fn=None):
         first = True
+        txid = self.txid
+        if txid[:2] != '0x':
+            txid = '0x' + txid
         while True:
-            receipt = self.rpc.eth_getTransactionReceipt(self.txid)
+            receipt = self.rpc.eth_getTransactionReceipt(txid)
             # TODO: turn into asynchronous notification / future
             if receipt:
                 return receipt

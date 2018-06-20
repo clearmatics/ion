@@ -84,6 +84,13 @@ class ExchangeManager(object):
         # taker_guid = Deposit() by A (the initial offerer)
         taker_guid = sha256(unhexlify(depositor) + unhexlify(secret_hashed)).digest()
 
+        # Wait for transaction success
+        txid = kwa['txid']
+        transaction = EthTransaction(self._rpc, txid)
+        receipt = transaction.receipt(wait=True)
+        if int(receipt['status'], 16) == 0:
+            raise ExchangeError("Transaction was aborted")
+
         # TODO: make sure we have the right contract address
         contract = make_htlc_proxy(self._rpc, exch['want_htlc_address'])
 
@@ -123,6 +130,7 @@ class ExchangeManager(object):
             depositor=depositor,
             offer_guid=hexlify(offer_guid).decode('ascii'),
             taker_guid=hexlify(taker_guid).decode('ascii'),
+            propose_txid=txid,
         )
         exch['proposals'][secret_hashed] = proposal
 
@@ -131,7 +139,12 @@ class ExchangeManager(object):
     def confirm(self, exch_guid, secret_hashed, **kwa):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
 
-        exch['chosen_proposal'] = secret_hashed
+        # Wait for transaction success
+        txid = kwa['txid']
+        transaction = EthTransaction(self._rpc, txid)
+        receipt = transaction.receipt(wait=True)
+        if int(receipt['status'], 16) == 0:
+            raise ExchangeError("Transaction was aborted")
 
         contract = make_htlc_proxy(self._rpc, exch['offer_htlc_address'])
 
@@ -168,10 +181,12 @@ class ExchangeManager(object):
         if onchain_sender != deposited_for:
             raise ExchangeError("Sender address differs from depositor")
 
+        proposal['confirm_txid'] = txid
+        exch['chosen_proposal'] = secret_hashed
+
 
     def release(self, exch_guid, secret_hashed, **kwa):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
-
 
         secret_hex = kwa['secret']
         secret = unhexlify(secret_hex)
@@ -180,28 +195,29 @@ class ExchangeManager(object):
         if secret_hashed_check_hex != secret_hashed:
             raise ExchangeError(' '.join(["Secret doesn't match! Got", secret_hashed_check_hex, 'expected', secret_hashed]))
 
+        # Wait for transaction success
         txid = kwa['txid']
         transaction = EthTransaction(self._rpc, txid)
-        print("Getting release receipt for tx", txid)
-        receipt = transaction.receipt(wait=False)
-        print("Release receipt is", receipt)
+        receipt = transaction.receipt(wait=True)
+        if int(receipt['status'], 16) == 0:
+            raise ExchangeError("Transaction was aborted")
 
         contract = make_htlc_proxy(self._rpc, exch['want_htlc_address'])
-
-        offer_guid = unhexlify(proposal['offer_guid'])
         # XXX: if the server errors out here... then proposal won't get updated, this is bad!
 
-        # TODO: wait for transaction?
-
         # 2 = Withdrawn
+        offer_guid = unhexlify(proposal['offer_guid'])
         onchain_state = contract.GetState(offer_guid)
         print("After release, State is ", onchain_state)
         """
+        # XXX: even though we've waited for a successful receipt, the state is still `1`
+        #      but in the 'finish' call, the state with the same params is `2`
         if onchain_state != 2:
             raise ExchangeError("Exchange is in wrong state")
         """
 
         proposal['secret'] = secret_hex
+        proposal['release_txid'] = txid
 
     def finish(self, exch_guid, secret_hashed, **kwa):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
@@ -210,19 +226,15 @@ class ExchangeManager(object):
 
         taker_guid = unhexlify(proposal['taker_guid'])
 
-        # TODO: wait for transaction?
-
         txid = kwa['txid']
         transaction = EthTransaction(self._rpc, txid)
-        print("Getting finish receipt for tx", txid)
-        receipt = transaction.receipt(wait=False)
-        print("Finish receipt is", receipt)
+        receipt = transaction.receipt(wait=True)
+        if int(receipt['status'], 16) == 0:
+            raise ExchangeError("Transaction was aborted")
 
         # 2 = Withdrawn
         onchain_state = contract.GetState(taker_guid)
-        print("After finish, state is", onchain_state)
         if onchain_state != 2:
             raise ExchangeError("Exchange is in wrong state")
 
-        offer_guid = unhexlify(proposal['offer_guid'])
-        print("Other sides state is", contract.GetState(offer_guid))
+        proposal['finish_txid'] = txid
