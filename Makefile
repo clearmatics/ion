@@ -143,6 +143,9 @@ test-unit:
 test-coordserver:
 	$(PYTHON) -mion htlc coordinator --contract 0xd833215cbcc3f914bd1c9ece3ee7bf8b14f841bb
 
+test-coordclient:
+	PYTHONPATH=. $(PYTHON) ./test/test_coordclient.py
+
 test: test-unit test-js
 
 

@@ -7,7 +7,7 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 
 from ..utils import normalise_address
-from ..ethrpc import EthJsonRpc
+from ..ethrpc import EthJsonRpc, EthTransaction
 
 from .common import MINIMUM_EXPIRY_DURATION, make_htlc_proxy
 
@@ -167,20 +167,39 @@ class ExchangeManager(object):
         onchain_sender = normalise_address(contract.GetSender(taker_guid))
         if onchain_sender != deposited_for:
             raise ExchangeError("Sender address differs from depositor")
-        
+
 
     def release(self, exch_guid, secret_hashed, **kwa):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
+
 
         secret_hex = kwa['secret']
         secret = unhexlify(secret_hex)
         secret_hashed_check = sha256(secret).digest()
         secret_hashed_check_hex = hexlify(secret_hashed_check).decode('ascii')
-
         if secret_hashed_check_hex != secret_hashed:
             raise ExchangeError(' '.join(["Secret doesn't match! Got", secret_hashed_check_hex, 'expected', secret_hashed]))
 
+        txid = kwa['txid']
+        transaction = EthTransaction(self._rpc, txid)
+        print("Getting release receipt for tx", txid)
+        receipt = transaction.receipt(wait=False)
+        print("Release receipt is", receipt)
+
         contract = make_htlc_proxy(self._rpc, exch['want_htlc_address'])
+
+        offer_guid = unhexlify(proposal['offer_guid'])
+        # XXX: if the server errors out here... then proposal won't get updated, this is bad!
+
+        # TODO: wait for transaction?
+
+        # 2 = Withdrawn
+        onchain_state = contract.GetState(offer_guid)
+        print("After release, State is ", onchain_state)
+        """
+        if onchain_state != 2:
+            raise ExchangeError("Exchange is in wrong state")
+        """
 
         proposal['secret'] = secret_hex
 
@@ -188,3 +207,22 @@ class ExchangeManager(object):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
 
         contract = make_htlc_proxy(self._rpc, exch['offer_htlc_address'])
+
+        taker_guid = unhexlify(proposal['taker_guid'])
+
+        # TODO: wait for transaction?
+
+        txid = kwa['txid']
+        transaction = EthTransaction(self._rpc, txid)
+        print("Getting finish receipt for tx", txid)
+        receipt = transaction.receipt(wait=False)
+        print("Finish receipt is", receipt)
+
+        # 2 = Withdrawn
+        onchain_state = contract.GetState(taker_guid)
+        print("After finish, state is", onchain_state)
+        if onchain_state != 2:
+            raise ExchangeError("Exchange is in wrong state")
+
+        offer_guid = unhexlify(proposal['offer_guid'])
+        print("Other sides state is", contract.GetState(offer_guid))

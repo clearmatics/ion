@@ -3,6 +3,7 @@
 
 import os
 from hashlib import sha256
+from binascii import hexlify, unhexlify
 
 from ..utils import require, normalise_address
 from ..ethrpc import EthJsonRpc
@@ -60,7 +61,7 @@ class Proposal(object):
         # Offerer deposits their side of the deal, locked to same hashed secret 
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        txn = htlc_contract.Deposit(conf_receiver, conf_secret_hashed.decode('hex'), conf_expiry, value=conf_value)
+        txn = htlc_contract.Deposit(conf_receiver, unhexlify(conf_secret_hashed), conf_expiry, value=conf_value)
 
         receipt = txn.receipt(wait=wait)
         if receipt and int(receipt['status'], 16) == 0:
@@ -83,14 +84,14 @@ class Proposal(object):
         my_address = self._coordapi.my_address
         exch_data = self._exch_obj.data
 
-        secret_hex = secret.encode('hex')
+        secret_hex = hexlify(secret).decode('ascii')
         secret_hashed = sha256(secret).digest()
-        secret_hashed_hex = secret_hashed.encode('hex')
+        secret_hashed_hex = hexlify(secret_hashed).decode('ascii')
 
         require(my_address == self._data['depositor'], "Only proposer can release")
         require(self._data['secret_hashed'] == secret_hashed_hex, "Secrets don't match!")
 
-        exch_guid = self._data['taker_guid'].decode('hex')
+        exch_guid = unhexlify(self._data['taker_guid'])
 
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
@@ -116,11 +117,11 @@ class Proposal(object):
         exch_data = self._exch_obj.data
 
         secret_hex = self._data['secret']
-        secret = secret_hex.decode('hex')
+        secret = unhexlify(secret_hex)
 
         # TODO: verify secret hashes to hashed image
 
-        exch_guid = self._data['offer_guid'].decode('hex')
+        exch_guid = unhexlify(self._data['offer_guid'])
 
         htlc_address = exch_data['want_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
@@ -208,7 +209,7 @@ class Exchange(object):
         # Create a random secret
         secret = os.urandom(32)
         secret_hashed = sha256(secret).digest()
-        secret_hashed_hex = secret_hashed.encode('hex')
+        secret_hashed_hex = hexlify(secret_hashed).decode('ascii')
 
         # Proposal parameters
         prop_receiver = self._data['offer_address']

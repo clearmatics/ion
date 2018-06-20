@@ -127,7 +127,7 @@ class EthTransaction(namedtuple('_TxStruct', ('rpc', 'txid'))):
                 break
             try:
                 if first:
-                    if isinstance(wait, callable):
+                    if hasattr(wait, '__call__'):
                         wait()
                     first = False
                 elif tick_fn:
