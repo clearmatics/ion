@@ -1,3 +1,6 @@
+## Copyright (c) 2018 Harry Roberts. All Rights Reserved.
+## SPDX-License-Identifier: LGPL-3.0+
+
 import os
 import time
 from binascii import hexlify, unhexlify
@@ -101,20 +104,20 @@ class ExchangeManager(object):
         if contract.GetState(offer_guid) != 1:
             raise ExchangeError("Exchange is in wrong state")
 
-        onchain_receiver = contract.GetReceiver(offer_guid)
-        print("Receiver", onchain_receiver, exch['offer_address'])
+        # Verify receiver
+        onchain_receiver = normalise_address(contract.GetReceiver(offer_guid))
+        if onchain_receiver != exch['offer_address']:
+            raise ExchangeError("Offer address differs from receiver")
 
-        onchain_sender = contract.GetSender(offer_guid)
-        print("Sender", onchain_sender, depositor)
+        # Verify sender
+        onchain_sender = normalise_address(contract.GetSender(offer_guid))
+        if onchain_sender != depositor:
+            raise ExchangeError("Sender address differs from depositor")
 
+        # Ensure deposited amount is more or greater than what was wanted
         onchain_amount = contract.GetAmount(offer_guid)
-        print("Amount", onchain_amount)
-
-        # TODO: verify they deposited it for the right person
-
-        # TODO: verify depositor is who they say they are
-
-        # TODO: verify amount is what the correct value for the 'want' side (proposer offers what initial offerer wants)
+        if onchain_amount >= exch['want_amount']:
+            raise ExchangeError("Propose amount differs from want amount")
 
         # Store proposal
         proposal = dict(

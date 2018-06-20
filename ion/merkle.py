@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 ## Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 ## SPDX-License-Identifier: LGPL-3.0+
 

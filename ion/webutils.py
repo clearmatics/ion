@@ -1,3 +1,6 @@
+## Copyright (c) 2018 Harry Roberts. All Rights Reserved.
+## SPDX-License-Identifier: LGPL-3.0+
+
 from binascii import hexlify
 
 from flask import jsonify, abort, make_response
