@@ -2,9 +2,6 @@
 ## SPDX-License-Identifier: LGPL-3.0+
 
 import sys
-import os
-import time
-from hashlib import sha256
 
 from flask import Flask, Blueprint, request, abort, jsonify, make_response
 from werkzeug.routing import BaseConverter
@@ -12,7 +9,7 @@ from werkzeug.routing import BaseConverter
 from ..args import arg_bytes32, arg_bytes20, arg_uint256
 from ..utils import scan_bin
 
-from .common import MINIMUM_EXPIRY_DURATION
+from .manager import ExchangeManager, ExchangeError
 
 
 #######################################################################
@@ -80,6 +77,17 @@ class Bytes20Converter(BytesConverter):
     BYTES_LEN = 20
 
 
+def params_parse(data, params):
+    """
+    Performs param unmarshalling operations to return a dictionary
+    params_parse({...}, {name: unmarshal})
+    """
+    out = dict()
+    for key, val in params.items():
+        out[key] = val(data, key)
+    return out
+
+
 #######################################################################
 
 
@@ -91,8 +99,7 @@ class CoordinatorBlueprint(Blueprint):
     def __init__(self, htlc_address, **kwa):
         Blueprint.__init__(self, 'htlc', __name__, **kwa)
 
-        self._htlc_address = htlc_address
-        self._exchanges = dict()
+        self._manager = ExchangeManager(htlc_address)
 
         # XXX: This sure looks hacky... assignment not allowed in lambda, callback etc.
         self.record(lambda s: s.app.url_map.converters.__setitem__('bytes32', Bytes32Converter))
@@ -113,23 +120,11 @@ class CoordinatorBlueprint(Blueprint):
         self.add_url_rule("/<bytes20:exch_id>/<bytes32:secret_hashed>/finish", 'finish',
                           self.exch_finish, methods=['POST'])
 
-    def _get_exch(self, exch_id):
-        if exch_id not in self._exchanges:
-            return api_abort("Unknown exchange", code=404)
-        return self._exchanges[exch_id]
-
-    def _get_proposal(self, exch_id, secret_hashed):
-        exch = self._get_exch(exch_id)
-        proposal = exch['proposals'].get(secret_hashed)
-        if not proposal:
-            return api_abort("Unknown proposal", code=404)
-        return exch, proposal
-
     def index(self):
         """
         Display list of all exchanges, and their details
         """
-        return jsonify(self._exchanges)
+        return jsonify(self._manager.exchanges)
 
     def exch_advertise(self):
         """
@@ -138,33 +133,20 @@ class CoordinatorBlueprint(Blueprint):
 
         This is performed by Alice
         """
-        # Parse and validate input parameters
-        offer_address = param_bytes20(request.form, 'offer_address')
-        offer_amount = param_uint256(request.form, 'offer_amount')
-        want_amount = param_uint256(request.form, 'want_amount')
 
-        # TODO: validate contract addresses etc. and verify on-chain stuff
+        params = params_parse(request.form, dict(
+            offer_address=param_bytes20,
+            offer_amount=param_uint256,
+            want_amount=param_uint256
+        ))
 
-        exch_id = os.urandom(20).encode('hex')
-
-        # Save exchange details
-        # TODO: replace with class instance, `Exchange` ?
-        self._exchanges[exch_id] = dict(
-            guid=exch_id,
-            offer_address=offer_address,
-            offer_amount=offer_amount,
-            want_amount=want_amount,
-            proposals=dict(),
-            chosen_proposal=None,
-
-            # Temporary placeholders
-            # TODO: replace with correct contracts
-            offer_htlc_address=self._htlc_address.encode('hex'),
-            want_htlc_address=self._htlc_address.encode('hex')
-        )
+        try:
+            exch_guid = self._manager.advertise(**params)
+        except ExchangeError as ex:
+            return api_abort(str(ex))
 
         return jsonify(dict(
-            id=exch_id,
+            id=exch_guid,
             ok=1
         ))
 
@@ -172,7 +154,10 @@ class CoordinatorBlueprint(Blueprint):
         """
         Retrieve details of exchange
         """
-        exch = self._get_exch(exch_id)
+        try:
+            exch = self._manager.get_exchange(exch_id)
+        except ExchangeError as ex:
+            return api_abort(str(ex))
         return jsonify(exch)
 
     def exch_propose(self, exch_id, secret_hashed):
@@ -183,43 +168,15 @@ class CoordinatorBlueprint(Blueprint):
 
         This is performed by Bob
         """
-        exch = self._get_exch(exch_id)
+        params = params_parse(request.form, dict(
+            expiry=param_uint256,
+            depositor=param_bytes20
+        ))
 
-        if exch['chosen_proposal']:
-            return api_abort("Proposal has already been chosen", code=409)
-
-        # Hashed secret is the 'image', pre-image can be supplied to prove knowledge of secret
-        if secret_hashed in exch['proposals']:
-            return api_abort("Duplicate proposal secret", code=409)
-
-        # TODO: verify either side of the exchange aren't the same
-
-        expiry = param_uint256(request.form, 'expiry')
-        depositor = param_bytes20(request.form, 'depositor')
-
-        # TODO: verify details on-chain, expiry, depositor and secret must match
-
-        # Verify expiry time is acceptable
-        # XXX: should minimum expiry be left to the contract, or the coordinator?
-        now = int(time.time())
-        min_expiry = now + MINIMUM_EXPIRY_DURATION
-        if expiry < min_expiry:
-            return api_abort("Expiry too short")
-
-        # GUID used for the exchanges
-        # offer_guid = Deposit() by B (the proposer)
-        offer_guid = sha256(exch['offer_address'].decode('hex') + secret_hashed.decode('hex')).digest()
-        # taker_guid = Deposit() by A (the initial offerer)
-        taker_guid = sha256(depositor.decode('hex') + secret_hashed.decode('hex')).digest()
-
-        # Store proposal
-        exch['proposals'][secret_hashed] = dict(
-            secret_hashed=secret_hashed,
-            expiry=expiry,
-            depositor=depositor,
-            offer_guid=offer_guid.encode('hex'),
-            taker_guid=taker_guid.encode('hex'),
-        )
+        try:
+            exch, proposal = self._manager.propose(exch_id, secret_hashed, **params)
+        except ExchangeError as ex:
+            return api_abort(str(ex))
 
         # TODO: redirect to proposal URL? - or avoid another GET request...
         return jsonify(dict(
@@ -230,7 +187,10 @@ class CoordinatorBlueprint(Blueprint):
         """
         Retrieve details for a specific exchange proposal
         """
-        exch, proposal = self._get_proposal(exch_id, secret_hashed)
+        try:
+            exch, proposal = self._manager.get_proposal(exch_id, secret_hashed)
+        except ExchangeError as ex:
+            return api_abort(str(ex))
         return jsonify(proposal)
 
     def exch_confirm(self, exch_id, secret_hashed):
@@ -241,12 +201,10 @@ class CoordinatorBlueprint(Blueprint):
 
         This is performed by Alice
         """
-        exch, proposal = self._get_proposal(exch_id, secret_hashed)
-        
-        # XXX: one side of the expiry must be longer than the other to handle failure case
-        # TODO: verify on-chain details match the proposal
-
-        exch['chosen_proposal'] = secret_hashed
+        try:
+            self._manager.confirm(exch_id, secret_hashed)
+        except ExchangeError as ex:
+            return api_abort(str(ex))
 
         return jsonify(dict(
             ok=1
@@ -258,17 +216,14 @@ class CoordinatorBlueprint(Blueprint):
 
         This is performed by Bob
         """
-        exch, proposal = self._get_proposal(exch_id, secret_hashed)
+        params = params_parse(request.form, dict(
+            secret=param_bytes32,
+        ))
 
-        secret_hex = param_bytes32(request.form, 'secret')
-        secret = secret_hex.decode('hex')
-        secret_hashed_check = sha256(secret).digest()
-        secret_hashed_check_hex = secret_hashed_check.encode('hex')
-
-        if secret_hashed_check_hex != secret_hashed:
-            return api_abort(' '.join(["Secret doesn't match! Got", secret_hashed_check_hex, 'expected', secret_hashed]))
-
-        proposal['secret'] = secret_hex
+        try:
+            self._manager.release(exch_id, secret_hashed, **params)
+        except ExchangeError as ex:
+            return api_abort(str(ex))
 
         return jsonify(dict(
             ok=1
@@ -282,11 +237,10 @@ class CoordinatorBlueprint(Blueprint):
 
         This completes the exchange.
         """
-        exch, proposal = self._get_proposal(exch_id, secret_hashed)
-
-        # XXX: technically a web API call isn't necessary for this step
-        #      the API should monitor the state of both sides of the exchange
-        #      and update the status / information automagically
+        try:
+            self._manager.finish(exch_id, secret_hashed)
+        except ExchangeError as ex:
+            return api_abort(str(ex))
 
         return jsonify(dict(
             ok=1
