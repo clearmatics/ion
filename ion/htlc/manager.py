@@ -2,6 +2,8 @@ import os
 import time
 from hashlib import sha256
 
+from ..utils import normalise_address
+
 from .common import MINIMUM_EXPIRY_DURATION
 
 
@@ -12,8 +14,7 @@ class ExchangeError(Exception):
 class ExchangeManager(object):
     def __init__(self, htlc_address):
         self._exchanges = dict()
-        self._htlc_address = htlc_address
-
+        self._htlc_address = normalise_address(htlc_address)
 
     @property
     def exchanges(self):
@@ -45,8 +46,8 @@ class ExchangeManager(object):
 
             # Temporary placeholders
             # TODO: replace with correct contracts
-            offer_htlc_address=self._htlc_address.encode('hex'),
-            want_htlc_address=self._htlc_address.encode('hex')
+            offer_htlc_address=self._htlc_address,
+            want_htlc_address=self._htlc_address
         )
 
         self._exchanges[exch_guid] = exch
