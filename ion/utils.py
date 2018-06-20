@@ -85,7 +85,7 @@ def require(arg, msg=None):
 
 def normalise_address(addr):
     if len(addr) == 20:
-        addr = hexlify(addr)
+        addr = hexlify(addr).decode('ascii')
     if addr[:2] == '0x':
         addr = addr[2:]
     require(len(addr) == 40, "Invalid address: " + str(addr))

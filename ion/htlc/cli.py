@@ -72,14 +72,16 @@ contract_multicommand.add_command(contract_refund, "refund")
 
 #######################################################################
 #
-# Multi-command entry-point
+# HTLC coordinator server
 #
 
 @click.command()
 @click.option('--contract', callback=arg_bytes20, metavar="0x...20", required=True, help="HTLC contract address")
-def coordinator(contract):
-    from .coordinator import main
-    main(contract)
+@click.option('--rpc', callback=arg_ethrpc, metavar="ip:port", default='127.0.0.1:8545', help="Ethereum JSON-RPC server")
+@click.option('--account', callback=arg_bytes20, metavar="0x...20", required=False, help="Account to transfer from.")
+def coordinator(contract, rpc, account):
+    from .coordinator import main as coordinator_main
+    return coordinator_main(contract, rpc)
 
 
 #######################################################################

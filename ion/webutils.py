@@ -1,3 +1,5 @@
+from binascii import hexlify
+
 from flask import jsonify, abort, make_response
 from werkzeug.routing import BaseConverter
 
@@ -29,11 +31,11 @@ def param_filter_arg(the_dict, key, filter_fn):
 
 
 def param_bytes32(the_dict, key):
-    return param_filter_arg(the_dict, key, arg_bytes32).encode('hex')
+    return hexlify(param_filter_arg(the_dict, key, arg_bytes32)).decode('ascii')
 
 
 def param_bytes20(the_dict, key):
-    return param_filter_arg(the_dict, key, arg_bytes20).encode('hex')
+    return hexlify(param_filter_arg(the_dict, key, arg_bytes20)).decode('ascii')
 
 
 def param_uint256(the_dict, key):
@@ -54,7 +56,7 @@ class BytesConverter(BaseConverter):
 
     def to_python(self, value):
         # Normalise hex encoding...
-        return scan_bin(value).encode('hex')
+        return hexlify(scan_bin(value)).decode('ascii')
 
 
 class Bytes32Converter(BytesConverter):

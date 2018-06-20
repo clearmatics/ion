@@ -234,15 +234,14 @@ class Exchange(object):
 
         # Notify coordinator of proposal
         proposal_resource = self._resource(secret_hashed_hex)
-        response = proposal_resource.POST(
+        propdata = proposal_resource.POST(
             expiry=prop_expiry,
             depositor=my_address,
             txid=txn.txid
         )
-        require(response['ok'] == 1, "Proposal coordinator API error")
 
         # Add proposal to list, then return it
-        proposal = self._make_proposal(secret_hashed_hex)
+        proposal = self._make_proposal(secret_hashed_hex, propdata)
         self.proposals[secret_hashed_hex] = proposal
         return secret, proposal
 

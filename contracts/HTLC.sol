@@ -31,6 +31,44 @@ contract HTLC {
 
     mapping (bytes32 => Exchange) public exchanges;
 
+    function GetExchange ( bytes32 inExchGUID )
+        internal view returns (Exchange storage)
+    {
+        Exchange storage exch = exchanges[inExchGUID];
+        require( exch.state != ExchangeState.Invalid );
+        return exch;
+    }
+
+    function GetSender ( bytes32 inExchGUID )
+        public view returns (address)
+    {
+        return GetExchange(inExchGUID).sender;
+    }
+
+    function GetReceiver ( bytes32 inExchGUID )
+        public view returns (address)
+    {
+        return GetExchange(inExchGUID).receiver;
+    }
+
+    function GetSecretHashed ( bytes32 inExchGUID )
+        public view returns (bytes32)
+    {
+        return GetExchange(inExchGUID).secretHashed;
+    }
+
+    function GetExpiry ( bytes32 inExchGUID )
+        public view returns (uint256)
+    {
+        return GetExchange(inExchGUID).expiry;
+    }
+
+    function GetAmount ( bytes32 inExchGUID )
+        public view returns (uint256)
+    {
+        return GetExchange(inExchGUID).amount;
+    }
+
     function GetState ( bytes32 inExchGUID )
         public view returns (ExchangeState)
     {

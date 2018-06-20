@@ -140,6 +140,9 @@ test-js:
 test-unit:
 	$(PYTHON) -m unittest discover test/
 
+test-coordserver:
+	$(PYTHON) -mion htlc coordinator --contract 0xd833215cbcc3f914bd1c9ece3ee7bf8b14f841bb
+
 test: test-unit test-js
 
 

@@ -5,7 +5,8 @@ import sys
 
 from flask import Flask, Blueprint, request, jsonify
 
-from ..utils import scan_bin
+from ..ethrpc import EthJsonRpc
+from ..utils import normalise_address
 from ..webutils import (Bytes32Converter, Bytes20Converter, params_parse, api_abort,
                         param_bytes20, param_bytes32, param_uint256)
 
@@ -17,10 +18,10 @@ class CoordinatorBlueprint(Blueprint):
     Provides a web API for coordinating cross-chain HTLC exchanges
     """
 
-    def __init__(self, htlc_address, **kwa):
+    def __init__(self, htlc_address, rpc, **kwa):
         Blueprint.__init__(self, 'htlc', __name__, **kwa)
 
-        self._manager = ExchangeManager(htlc_address)
+        self._manager = ExchangeManager(htlc_address, rpc)
 
         # XXX: This sure looks hacky... assignment not allowed in lambda, callback etc.
         self.record(lambda s: s.app.url_map.converters.__setitem__('bytes32', Bytes32Converter))
@@ -166,17 +167,18 @@ class CoordinatorBlueprint(Blueprint):
         ))
 
 
-def main(htlc_address):
+def main(htlc_address, rpc=None):
     """
     Development server for coordinator
 
     NOTE: not suitable for 'production'
     SEE: http://flask.pocoo.org/docs/1.0/deploying/#deployment
     """
-    if len(htlc_address) != 20:
-        htlc_address = scan_bin(htlc_address)
+    htlc_address = normalise_address(htlc_address)
+    if rpc is None:
+        rpc = EthJsonRpc()
 
-    coordinator = CoordinatorBlueprint(htlc_address)
+    coordinator = CoordinatorBlueprint(htlc_address, rpc)
 
     app = Flask(__name__)
     app.register_blueprint(coordinator, url_prefix='/htlc')

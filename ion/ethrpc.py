@@ -203,14 +203,14 @@ class EthJsonRpc(object):
         ins = [_['type'] for _ in method['inputs']]
         outs = [_['type'] for _ in method['outputs']]
         sig = method['name'] + '(' + ','.join(ins) + ')'
-        # XXX: messy...
+
         if method['constant']:
             # XXX: document len(outs) and different behaviour...
             if len(outs) > 1:
                 return lambda *args, **kwa: self.call(address, sig, args, outs, **kwa)
             return lambda *args, **kwa: self.call(address, sig, args, outs, **kwa)[0]
         if account is None:
-            raise RuntimeError("Without account, cannot call non-constant methods")
+            return None
         return lambda *args, **kwa: self.call_with_transaction(account, address, sig, args, **kwa)
 
     def proxy(self, abi, address, account=None):
@@ -505,9 +505,9 @@ class EthJsonRpc(object):
         if len(from_address) == 20:
             from_address = hexlify(from_address)
         params = {}
-        params['from'] = from_address.decode('utf-8') or self.eth_coinbase()
+        params['from'] = normalise_address(from_address) or self.eth_coinbase()
         if to_address is not None:
-            params['to'] = to_address.decode('utf-8')
+            params['to'] = normalise_address(to_address)
         if gas is not None:
             params['gas'] = hex(gas)
         if gas_price is not None:
@@ -544,9 +544,9 @@ class EthJsonRpc(object):
         if len(to_address) == 20:
             to_address = hexlify(to_address)
         obj = {}
-        obj['to'] = to_address.decode('utf-8')
+        obj['to'] = normalise_address(to_address)
         if from_address is not None:
-            obj['from'] = from_address.decode('utf-8')
+            obj['from'] = normalise_address(from_address)
         if gas is not None:
             obj['gas'] = hex(gas)
         if gas_price is not None:
@@ -569,9 +569,9 @@ class EthJsonRpc(object):
                 raise ValueError
         obj = {}
         if to_address is not None:
-            obj['to'] = to_address
+            obj['to'] = normalise_address(to_address)
         if from_address is not None:
-            obj['from'] = from_address
+            obj['from'] = normalise_address(from_address)
         if gas is not None:
             obj['gas'] = hex(gas)
         if gas_price is not None:
