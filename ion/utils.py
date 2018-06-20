@@ -82,6 +82,7 @@ def require(arg, msg=None):
     if not arg:
         raise RuntimeError(msg or "Requirement failed")
 
+
 def normalise_address(addr):
     if len(addr) == 20:
         addr = hexlify(addr)
@@ -104,7 +105,7 @@ class Marshalled(object):
 
 
 def tojson(x):
-    return json.dumps(marshal(x))
+    return json.dumps(marshal(x), cls=CustomJSONEncoder)
 
 
 def marshal(x):
@@ -137,5 +138,7 @@ class CustomJSONEncoder(json.JSONEncoder):
             return obj.decode('utf-8', 'backslashreplace')
         return json.JSONEncoder.default(self, obj)
 
+
+# XXX: about about tojson?
 def json_dumps(obj):
     return json.dumps(obj, cls=CustomJSONEncoder)

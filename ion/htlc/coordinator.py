@@ -95,21 +95,19 @@ class CoordinatorBlueprint(Blueprint):
         ))
 
         try:
-            exch, proposal = self._manager.propose(exch_id, secret_hashed, **params)
+            _, proposal = self._manager.propose(exch_id, secret_hashed, **params)
         except ExchangeError as ex:
             return api_abort(str(ex))
 
         # TODO: redirect to proposal URL? - or avoid another GET request...
-        return jsonify(dict(
-            ok=1
-        ))
+        return jsonify(proposal)
 
     def exch_proposal_get(self, exch_id, secret_hashed):
         """
         Retrieve details for a specific exchange proposal
         """
         try:
-            exch, proposal = self._manager.get_proposal(exch_id, secret_hashed)
+            _, proposal = self._manager.get_proposal(exch_id, secret_hashed)
         except ExchangeError as ex:
             return api_abort(str(ex))
         return jsonify(proposal)
@@ -177,14 +175,13 @@ def main(htlc_address):
     """
     if len(htlc_address) != 20:
         htlc_address = scan_bin(htlc_address)
-    print("HTLC address:", htlc_address.encode('hex'))
 
     coordinator = CoordinatorBlueprint(htlc_address)
+
     app = Flask(__name__)
-    # app.debug = 1
     app.register_blueprint(coordinator, url_prefix='/htlc')
 
-    # NOTE: Flask reloader is DAF, doesn't work well with packages *shakes-fists*
+    # NOTE: Flask reloader doesn't work well with packages *shakes-fists*
     app.run(use_reloader=False)
     return 0
 

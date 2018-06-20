@@ -191,6 +191,7 @@ class Exchange(object):
         prop_id = self._data['chosen_proposal']
         if prop_id:
             return self.proposal(prop_id)
+        return None
 
     @property
     def proposals(self):

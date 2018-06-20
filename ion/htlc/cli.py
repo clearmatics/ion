@@ -24,7 +24,6 @@ from .common import get_random_secret_32, get_default_expiry, make_htlc_proxy
 #
 
 
-# TODO: add value...
 @click.command()
 @click.pass_obj
 @click.option('--receiver', callback=arg_bytes20, metavar="0x...20", required=True, help="Receiver address")

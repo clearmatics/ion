@@ -21,7 +21,7 @@ class ExchangeManager(object):
         return self._exchanges
 
     def get_exchange(self, exch_guid):
-        return self._exchanges.get(exch_guid) 
+        return self._exchanges.get(exch_guid)
 
     def get_proposal(self, exch_guid, secret_hashed):
         exch = self.get_exchange(exch_guid)
