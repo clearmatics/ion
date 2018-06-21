@@ -96,7 +96,7 @@ class ExchangeManager(object):
 
         txid = kwa['txid']
 
-        verify_deposit('proposer', self._rpc, exch, proposal, txid)
+        verify_deposit('confirmer', self._rpc, exch, proposal, txid)
 
         proposal['confirm_txid'] = txid
         exch['chosen_proposal'] = secret_hashed
