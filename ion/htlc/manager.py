@@ -7,13 +7,10 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 
 from ..utils import normalise_address
-from ..ethrpc import EthJsonRpc, EthTransaction
+from ..ethrpc import EthJsonRpc
 
-from .common import MINIMUM_EXPIRY_DURATION, make_htlc_proxy
-
-
-class ExchangeError(Exception):
-    pass
+from .common import MINIMUM_EXPIRY_DURATION, make_htlc_proxy, ExchangeError
+from .verify import verify_deposit
 
 
 class ExchangeManager(object):
@@ -71,13 +68,6 @@ class ExchangeManager(object):
         if secret_hashed in exch['proposals']:
             raise ExchangeError("Duplicate proposal secret")
 
-        # Verify expiry time is acceptable
-        # XXX: should minimum expiry be left to the contract, or the coordinator?
-        now = int(time.time())
-        min_expiry = now + MINIMUM_EXPIRY_DURATION
-        if expiry < min_expiry:
-            raise ExchangeError("Expiry too short")
-
         # GUID used for the exchanges
         # offer_guid = Deposit() by B (the proposer)
         offer_guid = sha256(unhexlify(exch['offer_address']) + unhexlify(secret_hashed)).digest()
@@ -86,44 +76,7 @@ class ExchangeManager(object):
 
         # Wait for transaction success
         txid = kwa['txid']
-        transaction = EthTransaction(self._rpc, txid)
-        receipt = transaction.receipt(wait=True)
-        if int(receipt['status'], 16) == 0:
-            raise ExchangeError("Transaction was aborted")
 
-        # TODO: make sure we have the right contract address
-        contract = make_htlc_proxy(self._rpc, exch['want_htlc_address'])
-
-        # Verify on-chain expiry matches
-        onchain_expiry = contract.GetExpiry(offer_guid)
-        if expiry != onchain_expiry:
-            raise ExchangeError("Submitted expiry doesn't match on-chain data")
-
-        # Verify on-chain hashed secret
-        onchain_sechash = contract.GetSecretHashed(offer_guid)
-        if hexlify(onchain_sechash).decode('ascii') != secret_hashed:
-            raise ExchangeError("Submitted hashed secret doesn't match on-chain data")
-
-        # 1 = Deposited
-        if contract.GetState(offer_guid) != 1:
-            raise ExchangeError("Exchange is in wrong state")
-
-        # Verify receiver
-        onchain_receiver = normalise_address(contract.GetReceiver(offer_guid))
-        if onchain_receiver != exch['offer_address']:
-            raise ExchangeError("Offer address differs from receiver")
-
-        # Verify sender
-        onchain_sender = normalise_address(contract.GetSender(offer_guid))
-        if onchain_sender != depositor:
-            raise ExchangeError("Sender address differs from depositor")
-
-        # Ensure deposited amount is more or greater than what was wanted
-        onchain_amount = contract.GetAmount(offer_guid)
-        if onchain_amount < exch['want_amount']:
-            raise ExchangeError("Propose amount differs from want amount")
-
-        # Store proposal
         proposal = dict(
             secret_hashed=secret_hashed,
             expiry=expiry,
@@ -132,54 +85,18 @@ class ExchangeManager(object):
             taker_guid=hexlify(taker_guid).decode('ascii'),
             propose_txid=txid,
         )
-        exch['proposals'][secret_hashed] = proposal
 
+        verify_deposit('proposer', self._rpc, exch, proposal, txid)
+
+        exch['proposals'][secret_hashed] = proposal
         return exch, proposal
 
     def confirm(self, exch_guid, secret_hashed, **kwa):
         exch, proposal = self.get_proposal(exch_guid, secret_hashed)
 
-        # Wait for transaction success
         txid = kwa['txid']
-        transaction = EthTransaction(self._rpc, txid)
-        receipt = transaction.receipt(wait=True)
-        if int(receipt['status'], 16) == 0:
-            raise ExchangeError("Transaction was aborted")
 
-        contract = make_htlc_proxy(self._rpc, exch['offer_htlc_address'])
-
-        taker_guid = unhexlify(proposal['taker_guid'])
-
-        # 1 = Deposited
-        if contract.GetState(taker_guid) != 1:
-            raise ExchangeError("Exchange is in wrong state")
-
-        # Ensure deposited amount is more or greater than what was wanted
-        onchain_amount = contract.GetAmount(taker_guid)
-        if onchain_amount < exch['offer_amount']:
-            raise ExchangeError("Confirm amount differs from offer amount")
-
-        # Verify on-chain hashed secret
-        onchain_sechash = contract.GetSecretHashed(taker_guid)
-        if hexlify(onchain_sechash).decode('ascii') != secret_hashed:
-            raise ExchangeError("Submitted hashed secret doesn't match on-chain data")
-
-        # Verify on-chain expiry matches
-        expiry = proposal['expiry']
-        onchain_expiry = contract.GetExpiry(taker_guid)
-        if expiry != onchain_expiry:
-            raise ExchangeError("Submitted expiry doesn't match on-chain data")
-
-        # Verify receiver
-        onchain_receiver = normalise_address(contract.GetReceiver(taker_guid))
-        if onchain_receiver != proposal['depositor']:
-            raise ExchangeError("Offer address differs from receiver")
-
-        # Verify sender
-        deposited_for = exch['offer_address']
-        onchain_sender = normalise_address(contract.GetSender(taker_guid))
-        if onchain_sender != deposited_for:
-            raise ExchangeError("Sender address differs from depositor")
+        verify_deposit('proposer', self._rpc, exch, proposal, txid)
 
         proposal['confirm_txid'] = txid
         exch['chosen_proposal'] = secret_hashed
@@ -197,10 +114,7 @@ class ExchangeManager(object):
 
         # Wait for transaction success
         txid = kwa['txid']
-        transaction = EthTransaction(self._rpc, txid)
-        receipt = transaction.receipt(wait=True)
-        if int(receipt['status'], 16) == 0:
-            raise ExchangeError("Transaction was aborted")
+        self._rpc.receipt_wait(txid)
 
         contract = make_htlc_proxy(self._rpc, exch['want_htlc_address'])
         # XXX: if the server errors out here... then proposal won't get updated, this is bad!
@@ -227,10 +141,7 @@ class ExchangeManager(object):
         taker_guid = unhexlify(proposal['taker_guid'])
 
         txid = kwa['txid']
-        transaction = EthTransaction(self._rpc, txid)
-        receipt = transaction.receipt(wait=True)
-        if int(receipt['status'], 16) == 0:
-            raise ExchangeError("Transaction was aborted")
+        self._rpc.receipt_wait(txid)
 
         # 2 = Withdrawn
         onchain_state = contract.GetState(taker_guid)

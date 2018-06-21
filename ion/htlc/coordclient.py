@@ -96,9 +96,7 @@ class Proposal(object):
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
         txn = htlc_contract.Withdraw(exch_guid, secret)
-        receipt = txn.receipt(wait=wait)
-        if receipt and int(receipt['status'], 16) == 0:
-            raise RuntimeError("Release failed, txn: " + txn.txid)
+        txn.wait()
 
         # Reveal secret, posting back to server
         self._resource.release.POST(
@@ -126,7 +124,7 @@ class Proposal(object):
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
         txn = htlc_contract.Withdraw(exch_guid, secret)
 
-        receipt = txn.receipt(wait=wait)
+        receipt = txn.wait()
         if receipt and int(receipt['status'], 16) == 0:
             raise RuntimeError("Finish failed, txn: " + txn.txid)
 

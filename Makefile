@@ -28,7 +28,9 @@ check-prereqs:
 clean:
 	rm -rf build chaindata dist
 	find . -name '*.pyc' -exec rm '{}' ';'
+	find . -name '__pycache__' -exec rm -rf '{}' ';'
 	rm -rf *.pyc *.pdf *.egg-info *.pid *.log
+	rm -f lextab.py yacctab.py
 
 
 #######################################################################

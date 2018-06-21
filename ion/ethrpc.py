@@ -122,7 +122,11 @@ class EthTransaction(namedtuple('_TxStruct', ('rpc', 'txid'))):
             txid = '0x' + txid
         return self.rpc.eth_getTransactionByHash(txid)
 
+    def wait(self):
+        return self.receipt(wait=True)
+
     def receipt(self, wait=False, tick_fn=None):
+        # TODO: add `timeout` param
         first = True
         txid = self.txid
         if txid[:2] != '0x':
@@ -261,6 +265,21 @@ class EthJsonRpc(object):
 ################################################################################
 # high-level methods
 ################################################################################
+
+    def receipt(self, txid, wait=False, raise_on_error=False):
+        # TODO: add `timeout` param
+        transaction = EthTransaction(self, txid)
+        receipt = transaction.receipt(wait=wait)
+        if raise_on_error:
+            if int(receipt['status'], 16) == 0:
+                raise EthJsonRpcError("Transaction was aborted")
+        return receipt
+
+    def receipt_wait(self, txid, raise_on_error=True):
+        """
+        Wait for the transaction to be mined, then return receipt
+        """
+        return self.receipt(txid, raise_on_error)
 
     def transfer(self, from_, to, amount):
         '''

@@ -12,6 +12,11 @@ ONE_YEAR = ONE_DAY * 365
 DEFAULT_EXPIRY_DURATION = 10 * ONE_MINUTE
 MINIMUM_EXPIRY_DURATION = 2 * ONE_MINUTE
 
+
+class ExchangeError(Exception):
+    pass
+
+
 def make_htlc_proxy(rpc, contract, account=None):
     """
     TODO: embed 'abi/HTLC.abi' file in package resources?

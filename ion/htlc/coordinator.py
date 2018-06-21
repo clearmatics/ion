@@ -131,6 +131,7 @@ class CoordinatorBlueprint(Blueprint):
         except ExchangeError as ex:
             return api_abort(str(ex))
 
+        # TODO: return updated proposal object
         return jsonify(dict(
             ok=1
         ))
