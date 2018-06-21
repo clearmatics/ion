@@ -5,6 +5,6 @@ python:
 install:
   - make requirements-dev requirements
 script:
-  - make contracts test
+  - make travis
 git:
   depth: 3

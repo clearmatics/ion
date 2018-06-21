@@ -28,7 +28,7 @@ check-prereqs:
 clean:
 	rm -rf build chaindata dist
 	find . -name '*.pyc' -exec rm '{}' ';'
-	rm -rf *.pyc *.pdf *.egg-info
+	rm -rf *.pyc *.pdf *.egg-info *.pid *.log
 
 
 #######################################################################
@@ -76,11 +76,16 @@ solidity-lint:
 nodejs-requirements:
 	$(NPM) install
 
+# Useful shortcut for development, install packages to user path by default
+python-pip-user:
+	mkdir -p $(HOME)/.pip/
+	echo -e "[global]\nuser = true\n" > $(HOME)/.pip/pip.conf
+
 python-requirements: requirements.txt
-	$(PYTHON) -mpip install --user -r $<
+	$(PYTHON) -mpip install -r $<
 
 python-dev-requirements: requirements-dev.txt
-	$(PYTHON) -mpip install --user -r $<
+	$(PYTHON) -mpip install -r $<
 
 requirements-dev: nodejs-requirements python-dev-requirements
 
@@ -127,6 +132,19 @@ build/%.combined.sol: contracts/%.sol build
 #
 # Testing and unit test harnesses
 #
+
+# runs an instance of testrpc in background, then waits for it to be ready
+travis-testrpc-start: travis-testrpc-stop
+	$(NPM) run testrpca > .testrpc.log & echo $$! > .testrpc.pid
+	while true; do echo -n . ; curl http://localhost:8545 &> /dev/null && break || sleep 1; done
+
+# Stops previ
+travis-testrpc-stop:
+	kill `cat .testrpc.pid` || true
+	rm -f .testrpc.pid
+
+travis: travis-testrpc-start truffle-deploy-a contracts test
+
 
 testrpc:
 	$(NPM) run testrpca
