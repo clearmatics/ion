@@ -140,8 +140,7 @@ travis-testrpc-start: travis-testrpc-stop
 
 # Stops previ
 travis-testrpc-stop:
-	kill `cat .testrpc.pid` || true
-	rm -f .testrpc.pid
+	if [ -f .testrpc.pid ]; then kill `cat .testrpc.pid` || true; rm -f .testrpc.pid; fi
 
 travis: travis-testrpc-start truffle-deploy-a contracts test
 
