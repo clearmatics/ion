@@ -198,7 +198,7 @@ class Exchange(object):
     def proposal(self, secret_hashed_hex):
         return self.proposals[secret_hashed_hex]
 
-    def propose(self, wait=True):
+    def propose(self):
         """
         Submit a proposal for the exchange by depositing your tokens
         into a HTLC contract.
@@ -219,14 +219,13 @@ class Exchange(object):
 
         # TODO: verify adequate balance to cover the deposit
 
-        # XXX: for testing, we can be both sides...
-        #require(my_address != prop_receiver, "Cannot be both sides of exchange")
+        require(my_address != prop_receiver, "Cannot be both sides of exchange")
 
         htlc_address = self._data['want_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
         txn = htlc_contract.Deposit(prop_receiver, secret_hashed, prop_expiry, value=prop_value)
 
-        receipt = txn.receipt(wait=wait)
+        receipt = txn.receipt(wait=True)
         if receipt and int(receipt['status'], 16) == 0:
             raise RuntimeError("Propose deposit failed, txn: " + txn.txid)
 
