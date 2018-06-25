@@ -3,9 +3,12 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/abiosoft/ishell"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -15,6 +18,8 @@ import (
 	"github.com/ion/ion-cli/Validation"
 	"github.com/ion/ion-cli/config"
 )
+
+const key = `{"address":"2be5ab0e43b6dc2908d5321cf318f35b80d0c10d","crypto":{"cipher":"aes-128-ctr","ciphertext":"0b11aa865046778a1b16a9b8cb593df704e3fe09f153823d75442ad1aab66caa","cipherparams":{"iv":"4aa66b789ee2d98cf77272a72eeeaa50"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"b957fa7b7577240fd3791168bbe08903af4c8cc62c304f1df072dc2a59b1765e"},"mac":"197a06eb0449301d871400a6bdf6c136b6f7658ee41e3f2f7fd81ca11cd954a3"},"id":"a3cc1eae-3e36-4659-b759-6cf416216e72","version":3}`
 
 // Launch - definition of commands and creates the iterface
 func Launch(setup config.Setup) {
@@ -33,6 +38,22 @@ func Launch(setup config.Setup) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Get a suggested gas price
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create an authorized transactor and spend 1 unicorn
+	keyTo := config.ReadString(setup.KeystoreTo)
+	auth, err := bind.NewTransactor(strings.NewReader(keyTo), "password1")
+	if err != nil {
+		log.Fatalf("Failed to create authorized transactor: %v", err)
+	}
+	auth.Value = big.NewInt(0)     // in wei
+	auth.GasLimit = uint64(300000) // in units
+	auth.GasPrice = gasPrice
 
 	printInfo(setup)
 
@@ -112,12 +133,12 @@ func Launch(setup config.Setup) {
 			} else {
 				c.Println("RLP encode block: " + c.Args[0])
 				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
-				res, err := validation.ValidateBlock(&bind.TransactOpts{}, encodedBlock, prefixBlock, prefixExtra)
+				res, err := validation.ValidateBlock(auth, encodedBlock, prefixBlock, prefixExtra)
 				if err != nil {
 					c.Printf("Error: %s", err)
 					return
 				}
-				c.Printf("Error: %s", res)
+				c.Printf("Transaction Hash: 0x%x\n", res.Hash())
 			}
 			c.Println("===============================================================")
 		},

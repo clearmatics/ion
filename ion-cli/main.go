@@ -17,7 +17,7 @@ func main() {
 	flag.Parse()
 
 	if *configFile != "" {
-		setup := config.Read(*configFile)
+		setup := config.ReadSetup(*configFile)
 
 		// Launch the CLI
 		cli.Launch(setup)

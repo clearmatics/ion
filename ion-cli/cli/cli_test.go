@@ -14,7 +14,7 @@ import (
 
 func Test_Read_ValidSetupJson(t *testing.T) {
 	path := findPath() + "../setup.json"
-	setup := config.Read(path)
+	setup := config.ReadSetup(path)
 
 	assert.Equal(t, "8501", setup.PortTo)
 	assert.Equal(t, "127.0.0.1", setup.AddrTo)
