@@ -1,5 +1,3 @@
-// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
-// SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.18;
 
 //
@@ -25,11 +23,7 @@ pragma solidity ^0.4.18;
 
 library ECVerify {
     // Duplicate Solidity's ecrecover, but catching the CALL return value
-    function safer_ecrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s)
-        constant
-        internal
-        returns (address)
-    {
+    function safer_ecrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) constant internal returns (address) {
         // We do our own memory management here. Solidity uses memory offset
         // 0x40 to store the current end of memory. We write past it (as
         // writes are memory extensions), but don't update the offset so
@@ -49,7 +43,7 @@ library ECVerify {
 
             // NOTE: we can reuse the request memory because we deal with
             //       the return code
-            ret := call(3000, 1, 0, size, 128, size, 32)
+            ret := staticcall(3000, 1, size, 128, size, 32)
             addr := mload(size)
         }
 
@@ -75,12 +69,12 @@ library ECVerify {
             // Here we are loading the last 32 bytes. We exploit the fact that
             // 'mload' will pad with zeroes if we overread.
             // There is no 'mload8' to do this, but that would be nicer.
-            /* v := byte(0, mload(add(sig, 96))) */
+            v := byte(0, mload(add(sig, 96)))
 
             // Alternative solution:
             // 'byte' is not working due to the Solidity parser, so lets
             // use the second best option, 'and'
-            v := and(mload(add(sig, 65)), 255)
+            // v := and(mload(add(sig, 65)), 255)
         }
 
         // albeit non-transactional signatures are not specified by the YP, one would expect it
@@ -96,8 +90,8 @@ library ECVerify {
         /* prefix might be needed for geth only
          * https://github.com/ethereum/go-ethereum/issues/3731
          */
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        hash = keccak256(prefix, hash);
+        /* bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        hash = keccak256(prefix, hash); */
         /* hash = sha3(prefix, hash); */
 
         return safer_ecrecover(hash, v, r, s);
