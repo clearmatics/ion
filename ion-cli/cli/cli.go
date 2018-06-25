@@ -12,8 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/ion/ion-cli/Validation"
-	"github.com/ion/ion-cli/config"
+	"../Validation"
+	"../config"
 )
 
 // Launch - definition of commands and creates the iterface
