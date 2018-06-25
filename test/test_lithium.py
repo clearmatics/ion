@@ -13,14 +13,16 @@ gathering and marshalling
 '''
 
 import unittest
+from binascii import hexlify
+
 from ethereum.utils import scan_bin, sha3, decode_int256, zpad, int_to_big_endian
 from ion.lithium.lithium import Lithium, pack_txn, pack_log
 
-test_tx_hash = u'0x999999'
-test_sender_addr = u'0x123456'
-test_recipient_addr = u'0x678910'
-test_input = u'0x11111111'
-test_value = u'0xfffd'
+test_tx_hash = '0x999999'
+test_sender_addr = '0x123456'
+test_recipient_addr = '0x678910'
+test_input = '0x11111111'
+test_value = '0xfffd'
 
 class MockRPC():
     def port():
@@ -62,10 +64,10 @@ class LithiumTest(unittest.TestCase):
         rpc = MockRPC()
         txn = rpc.eth_getTransactionByHash()
 
-        packed_txn = pack_txn(txn).encode('hex')
+        packed_txn = hexlify(pack_txn(txn))
         expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])
 
-        self.assertEqual(packed_txn, expected_result)
+        self.assertEqual(packed_txn, bytes(expected_result, 'ascii'))
         print("Test: Pack Transaction Success")
 
 
@@ -80,13 +82,13 @@ class LithiumTest(unittest.TestCase):
         for log in receipt['logs']:
             packed_log = pack_log(txn, log)
 
-            address = scan_bin(log['address']).encode('hex')
-            topic1 = scan_bin(log['topics'][1]).encode('hex')
-            topic2 = scan_bin(log['topics'][2]).encode('hex')
+            address = hexlify(scan_bin(log['address'])).decode('ascii')
+            topic1 = hexlify(scan_bin(log['topics'][1])).decode('ascii')
+            topic2 = hexlify(scan_bin(log['topics'][2])).decode('ascii')
 
             expected_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:]) + address + topic1 + topic2
 
-            self.assertEqual(packed_log.encode('hex'), expected_result)
+            self.assertEqual(hexlify(packed_log), bytes(expected_result, 'ascii'))
 
         print("Test: Pack Transaction Logs Success")
 
@@ -106,15 +108,16 @@ class LithiumTest(unittest.TestCase):
         log = receipt['logs'][0]
         packed_log = pack_log(txn, log)
 
-        address = scan_bin(log['address']).encode('hex')
-        topic1 = scan_bin(log['topics'][1]).encode('hex')
-        topic2 = scan_bin(log['topics'][2]).encode('hex')
+        address = hexlify(scan_bin(log['address'])).decode('ascii')
+        topic1 = hexlify(scan_bin(log['topics'][1])).decode('ascii')
+        topic2 = hexlify(scan_bin(log['topics'][2])).decode('ascii')
 
         expected_txn_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
-        self.assertEqual(packed_log.encode('hex'), expected_txn_result)
+        expected_txn_result = bytes(expected_txn_result, 'ascii')
+        self.assertEqual(hexlify(packed_log), expected_txn_result)
 
         self.assertEqual(len(items), 1)
-        self.assertEqual(items[0].encode('hex'), expected_txn_result)
+        self.assertEqual(hexlify(items[0]), expected_txn_result)
         self.assertEqual(tx_count, 1)
         self.assertEqual(log_count, 1)
 
@@ -135,15 +138,15 @@ class LithiumTest(unittest.TestCase):
         log = receipt['logs'][0]
         packed_log = pack_log(txn, log)
 
-        address = scan_bin(log['address']).encode('hex')
-        topic1 = scan_bin(log['topics'][1]).encode('hex')
-        topic2 = scan_bin(log['topics'][2]).encode('hex')
+        address = hexlify(scan_bin(log['address'])).decode('ascii')
+        topic1 = hexlify(scan_bin(log['topics'][1])).decode('ascii')
+        topic2 = hexlify(scan_bin(log['topics'][2])).decode('ascii')
 
         expected_txn_result = '' + (test_sender_addr[2:]) + (test_recipient_addr[2:])  + address + topic1 + topic2
-        self.assertEqual(packed_log.encode('hex'), expected_txn_result)
+        self.assertEqual(hexlify(packed_log), bytes(expected_txn_result, 'ascii'))
 
         self.assertEqual(len(items), 1)
-        self.assertEqual(items[0].encode('hex'), expected_txn_result)
+        self.assertEqual(hexlify(items[0]), bytes(expected_txn_result, 'ascii'))
         self.assertEqual(group_tx_count, 1)
         self.assertEqual(group_log_count, 1)
 

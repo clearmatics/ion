@@ -29,6 +29,8 @@ import json
 import requests
 import time
 import warnings
+from binascii import hexlify, unhexlify
+from io import IOBase
 
 from collections import namedtuple
 from ethereum.abi import encode_abi, decode_abi
@@ -36,7 +38,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from .crypto import keccak_256
-from .utils import require, big_endian_to_int, zpad, encode_int, normalise_address
+from .utils import CustomJSONEncoder, require, big_endian_to_int, zpad, encode_int, normalise_address
 
 GETH_DEFAULT_RPC_PORT = 8545
 ETH_DEFAULT_RPC_PORT = 8545
@@ -76,8 +78,6 @@ class BadResponseError(EthJsonRpcError):
     pass
 
 
-
-
 def hex_to_dec(x):
     '''
     Convert hex to decimal
@@ -93,7 +93,7 @@ def clean_hex(d):
     return hex(d).rstrip('L')
 
 def validate_block(block):
-    if isinstance(block, basestring):
+    if isinstance(block, str):
         if block not in BLOCK_TAGS:
             raise ValueError('invalid block tag')
     if isinstance(block, int):
@@ -116,10 +116,23 @@ def ether_to_wei(ether):
 
 
 class EthTransaction(namedtuple('_TxStruct', ('rpc', 'txid'))):
+    def details(self):
+        txid = self.txid
+        if txid[:2] != '0x':
+            txid = '0x' + txid
+        return self.rpc.eth_getTransactionByHash(txid)
+
+    def wait(self):
+        return self.receipt(wait=True)
+
     def receipt(self, wait=False, tick_fn=None):
+        # TODO: add `timeout` param
         first = True
+        txid = self.txid
+        if txid[:2] != '0x':
+            txid = '0x' + txid
         while True:
-            receipt = self.rpc.eth_getTransactionReceipt(self.txid)
+            receipt = self.rpc.eth_getTransactionReceipt(txid)
             # TODO: turn into asynchronous notification / future
             if receipt:
                 return receipt
@@ -127,7 +140,7 @@ class EthTransaction(namedtuple('_TxStruct', ('rpc', 'txid'))):
                 break
             try:
                 if first:
-                    if isinstance(wait, callable):
+                    if hasattr(wait, '__call__'):
                         wait()
                     first = False
                 elif tick_fn:
@@ -170,7 +183,8 @@ class EthJsonRpc(object):
         url = '{}://{}:{}'.format(scheme, self.host, self.port)
         headers = {'Content-Type': JSON_MEDIA_TYPE}
         try:
-            r = self.session.post(url, headers=headers, data=json.dumps(data))
+            encoded_data = json.dumps(data, cls=CustomJSONEncoder) 
+            r = self.session.post(url, headers=headers, data=encoded_data)
         except RequestsConnectionError:
             raise ConnectionError(url)
         if r.status_code / 100 != 2:
@@ -202,14 +216,14 @@ class EthJsonRpc(object):
         ins = [_['type'] for _ in method['inputs']]
         outs = [_['type'] for _ in method['outputs']]
         sig = method['name'] + '(' + ','.join(ins) + ')'
-        # XXX: messy...
+
         if method['constant']:
             # XXX: document len(outs) and different behaviour...
             if len(outs) > 1:
                 return lambda *args, **kwa: self.call(address, sig, args, outs, **kwa)
             return lambda *args, **kwa: self.call(address, sig, args, outs, **kwa)[0]
         if account is None:
-            raise RuntimeError("Without account, cannot call non-constant methods")
+            return None
         return lambda *args, **kwa: self.call_with_transaction(account, address, sig, args, **kwa)
 
     def proxy(self, abi, address, account=None):
@@ -223,7 +237,7 @@ class EthJsonRpc(object):
         if account is not None:
             account = normalise_address(account)
 
-        if isinstance(abi, file):
+        if isinstance(abi, IOBase):
             abi = json.load(abi)
         elif isinstance(abi, str):
             with open(abi) as jsonfile:
@@ -240,7 +254,7 @@ class EthJsonRpc(object):
                 continue
 
             sig = "%s(%s)" % (method['name'], ','.join([i['type'] for i in method['inputs']]))
-            sig_hash = keccak_256(bytes(sig)).hexdigest()[:8]
+            sig_hash = keccak_256(sig.encode('utf-8')).hexdigest()[:8]
 
             # Provide an alternate, where the explicit function signature
             proxy[method['name']] = handler
@@ -251,6 +265,21 @@ class EthJsonRpc(object):
 ################################################################################
 # high-level methods
 ################################################################################
+
+    def receipt(self, txid, wait=False, raise_on_error=False):
+        # TODO: add `timeout` param
+        transaction = EthTransaction(self, txid)
+        receipt = transaction.receipt(wait=wait)
+        if raise_on_error:
+            if int(receipt['status'], 16) == 0:
+                raise EthJsonRpcError("Transaction was aborted")
+        return receipt
+
+    def receipt_wait(self, txid, raise_on_error=True):
+        """
+        Wait for the transaction to be mined, then return receipt
+        """
+        return self.receipt(txid, raise_on_error)
 
     def transfer(self, from_, to, amount):
         '''
@@ -267,7 +296,7 @@ class EthJsonRpc(object):
         if sig is not None and args is not None:
              types = sig[sig.find('(') + 1: sig.find(')')].split(',')
              encoded_params = encode_abi(types, args)
-             code += encoded_params.encode('hex')
+             code += hexlify(encoded_params)
         return self.eth_sendTransaction(from_address=from_, gas=gas, data=code)
 
     def get_contract_address(self, tx):
@@ -283,12 +312,12 @@ class EthJsonRpc(object):
         transaction (useful for reading data)
         '''
         data = self._encode_function(sig, args)
-        data_hex = data.encode('hex')
+        data_hex = hexlify(data)
         response = self.eth_call(to_address=address, data=data_hex)
         # XXX: horrible hack for when RPC returns '0x0'...
         if (len(result_types) == 0 or result_types[0] == 'uint256') and response == '0x0':
             response = '0x' + ('0' * 64)
-        return decode_abi(result_types, response[2:].decode('hex'))
+        return decode_abi(result_types, unhexlify(response[2:]))
 
     def call_with_transaction(self, from_, address, sig, args, gas=None, gas_price=None, value=None):
         '''
@@ -298,7 +327,7 @@ class EthJsonRpc(object):
         gas = gas or self.DEFAULT_GAS_PER_TX
         gas_price = gas_price or self.DEFAULT_GAS_PRICE
         data = self._encode_function(sig, args)
-        data_hex = data.encode('hex')
+        data_hex = hexlify(data)
         return self.eth_sendTransaction(from_address=from_, to_address=address, data=data_hex, gas=gas,
                                         gas_price=gas_price, value=value)
 
@@ -320,7 +349,7 @@ class EthJsonRpc(object):
 
         TESTED
         '''
-        data = str(data).encode('hex')
+        data = hexlify(str(data))
         return self._call('web3_sha3', [data])
 
     def net_version(self):
@@ -479,7 +508,7 @@ class EthJsonRpc(object):
 
         NEEDS TESTING
         '''
-        if isinstance(default_block, basestring):
+        if isinstance(default_block, str):
             if default_block not in BLOCK_TAGS:
                 raise ValueError
         return self._call('eth_getCode', [address, default_block])
@@ -500,13 +529,13 @@ class EthJsonRpc(object):
         NEEDS TESTING
         '''
         if len(to_address) == 20:
-            to_address = to_address.encode('hex')
+            to_address = hexlify(to_address)
         if len(from_address) == 20:
-            from_address = from_address.encode('hex')
+            from_address = hexlify(from_address)
         params = {}
-        params['from'] = from_address or self.eth_coinbase()
+        params['from'] = normalise_address(from_address) or self.eth_coinbase()
         if to_address is not None:
-            params['to'] = to_address
+            params['to'] = normalise_address(to_address)
         if gas is not None:
             params['gas'] = hex(gas)
         if gas_price is not None:
@@ -514,7 +543,7 @@ class EthJsonRpc(object):
         if value is not None:
             params['value'] = clean_hex(value)
         if data is not None:
-            params['data'] = data
+            params['data'] = data.decode('utf-8')
         if nonce is not None:
             params['nonce'] = hex(nonce)
         txid = self._call('eth_sendTransaction', [params])
@@ -535,17 +564,17 @@ class EthJsonRpc(object):
 
         NEEDS TESTING
         '''
-        if isinstance(default_block, basestring):
+        if isinstance(default_block, str):
             if default_block not in BLOCK_TAGS:
                 raise ValueError
         if from_address is not None and len(from_address) == 20:
-            from_address = from_address.encode('hex')
+            from_address = hexlify(from_address)
         if len(to_address) == 20:
-            to_address = to_address.encode('hex')
+            to_address = hexlify(to_address)
         obj = {}
-        obj['to'] = to_address
+        obj['to'] = normalise_address(to_address)
         if from_address is not None:
-            obj['from'] = from_address
+            obj['from'] = normalise_address(from_address)
         if gas is not None:
             obj['gas'] = hex(gas)
         if gas_price is not None:
@@ -553,7 +582,7 @@ class EthJsonRpc(object):
         if value is not None:
             obj['value'] = value
         if data is not None:
-            obj['data'] = data
+            obj['data'] = data.decode('utf-8')
         return self._call('eth_call', [obj, default_block])
 
     def eth_estimateGas(self, to_address=None, from_address=None, gas=None, gas_price=None, value=None, data=None,
@@ -563,14 +592,14 @@ class EthJsonRpc(object):
 
         NEEDS TESTING
         '''
-        if isinstance(default_block, basestring):
+        if isinstance(default_block, str):
             if default_block not in BLOCK_TAGS:
                 raise ValueError
         obj = {}
         if to_address is not None:
-            obj['to'] = to_address
+            obj['to'] = normalise_address(to_address)
         if from_address is not None:
-            obj['from'] = from_address
+            obj['from'] = normalise_address(from_address)
         if gas is not None:
             obj['gas'] = hex(gas)
         if gas_price is not None:

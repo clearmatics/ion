@@ -1,7 +1,7 @@
 ROOT_DIR := $(shell dirname $(realpath $(MAKEFILE_LIST)))
 
 SOLC=$(ROOT_DIR)/node_modules/.bin/solcjs
-PYTHON=python
+PYTHON=python3
 NPM=npm
 GANACHE=$(ROOT_DIR)/node_modules/.bin/ganache-cli
 TRUFFLE=$(ROOT_DIR)/node_modules/.bin/truffle
@@ -28,7 +28,9 @@ check-prereqs:
 clean:
 	rm -rf build chaindata dist
 	find . -name '*.pyc' -exec rm '{}' ';'
-	rm -rf *.pyc *.pdf *.egg-info
+	find . -name '__pycache__' -exec rm -rf '{}' ';'
+	rm -rf *.pyc *.pdf *.egg-info *.pid *.log
+	rm -f lextab.py yacctab.py
 
 
 #######################################################################
@@ -76,11 +78,16 @@ solidity-lint:
 nodejs-requirements:
 	$(NPM) install
 
+# Useful shortcut for development, install packages to user path by default
+python-pip-user:
+	mkdir -p $(HOME)/.pip/
+	echo -e "[global]\nuser = true\n" > $(HOME)/.pip/pip.conf
+
 python-requirements: requirements.txt
-	$(PYTHON) -mpip install --user -r $<
+	$(PYTHON) -mpip install -r $<
 
 python-dev-requirements: requirements-dev.txt
-	$(PYTHON) -mpip install --user -r $<
+	$(PYTHON) -mpip install -r $<
 
 requirements-dev: nodejs-requirements python-dev-requirements
 
@@ -128,14 +135,35 @@ build/%.combined.sol: contracts/%.sol build
 # Testing and unit test harnesses
 #
 
+# runs an instance of testrpc in background, then waits for it to be ready
+travis-testrpc-start: travis-testrpc-stop
+	$(NPM) run testrpca > .testrpc.log & echo $$! > .testrpc.pid
+	while true; do echo -n . ; curl http://localhost:8545 &> /dev/null && break || sleep 1; done
+
+# Stops previ
+travis-testrpc-stop:
+	if [ -f .testrpc.pid ]; then kill `cat .testrpc.pid` || true; rm -f .testrpc.pid; fi
+
+travis: travis-testrpc-start truffle-deploy-a contracts test
+
+
 testrpc:
 	$(NPM) run testrpca
+
+testrpc-b:
+	$(NPM) run testrpcb
 
 test-js:
 	$(NPM) run test
 
 test-unit:
 	$(PYTHON) -m unittest discover test/
+
+test-coordserver:
+	$(PYTHON) -mion htlc coordinator --contract 0xd833215cbcc3f914bd1c9ece3ee7bf8b14f841bb
+
+test-coordclient:
+	PYTHONPATH=. $(PYTHON) ./test/test_coordclient.py
 
 test: test-unit test-js
 
@@ -147,6 +175,12 @@ test: test-unit test-js
 
 truffle-deploy:
 	$(TRUFFLE) deploy
+
+truffle-deploy-a:
+	$(TRUFFLE) deploy --network testrpca --reset
+
+truffle-deploy-b:
+	$(TRUFFLE) deployb --network testrpcb --reset
 
 truffle-console:
 	$(TRUFFLE) console

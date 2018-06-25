@@ -3,6 +3,7 @@
 
 import os
 from hashlib import sha256
+from binascii import hexlify, unhexlify
 
 from ..utils import require, normalise_address
 from ..ethrpc import EthJsonRpc
@@ -60,7 +61,7 @@ class Proposal(object):
         # Offerer deposits their side of the deal, locked to same hashed secret 
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
-        txn = htlc_contract.Deposit(conf_receiver, conf_secret_hashed.decode('hex'), conf_expiry, value=conf_value)
+        txn = htlc_contract.Deposit(conf_receiver, unhexlify(conf_secret_hashed), conf_expiry, value=conf_value)
 
         receipt = txn.receipt(wait=wait)
         if receipt and int(receipt['status'], 16) == 0:
@@ -83,22 +84,19 @@ class Proposal(object):
         my_address = self._coordapi.my_address
         exch_data = self._exch_obj.data
 
-        secret_hex = secret.encode('hex')
+        secret_hex = hexlify(secret).decode('ascii')
         secret_hashed = sha256(secret).digest()
-        secret_hashed_hex = secret_hashed.encode('hex')
+        secret_hashed_hex = hexlify(secret_hashed).decode('ascii')
 
         require(my_address == self._data['depositor'], "Only proposer can release")
         require(self._data['secret_hashed'] == secret_hashed_hex, "Secrets don't match!")
 
-        exch_guid = self._data['taker_guid'].decode('hex')
+        exch_guid = unhexlify(self._data['taker_guid'])
 
         htlc_address = exch_data['offer_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
         txn = htlc_contract.Withdraw(exch_guid, secret)
-
-        receipt = txn.receipt(wait=wait)
-        if receipt and int(receipt['status'], 16) == 0:
-            raise RuntimeError("Release failed, txn: " + txn.txid)
+        txn.wait()
 
         # Reveal secret, posting back to server
         self._resource.release.POST(
@@ -116,17 +114,17 @@ class Proposal(object):
         exch_data = self._exch_obj.data
 
         secret_hex = self._data['secret']
-        secret = secret_hex.decode('hex')
+        secret = unhexlify(secret_hex)
 
         # TODO: verify secret hashes to hashed image
 
-        exch_guid = self._data['offer_guid'].decode('hex')
+        exch_guid = unhexlify(self._data['offer_guid'])
 
         htlc_address = exch_data['want_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
         txn = htlc_contract.Withdraw(exch_guid, secret)
 
-        receipt = txn.receipt(wait=wait)
+        receipt = txn.wait()
         if receipt and int(receipt['status'], 16) == 0:
             raise RuntimeError("Finish failed, txn: " + txn.txid)
 
@@ -146,7 +144,7 @@ class Proposal(object):
         secret_hashed = secret_hashed_hex.decode('hex')
 
         # TODO: detertmine which side we're on, automagically call correct one
-        if x:
+        if False:
             htlc_address = self._data['depositor']
         else:
             htlc_address = exch_data['want_htlc_address']
@@ -191,6 +189,7 @@ class Exchange(object):
         prop_id = self._data['chosen_proposal']
         if prop_id:
             return self.proposal(prop_id)
+        return None
 
     @property
     def proposals(self):
@@ -199,7 +198,7 @@ class Exchange(object):
     def proposal(self, secret_hashed_hex):
         return self.proposals[secret_hashed_hex]
 
-    def propose(self, wait=True):
+    def propose(self):
         """
         Submit a proposal for the exchange by depositing your tokens
         into a HTLC contract.
@@ -207,7 +206,7 @@ class Exchange(object):
         # Create a random secret
         secret = os.urandom(32)
         secret_hashed = sha256(secret).digest()
-        secret_hashed_hex = secret_hashed.encode('hex')
+        secret_hashed_hex = hexlify(secret_hashed).decode('ascii')
 
         # Proposal parameters
         prop_receiver = self._data['offer_address']
@@ -220,28 +219,26 @@ class Exchange(object):
 
         # TODO: verify adequate balance to cover the deposit
 
-        # XXX: for testing, we can be both sides...
-        #require(my_address != prop_receiver, "Cannot be both sides of exchange")
+        require(my_address != prop_receiver, "Cannot be both sides of exchange")
 
         htlc_address = self._data['want_htlc_address']
         htlc_contract = make_htlc_proxy(ethrpc, htlc_address, my_address)
         txn = htlc_contract.Deposit(prop_receiver, secret_hashed, prop_expiry, value=prop_value)
 
-        receipt = txn.receipt(wait=wait)
+        receipt = txn.receipt(wait=True)
         if receipt and int(receipt['status'], 16) == 0:
             raise RuntimeError("Propose deposit failed, txn: " + txn.txid)
 
         # Notify coordinator of proposal
         proposal_resource = self._resource(secret_hashed_hex)
-        response = proposal_resource.POST(
+        propdata = proposal_resource.POST(
             expiry=prop_expiry,
             depositor=my_address,
             txid=txn.txid
         )
-        require(response['ok'] == 1, "Proposal coordinator API error")
 
         # Add proposal to list, then return it
-        proposal = self._make_proposal(secret_hashed_hex)
+        proposal = self._make_proposal(secret_hashed_hex, propdata)
         self.proposals[secret_hashed_hex] = proposal
         return secret, proposal
 

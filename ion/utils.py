@@ -3,9 +3,10 @@
 ## SPDX-License-Identifier: LGPL-3.0+
 
 import sys
-from base64 import b64encode, b64decode
-import binascii
 import json
+from base64 import b64encode, b64decode
+from binascii import hexlify, unhexlify
+from functools import reduce
 
 from rlp.sedes import big_endian_int
 from rlp.utils import decode_hex, str_to_bytes
@@ -40,7 +41,7 @@ def packl(lnum):
     s = hex(lnum)[2:].rstrip('L')
     if len(s) & 1:
         s = '0' + s
-    return binascii.unhexlify(s)
+    return unhexlify(s)
 
 int_to_big_endian = packl
 
@@ -60,7 +61,7 @@ dict_dump = lambda diff: {c: dict(d.items()) for c, d in diff.items()}
 
 
 def is_numeric(x):
-    return isinstance(x, (int, long))
+    return isinstance(x, int)
 
 
 def encode_int(v):
@@ -81,12 +82,13 @@ def require(arg, msg=None):
     if not arg:
         raise RuntimeError(msg or "Requirement failed")
 
+
 def normalise_address(addr):
     if len(addr) == 20:
-        addr = addr.encode('hex')
+        addr = hexlify(addr).decode('ascii')
     if addr[:2] == '0x':
         addr = addr[2:]
-    require(len(addr) == 40, "Invalid address: " + addr)
+    require(len(addr) == 40, "Invalid address: " + str(addr))
     return addr
 
 
@@ -103,13 +105,13 @@ class Marshalled(object):
 
 
 def tojson(x):
-    return json.dumps(marshal(x))
+    return json.dumps(marshal(x), cls=CustomJSONEncoder)
 
 
 def marshal(x):
-    if isinstance(x, (int, long, type(None))):
+    if isinstance(x, (int, type(None))):
         return x
-    if isinstance(x, (str, bytes, unicode)):
+    if isinstance(x, (str, bytes)):
         return b64encode(x)
     if isinstance(x, (tuple, list)):
         return map(marshal, x)
@@ -119,12 +121,24 @@ def marshal(x):
 
 
 def unmarshal(x):
-    if x is None or isinstance(x, (int, long)):
+    if x is None or isinstance(x, int):
         return x
-    if isinstance(x, (str, bytes, unicode)):
+    if isinstance(x, (str, bytes)):
         return b64decode(x)
     if isinstance(x, (tuple, list)):
         return map(unmarshal, x)
     if isinstance(x, Marshalled):
         return x.unmarshal(x)
     raise ValueError("Cannot unmarshal type: %r - %r" % (type(x), x))
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return obj.decode('utf-8', 'backslashreplace')
+        return json.JSONEncoder.default(self, obj)
+
+
+# XXX: about about tojson?
+def json_dumps(obj):
+    return json.dumps(obj, cls=CustomJSONEncoder)

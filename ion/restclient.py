@@ -17,7 +17,7 @@ e.g.
     x = RestClient('http://example.com/')
     x('test').POST(abc=123) # POST /test abc=123
     x.test.derp.GET()       # GET /test/derp
-    x.test()                # GET /test
+    x.test.GET()()          # GET /test
 
 see... it's nice, and predictable, and Pythonic, and flexible, etc...
 """
@@ -31,20 +31,18 @@ except ImportError:
 
 import requests
 
-from .utils import require
-
 
 class RestClient(object):
     __slots__ = ('_api', '_url', '_session')
 
     def __init__(self, url, api=None):
-        require(url is not None, "Must provide REST API HTTP URL")
+        assert url is not None
         self._url = url
         self._session = None
         if api is None:
             self._session = requests.Session()
         self._api = self if api is None else api
-        require(isinstance(self._api, RestClient))
+        assert isinstance(self._api, RestClient)
 
     def __getattr__(self, name):
         if name[0] == '_':

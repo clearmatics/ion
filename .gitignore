@@ -15,3 +15,4 @@ lextab.py
 yacctab.py
 *.swp
 *.swo
+*.pid

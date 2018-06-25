@@ -9,30 +9,23 @@ This tool was designed to facilitate the information swap between two EVM chains
 """
 from __future__ import print_function
 
+import time
 import threading
-import random
-import string
-import click
-from ethereum.utils import scan_bin, sha3, keccak
+from os import urandom
 
+import click
+
+from sha3 import keccak_256
+
+from ..utils import scan_bin
 from ..args import arg_bytes20, arg_ethrpc
 from ..merkle import merkle_tree, merkle_hash
 
 from .api import app
 
-TRANSFER_SIGNATURE = keccak.new(digest_bits=256) \
-    .update('IonTransfer(address,address,uint256,bytes32,bytes)') \
-    .hexdigest()
+TRANSFER_SIGNATURE = keccak_256(b'IonTransfer(address,address,uint256,bytes32,bytes)').hexdigest()
 
 EVENT_SIGNATURES = [TRANSFER_SIGNATURE]
-
-
-def random_string(amount):
-    """
-    Returns a random string to hash as pseudo data
-    """
-    return ''.join(random.SystemRandom() \
-        .choice(string.ascii_uppercase + string.digits) for _ in range(amount))
 
 
 def pack_txn(txn):
@@ -40,10 +33,12 @@ def pack_txn(txn):
     Packs all the information about a transaction into a deterministic fixed-sized array of bytes
         from || to
     """
-    tx_from, tx_to, tx_value, tx_input = [scan_bin(x + ('0' * (len(x) % 2))) \
-        for x in [txn['from'], txn['to'], txn['value'], txn['input']]]
+    fields = [txn['from'], txn['to'], txn['value'], txn['input']]
+    encoded_fields = [scan_bin(x + ('0' * (len(x) % 2))) for x in fields]
+    tx_from, tx_to, tx_value, tx_input = encoded_fields
 
-    return ''.join([
+    # XXX: why is only the From and To fields... ?
+    return b''.join([
         tx_from,
         tx_to
     ])
@@ -54,8 +49,7 @@ def pack_log(txn, log):
     Packs a log entry into one or more entries.
         sender account || token address of opposite chain from sender || ionLock address of opposite chain from sender || value || hash(reference)
     """
-    print(scan_bin(log['topics'][2]).encode('hex'))
-    return ''.join([
+    return b''.join([
         scan_bin(txn['from']),
         scan_bin(txn['to']),
         scan_bin(log['address']),
@@ -71,10 +65,8 @@ def pack_items(items):
     start = len(items)
     if start < 4:
         for _ in range(start, 4):
-            new_item = random_string(16)
-            items.append(sha3(new_item))
-    else:
-        pass
+            new_item = urandom(16)
+            items.append(keccak_256(new_item).digest())
 
 
 class Lithium(object):
@@ -158,6 +150,10 @@ class Lithium(object):
                     blocks = []
                     is_latest = False
             old_head = head
+            try:
+                time.sleep(interval)
+            except KeyboardInterrupt:
+                raise StopIteration
 
 
     def lithium_submit(self, batch, prev_root, rpc, link, account, checkpoints, leaves):
@@ -189,7 +185,7 @@ class Lithium(object):
         prev_root = merkle_hash("merkle-tree-extra")
 
         print("Starting block iterator")
-        print("Latest Block: ", ionlock.LatestBlock)
+        print("Latest Block: ", ionlock.LatestBlock())
 
         for is_latest, block_group in self.iter_blocks(run_event, rpc_from, ionlock.LatestBlock()):
             items, group_tx_count, group_log_count, transfers = self.process_block_group(rpc_from, block_group)
