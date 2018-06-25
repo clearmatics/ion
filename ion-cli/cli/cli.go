@@ -15,11 +15,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"../Validation"
-	"../config"
+	"github.com/ion/ion-cli/Validation"
+	"github.com/ion/ion-cli/config"
 )
-
-const key = `{"address":"2be5ab0e43b6dc2908d5321cf318f35b80d0c10d","crypto":{"cipher":"aes-128-ctr","ciphertext":"0b11aa865046778a1b16a9b8cb593df704e3fe09f153823d75442ad1aab66caa","cipherparams":{"iv":"4aa66b789ee2d98cf77272a72eeeaa50"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"b957fa7b7577240fd3791168bbe08903af4c8cc62c304f1df072dc2a59b1765e"},"mac":"197a06eb0449301d871400a6bdf6c136b6f7658ee41e3f2f7fd81ca11cd954a3"},"id":"a3cc1eae-3e36-4659-b759-6cf416216e72","version":3}`
 
 // Launch - definition of commands and creates the iterface
 func Launch(setup config.Setup) {
@@ -138,7 +136,7 @@ func Launch(setup config.Setup) {
 					c.Printf("Error: %s", err)
 					return
 				}
-				c.Printf("Transaction Hash: 0x%x\n", res.Hash())
+				c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
 			}
 			c.Println("===============================================================")
 		},

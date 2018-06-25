@@ -120,20 +120,20 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 	// Generate an interface to encode the standard block header
 	blockInterface := GenerateInterface(blockHeader)
 	encodedBlock := EncodeBlock(blockInterface)
-	fmt.Printf("\n%+x\n", encodedBlock)
+	fmt.Printf("\nEncoded Block Header:\n%+x\n", encodedBlock)
 
 	// Generate an interface to encode the blockheader without the signature in the extraData
 	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
 	blockInterface = GenerateInterface(blockHeader)
 	encodedBlock = EncodeBlock(blockInterface)
 	prefixBlock = encodedBlock[1:3]
-	fmt.Printf("\n%+x\n", prefixBlock)
+	fmt.Printf("\nSigned Block Header Prefix:\n%+x\n", prefixBlock)
 
 	// Generate an interface to encode the blockheader without the signature in the extraData
 	encExtra, _ := hex.DecodeString(blockHeader.Extra[2:])
 	encodedBlock = EncodeBlock(encExtra)
 	prefixExtra = encodedBlock[0:1]
-	fmt.Printf("\n%+x\n", prefixExtra)
+	fmt.Printf("\nExtraData Field Prefix:\n%+x\n", prefixExtra)
 
 	return encodedBlock, prefixBlock, prefixExtra
 

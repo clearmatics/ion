@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"../config"
+	"github.com/ion/ion-cli/config"
 )
 
 func Test_Read_ValidSetupJson(t *testing.T) {
