@@ -4,6 +4,7 @@ package cli
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"math/big"
@@ -118,6 +119,23 @@ func Launch(setup config.Setup) {
 		},
 	})
 
+	shell.AddCmd(&ishell.Cmd{
+		Name: "latestBytesSubmitted",
+		Help: "Queries the validator contract for the last block submitted, arguments: latestBlockSubmitted",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			result, err := validation.LatestBlock(&bind.CallOpts{})
+			if err != nil {
+				fmt.Printf("Error: %s", err)
+				return
+			}
+			c.Println("Last Block Submitted:")
+			c.Printf("0x%x\n", result)
+
+			c.Println("===============================================================")
+		},
+	})
+
 	// Get block N and spew out the RLP encoded block
 	shell.AddCmd(&ishell.Cmd{
 		Name: "rlpBlock",
@@ -171,22 +189,42 @@ func Launch(setup config.Setup) {
 				c.Println("Too many arguments entered.")
 			} else {
 				c.Println("RLP encode block: " + c.Args[0])
-				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
-				// bhash := "5cd9f5b157b070a77a9fa2928f5891c9d8ed88805480c9e2736ad749b2439428"
-				// arr, _ := hex.DecodeString(bhash)
-				// var test [32]byte
+				// encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
+				encodedBlock, _, _ := calculateRlpEncoding(client, c.Args[0])
+				bhash := "5cd9f5b157b070a77a9fa2928f5891c9d8ed88805480c9e2736ad749b2439428"
+				arr, _ := hex.DecodeString(bhash)
+				var test [32]byte
 
-				// copy(test[:], arr)
+				copy(test[:], arr)
 
-				// c.Printf("%s\n", bhash)
-				// c.Printf("%+x\n", arr)
-				// c.Printf("%+x\n", test)
-				res, err := validation.ValidationTest(auth, encodedBlock)
+				c.Printf("%s\n", bhash)
+				c.Printf("%+x\n", arr)
+				c.Printf("%+x\n", test)
+				c.Println(encodedBlock)
+				str := hex.EncodeToString(encodedBlock)
+				testarossa, _ := hex.DecodeString(str)
+				c.Println(str)
+				res, err := validation.ValidationTest(auth, testarossa)
 				if err != nil {
 					c.Printf("Error: %s", err)
 					return
 				}
 				c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
+
+				result, err := validation.LatestBlock(&bind.CallOpts{})
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+					return
+				}
+				c.Println("Last Block Submitted:")
+				c.Printf("0x%x\n", result)
+				res2, err := validation.LatestBytes(&bind.CallOpts{})
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+					return
+				}
+				c.Println("Last Bytes Submitted:")
+				c.Printf("0x%x\n", res2)
 			}
 			c.Println("===============================================================")
 		},

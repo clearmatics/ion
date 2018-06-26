@@ -5,21 +5,22 @@ pragma solidity ^0.4.23;
 import "./ECVerify.sol";
 
 contract Validation {
-	event broadcastSig(address owner);
-	event broadcastHashData(bytes header, bytes parentHash, bytes rootHash);
-	event broadcastHash(bytes32 blockHash);
-
 	address Owner;
 	address[] validators;
 
 	bytes32 prevBlockHash;
+	bytes someBytes;
 
 	struct BlockHeader {
 		bytes32 prevBlockHash;
 	}
 
 	mapping (bytes32 => BlockHeader) public m_blockheaders;
-	mapping(address => bool) m_validators;
+	mapping (address => bool) m_validators;
+
+	event broadcastSig(address owner);
+	event broadcastHashData(bytes header, bytes parentHash, bytes rootHash);
+	event broadcastHash(bytes32 blockHash);
 
 	/*
 	*	@param _validators			list of validators at block 0
@@ -46,6 +47,13 @@ contract Validation {
 	*/
 	function LatestBlock() public view returns (bytes32 _latestBlock) {
 		return prevBlockHash;
+	}
+
+	/*
+	* Returns the latest block submitted
+	*/
+	function LatestBytes() public view returns (bytes _latestBytes) {
+		return someBytes;
 	}
 
 	/*
@@ -96,9 +104,7 @@ contract Validation {
 
 	function ValidationTest(bytes header) public {
 		bytes32 blockHash = keccak256(header);
-
-		emit broadcastHash(blockHash);
-
+		someBytes = header;
 		prevBlockHash = blockHash;
 	}
 
