@@ -153,7 +153,7 @@ func GenerateInterface(blockHeader Header) (rest interface{}) {
 		f = f[2:]
 
 		// single character then pre-pending a 0 turns it into a byte
-		if len(f) == 1 {
+		if len(f)%2 != 0 {
 			f = "0" + f
 		}
 

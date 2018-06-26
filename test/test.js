@@ -30,7 +30,7 @@ function bytesToHex(bytes) {
 }
 
 contract.only('test.js', (accounts) => {
-  const blockNum = 10
+  const blockNum = 8
   const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('');
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));

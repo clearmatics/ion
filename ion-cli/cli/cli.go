@@ -4,7 +4,6 @@ package cli
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"math/big"
@@ -193,11 +192,11 @@ func Launch(setup config.Setup) {
 				encodedBlock, _, _ := calculateRlpEncoding(client, c.Args[0])
 
 				// Fiddle around because otherwise the formatting is wrong
-				encodedStr := hex.EncodeToString(encodedBlock)
-				encodedHex, _ := hex.DecodeString(encodedStr)
+				// encodedStr := hex.EncodeToString(encodedBlock)
+				// encodedHex, _ := hex.DecodeString(encodedStr)
 
 				// Submit to the validation contract
-				res, err := validation.ValidationTest(auth, encodedHex)
+				res, err := validation.ValidationTest(auth, encodedBlock)
 				if err != nil {
 					c.Printf("Error: %s", err)
 					return
