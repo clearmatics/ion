@@ -5,30 +5,33 @@ pragma solidity ^0.4.23;
 import "./ECVerify.sol";
 
 contract Validation {
-	address Owner;
-
 	event broadcastSig(address owner);
 	event broadcastHashData(bytes header, bytes parentHash, bytes rootHash);
 	event broadcastHash(bytes32 blockHash);
 
+	address Owner;
 	address[] validators;
+
+	bytes32 prevBlockHash;
 
 	struct BlockHeader {
 		bytes32 prevBlockHash;
 	}
 
 	mapping (bytes32 => BlockHeader) public m_blockheaders;
-	mapping( address => bool ) m_validators;
+	mapping(address => bool) m_validators;
 
 	/*
 	*	@param _validators			list of validators at block 0
 	*/
-	constructor (address[] _validators) public {
+	constructor (address[] _validators, bytes32 genHash) public {
 		Owner = msg.sender;
 		for (uint i = 0; i < _validators.length; i++) {
 			validators.push(_validators[i]);
 			m_validators[_validators[i]] = true;
-    	}	
+    	}
+
+		prevBlockHash = genHash;	
 	}
 
 	/*
@@ -36,6 +39,13 @@ contract Validation {
 	*/
 	function GetValidators() public view returns (address[] _validators) {
 		return validators;
+	}
+	
+	/*
+	* Returns the latest block submitted
+	*/
+	function LatestBlock() public view returns (bytes32 _latestBlock) {
+		return prevBlockHash;
 	}
 
 	/*
@@ -76,10 +86,20 @@ contract Validation {
 		extractData(extraDataSig, header, length-107, extraDataSig.length);
 
 		address sig_addr = ECVerify.ecrecovery(hashData, extraDataSig);
-		require(m_validators[sig_addr]==true, "Signer not a validator!");
+		// require(m_validators[sig_addr]==true, "Signer not a validator!");
+
+		prevBlockHash = blockHash;
 
 		emit broadcastSig(sig_addr);
 
+	}
+
+	function ValidationTest(bytes header) public {
+		bytes32 blockHash = keccak256(header);
+
+		emit broadcastHash(blockHash);
+
+		prevBlockHash = blockHash;
 	}
 
 	function mergeHash(bytes headerStart, bytes extraData, bytes headerEnd) internal view returns (bytes output) {

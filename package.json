@@ -34,6 +34,9 @@
     "deploy": "truffle deploy",
     "test": "truffle test --network development",
     "coverage": "solidity-coverage",
-    "lint": "solhint contracts/**/*.sol"
+    "lint": "solhint contracts/**/*.sol",
+    "genbin": "solc --overwrite --bin ./contracts/* -o abi",
+    "genabi": "solc --overwrite --abi ./contracts/* -o abi",
+    "abigen": "abigen --bin=abi/Validation.bin --abi=abi/Validation.abi --pkg=Validation --out=Validation.go"
   }
 }

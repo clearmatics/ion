@@ -113,6 +113,7 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 	}
 	err = json.Unmarshal([]byte(b), &blockHeader)
 	if err != nil {
+		latestBlock(client)
 		fmt.Printf("Error: %s", err)
 		return
 	}

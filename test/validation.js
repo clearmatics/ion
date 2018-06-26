@@ -29,15 +29,16 @@ function bytesToHex(bytes) {
     return hex.join("");
 }
 
-contract('validation.js', (accounts) => {
+contract.only('validation.js', (accounts) => {
   const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('');
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
 
   const validators = ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d", "0x8671e5e08d74f338ee1c462340842346d797afd3"];
+  const genHash = "0xc3bac257bbd04893316a76d41b6ff70de5f65c9f24db128864a6322d8e0e2f28";
 
   it('Test: GetValidators()', async () => {
-    const validation = await Validation.new(validators);
+    const validation = await Validation.new(validators, genHash);
     const accounts = web3.eth.accounts;
     const signer = accounts[0];
 
@@ -45,8 +46,9 @@ contract('validation.js', (accounts) => {
     assert.equal(validators[0], validatorsReceipt[0])
   })
 
-  it('Test: Authentic Submission - ValidateBlock()', async () => {
-    const validation = await Validation.new(validators);
+  // This test takes a block and makes no changes to the block and submits it to the contract
+  it('Test: Authentic Submission Happy Path - ValidateBlock()', async () => {
+    const validation = await Validation.new(validators, genHash);
     const accounts = web3.eth.accounts;
     const signer = accounts[0];
 
@@ -131,8 +133,9 @@ contract('validation.js', (accounts) => {
 
   })
 
-  it('Test: Authentic Submission Off-Chain - ValidateBlock()', async () => {
-    const validation = await Validation.new(validators);
+  // Here the block header is signed off chain but by a whitelisted validator
+  it('Test: Authentic Submission Off-Chain Signature - ValidateBlock()', async () => {
+    const validation = await Validation.new(validators, genHash);
     const accounts = web3.eth.accounts;
     const signer = accounts[0];
 
@@ -163,7 +166,6 @@ contract('validation.js', (accounts) => {
     const extraDataShort = '0x' + bytesToHex(extraBytesShort);
 
     // Make some changes to the block
-    const newTxHash = Web3Utils.sha3("Test Data");
     const header = [
       parentHash,
       sha3Uncles,
@@ -195,11 +197,13 @@ contract('validation.js', (accounts) => {
 
     const pubKey  = Util.ecrecover(headerHash, sig.v, sig.r, sig.s);
     const addrBuf = Util.pubToAddress(pubKey);
-    const addr    = Util.bufferToHex(addrBuf);
 
-    const vPseudo = new Buffer(0);
     const newSigBytes = Buffer.concat([sig.r, sig.s]);
-    const newSig = newSigBytes.toString('hex') + '00';
+    let newSig;
+    if (sig.v==28)
+      newSig = newSigBytes.toString('hex') + '00';
+    else (sig.v==27)
+      newSig = newSigBytes.toString('hex') + '01';
 
     // Append signature to the end of extraData
     const sigBytes = hexToBytes(newSig.toString('hex'));
@@ -235,12 +239,13 @@ contract('validation.js', (accounts) => {
     const ecrecoveryReceipt = await validation.ValidateBlock(encodedBlockHeader, prefixHeader, prefixExtraData);
     const recoveredBlockHash = ecrecoveryReceipt.logs[0].args['blockHash'];
     const recoveredSignature = ecrecoveryReceipt.logs[1].args['owner'];
+    console.log(block.hash, recoveredBlockHash)
     assert.equal(block.hash, recoveredBlockHash)
     assert.equal(recoveredSignature, signer);
   })
 
   it('Test: Inauthentic Block Submission Off-Chain - ValidateBlock()', async () => {
-    const validation = await Validation.new(validators);
+    const validation = await Validation.new(validators, genHash);
     const accounts = web3.eth.accounts;
     const signer = accounts[0];
 
@@ -346,7 +351,7 @@ contract('validation.js', (accounts) => {
   })
 
   it('Test: Authentic Block Unkown Validator Submission - ValidateBlock()', async () => {
-    const validation = await Validation.new(validators);
+    const validation = await Validation.new(validators, genHash);
     const accounts = web3.eth.accounts;
     const signer = accounts[0];
 
