@@ -124,12 +124,12 @@ func Launch(setup config.Setup) {
 		Help: "Queries the validator contract for the last block submitted, arguments: latestBlockSubmitted",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			result, err := validation.LatestBlock(&bind.CallOpts{})
+			result, err := validation.LatestBytes(&bind.CallOpts{})
 			if err != nil {
 				fmt.Printf("Error: %s", err)
 				return
 			}
-			c.Println("Last Block Submitted:")
+			c.Println("Last Bytes Submitted:")
 			c.Printf("0x%x\n", result)
 
 			c.Println("===============================================================")
@@ -191,40 +191,19 @@ func Launch(setup config.Setup) {
 				c.Println("RLP encode block: " + c.Args[0])
 				// encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
 				encodedBlock, _, _ := calculateRlpEncoding(client, c.Args[0])
-				bhash := "5cd9f5b157b070a77a9fa2928f5891c9d8ed88805480c9e2736ad749b2439428"
-				arr, _ := hex.DecodeString(bhash)
-				var test [32]byte
 
-				copy(test[:], arr)
+				// Fiddle around because otherwise the formatting is wrong
+				encodedStr := hex.EncodeToString(encodedBlock)
+				encodedHex, _ := hex.DecodeString(encodedStr)
 
-				c.Printf("%s\n", bhash)
-				c.Printf("%+x\n", arr)
-				c.Printf("%+x\n", test)
-				c.Println(encodedBlock)
-				str := hex.EncodeToString(encodedBlock)
-				testarossa, _ := hex.DecodeString(str)
-				c.Println(str)
-				res, err := validation.ValidationTest(auth, testarossa)
+				// Submit to the validation contract
+				res, err := validation.ValidationTest(auth, encodedHex)
 				if err != nil {
 					c.Printf("Error: %s", err)
 					return
 				}
 				c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
 
-				result, err := validation.LatestBlock(&bind.CallOpts{})
-				if err != nil {
-					fmt.Printf("Error: %s", err)
-					return
-				}
-				c.Println("Last Block Submitted:")
-				c.Printf("0x%x\n", result)
-				res2, err := validation.LatestBytes(&bind.CallOpts{})
-				if err != nil {
-					fmt.Printf("Error: %s", err)
-					return
-				}
-				c.Println("Last Bytes Submitted:")
-				c.Printf("0x%x\n", res2)
 			}
 			c.Println("===============================================================")
 		},

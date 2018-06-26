@@ -148,7 +148,16 @@ func GenerateInterface(blockHeader Header) (rest interface{}) {
 	// Append items into the interface
 	for i := 0; i < s.NumField(); i++ {
 		f := s.Field(i).String()
-		element, _ := hex.DecodeString(f[2:])
+
+		// Remove the 0x prefix
+		f = f[2:]
+
+		// single character then pre-pending a 0 turns it into a byte
+		if len(f) == 1 {
+			f = "0" + f
+		}
+
+		element, _ := hex.DecodeString(f)
 		blockInterface = append(blockInterface, element)
 	}
 

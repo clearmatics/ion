@@ -30,7 +30,7 @@ function bytesToHex(bytes) {
 }
 
 contract.only('test.js', (accounts) => {
-  const blockNum = 22
+  const blockNum = 10
   const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('');
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
@@ -140,6 +140,7 @@ contract.only('test.js', (accounts) => {
       nonce
     ];
 
+    console.log(newBlockHeader)
     const encodedBlockHeader = '0x' + rlp.encode(newBlockHeader).toString('hex');
     const blockHeaderHash = Web3Utils.sha3(encodedBlockHeader);
     assert.equal(block.hash, blockHeaderHash);
