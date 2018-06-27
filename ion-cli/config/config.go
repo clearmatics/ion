@@ -30,7 +30,7 @@ func ReadSetup(config string) (setup Setup) {
 
 	err = json.Unmarshal(raw, &setup)
 
-	return setup
+	return
 }
 
 // Takes path to a JSON and returns a string of the contents
