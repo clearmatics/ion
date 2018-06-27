@@ -9,7 +9,6 @@ contract Validation {
 	address[] validators;
 
 	bytes32 prevBlockHash;
-	bytes32 parentBlockHash;
 
 	struct BlockHeader {
 		bytes32 prevBlockHash;
@@ -21,6 +20,7 @@ contract Validation {
 	event broadcastSig(address owner);
 	event broadcastHashData(bytes header, bytes parentHash, bytes rootHash);
 	event broadcastHash(bytes32 blockHash);
+	event broadcastHash2(bytes blockHash);
 
 	/*
 	*	@param _validators			list of validators at block 0
@@ -55,6 +55,13 @@ contract Validation {
 	* @param prefixExtraData	the new prefix for the extraData field
 	*/
 	function ValidateBlock(bytes header, bytes prefixHeader, bytes prefixExtraData) public {
+		// Check the parent hash is the same as the previous block submitted
+		bytes32 _parentBlockHash;
+		assembly {
+			_parentBlockHash := mload(add(header, 36))
+		}
+		require(_parentBlockHash==prevBlockHash, "Not child of previous block!");
+
 		uint256 length = header.length;
 		bytes32 blockHash = keccak256(header);
 
@@ -74,7 +81,7 @@ contract Validation {
 		// Extract the real extra data and create the signed hash
 		extractData(extraData, header, length-140, extraData.length);
 		assembly {
-			let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
+				let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
 		}
 
 		// Extract the end of the header
@@ -94,6 +101,7 @@ contract Validation {
 		emit broadcastSig(sig_addr);
 
 	}
+
 
 	function mergeHash(bytes headerStart, bytes extraData, bytes headerEnd) internal view returns (bytes output) {
 		// Get the lengths sorted because they're needed later...
