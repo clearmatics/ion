@@ -20,14 +20,14 @@ func main() {
 		setup := config.ReadSetup(*configFile)
 
 		clientTo := config.InitClient(setup.PortTo, setup.AddrTo)
-		// clientFrom := config.InitClient(setup.PortFrom, setup.AddrFrom)
+		clientFrom := config.InitClient(setup.PortFrom, setup.AddrFrom)
 
-		validation := config.InitValidationContract(setup, clientTo)
+		Validation := config.InitValidationContract(setup, clientTo)
 
 		printInfo(setup)
 
 		// Launch the CLI
-		cli.Launch(setup, clientTo, validation)
+		cli.Launch(setup, clientFrom, Validation)
 	} else {
 		fmt.Print("Error: empty config!\n")
 		os.Exit(3)

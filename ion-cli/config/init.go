@@ -7,7 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ion/ion-cli/Validation"
+	"github.com/ion/ion-cli/validation"
 )
 
 func InitClient(port string, addr string) (clientTo *ethclient.Client) {
@@ -20,10 +20,10 @@ func InitClient(port string, addr string) (clientTo *ethclient.Client) {
 	return
 }
 
-func InitValidationContract(setup Setup, client *ethclient.Client) (validation *Validation.Validation) {
+func InitValidationContract(setup Setup, client *ethclient.Client) (Validation *validation.Validation) {
 	// Initialise the contract
 	address := common.HexToAddress(setup.Ion)
-	validation, err := Validation.NewValidation(address, client)
+	Validation, err := validation.NewValidation(address, client)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -9,7 +9,7 @@ contract Validation {
 	address[] validators;
 
 	bytes32 prevBlockHash;
-	bytes someBytes;
+	bytes32 parentBlockHash;
 
 	struct BlockHeader {
 		bytes32 prevBlockHash;
@@ -50,15 +50,8 @@ contract Validation {
 	}
 
 	/*
-	* Returns the latest block submitted
-	*/
-	function LatestBytes() public view returns (bytes _latestBytes) {
-		return someBytes;
-	}
-
-	/*
-	* @param header  					header rlp encoded, with extraData signatures removed
-	* @param prefixHeader			the new prefix for the signed hash header
+	* @param header  			header rlp encoded, with extraData signatures removed
+	* @param prefixHeader		the new prefix for the signed hash header
 	* @param prefixExtraData	the new prefix for the extraData field
 	*/
 	function ValidateBlock(bytes header, bytes prefixHeader, bytes prefixExtraData) public {
@@ -81,7 +74,7 @@ contract Validation {
 		// Extract the real extra data and create the signed hash
 		extractData(extraData, header, length-140, extraData.length);
 		assembly {
-					 let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
+			let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
 		}
 
 		// Extract the end of the header
@@ -128,10 +121,10 @@ contract Validation {
 	}
 
 	/*
-	* @param data	  			memory allocation for the data you need to extract
-	* @param sig    			array from which the data should be extracted
-	* @param start   			index which the data starts within the byte array
-	* @param length  			total length of the data to be extracted
+	* @param data	memory allocation for the data you need to extract
+	* @param sig    array from which the data should be extracted
+	* @param start  index which the data starts within the byte array
+	* @param length total length of the data to be extracted
 	*/
 	function extractData(bytes data, bytes input, uint start, uint length) private pure {
 		for (uint i=0; i<length; i++) {

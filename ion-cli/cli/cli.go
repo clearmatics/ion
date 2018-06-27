@@ -14,17 +14,17 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/ion/ion-cli/Validation"
 	"github.com/ion/ion-cli/config"
+	"github.com/ion/ion-cli/validation"
 )
 
 // Launch - definition of commands and creates the iterface
-func Launch(setup config.Setup, client *ethclient.Client, validation *Validation.Validation) {
+func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *validation.Validation) {
 	// by default, new shell includes 'exit', 'help' and 'clear' commands.
 	shell := ishell.New()
 
 	// Get a suggested gas price
-	gasPrice, err := client.SuggestGasPrice(context.Background())
+	gasPrice, err := clientFrom.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func Launch(setup config.Setup, client *ethclient.Client, validation *Validation
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			c.Println("Get latest block number:")
-			latestBlock(client)
+			latestBlock(clientFrom)
 			c.Println("===============================================================")
 		},
 	})
@@ -62,7 +62,7 @@ func Launch(setup config.Setup, client *ethclient.Client, validation *Validation
 			} else if len(c.Args) > 1 {
 				c.Println("Only enter single argument")
 			} else {
-				getBlock(client, c.Args[0])
+				getBlock(clientFrom, c.Args[0])
 			}
 			c.Println("===============================================================")
 		},
@@ -73,7 +73,7 @@ func Launch(setup config.Setup, client *ethclient.Client, validation *Validation
 		Help: "use: getValidators \n\t\t\t\tdescription: Returns the whitelist of validators from validator contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			result, err := validation.GetValidators(&bind.CallOpts{})
+			result, err := Validation.GetValidators(&bind.CallOpts{})
 			if err != nil {
 				fmt.Printf("Error: %s", err)
 				return
@@ -90,7 +90,7 @@ func Launch(setup config.Setup, client *ethclient.Client, validation *Validation
 		Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			result, err := validation.LatestBlock(&bind.CallOpts{})
+			result, err := Validation.LatestBlock(&bind.CallOpts{})
 			if err != nil {
 				fmt.Printf("Error: %s", err)
 				return
@@ -113,8 +113,8 @@ func Launch(setup config.Setup, client *ethclient.Client, validation *Validation
 				c.Println("Too many arguments entered.")
 			} else {
 				c.Println("RLP encode block: " + c.Args[0])
-				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
-				res, err := validation.ValidateBlock(auth, encodedBlock, prefixBlock, prefixExtra)
+				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(clientFrom, c.Args[0])
+				res, err := Validation.ValidateBlock(auth, encodedBlock, prefixBlock, prefixExtra)
 				if err != nil {
 					c.Printf("Error: %s", err)
 					return
