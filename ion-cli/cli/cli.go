@@ -103,6 +103,27 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *valida
 	})
 
 	shell.AddCmd(&ishell.Cmd{
+		Name: "getValidationBlock",
+		Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			blockNum := new(big.Int)
+			blockNum.SetString(c.Args[0], 10)
+			result, err := Validation.GetBlock(&bind.CallOpts{}, blockNum)
+			if err != nil {
+				fmt.Printf("Error: %s", err)
+				return
+			}
+			c.Println("Last Block Submitted:")
+			c.Printf("Block:\n\t%x\n", result.BlockHeight)
+			c.Printf("Hash:\n\t0x%x\n", result.BlockHash)
+			c.Printf("Parent Hash:\n\t0x%x\n", result.PrevBlockHash)
+
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
 		Name: "submitValidationBlock",
 		Help: "use: submitValidationBlock [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
 		Func: func(c *ishell.Context) {

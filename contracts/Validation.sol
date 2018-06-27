@@ -8,13 +8,15 @@ contract Validation {
 	address Owner;
 	address[] validators;
 
-	bytes32 prevBlockHash;
+	uint256 blockHeight;
+	bytes32 blockHash;
 
 	struct BlockHeader {
+		bytes32 blockHash; 
 		bytes32 prevBlockHash;
 	}
 
-	mapping (bytes32 => BlockHeader) public m_blockheaders;
+	mapping (uint256 => BlockHeader) public m_blockheaders;
 	mapping (address => bool) m_validators;
 
 	event broadcastSig(address owner);
@@ -25,14 +27,16 @@ contract Validation {
 	/*
 	*	@param _validators			list of validators at block 0
 	*/
-	constructor (address[] _validators, bytes32 genHash) public {
+	constructor (address[] _validators, bytes32 genesisHash) public {
 		Owner = msg.sender;
 		for (uint i = 0; i < _validators.length; i++) {
 			validators.push(_validators[i]);
 			m_validators[_validators[i]] = true;
     	}
 
-		prevBlockHash = genHash;	
+		blockHash = genesisHash;
+		m_blockheaders[0].blockHash = genesisHash;
+
 	}
 
 	/*
@@ -46,7 +50,16 @@ contract Validation {
 	* Returns the latest block submitted
 	*/
 	function LatestBlock() public view returns (bytes32 _latestBlock) {
-		return prevBlockHash;
+		return blockHash;
+	}
+
+	/*
+	* Returns the latest block submitted
+	*/
+	function GetBlock(uint256 blockNumber) public view returns (bytes32 _blockHash, bytes32 _prevBlockHash, uint256 _blockHeight) {
+		_blockHash = m_blockheaders[blockNumber].blockHash;
+		_prevBlockHash = m_blockheaders[blockNumber].prevBlockHash;
+		_blockHeight = blockHeight;
 	}
 
 	/*
@@ -60,10 +73,10 @@ contract Validation {
 		assembly {
 			_parentBlockHash := mload(add(header, 36))
 		}
-		require(_parentBlockHash==prevBlockHash, "Not child of previous block!");
+		require(_parentBlockHash==blockHash, "Not child of previous block!");
 
 		uint256 length = header.length;
-		bytes32 blockHash = keccak256(header);
+		bytes32 _blockHash = keccak256(header);
 
 		emit broadcastHash(blockHash);
 
@@ -96,7 +109,11 @@ contract Validation {
 		address sig_addr = ECVerify.ecrecovery(hashData, extraDataSig);
 		require(m_validators[sig_addr]==true, "Signer not a validator!");
 
-		prevBlockHash = blockHash;
+		// Append the new block to the struct
+		blockHash = _blockHash;
+		blockHeight++;
+		m_blockheaders[blockHeight].blockHash = _blockHash;
+		m_blockheaders[blockHeight].prevBlockHash = _parentBlockHash;
 
 		emit broadcastSig(sig_addr);
 
