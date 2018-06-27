@@ -105,7 +105,15 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 		return
 	}
 
-	// Marshal into a JSON
+	// Encode the orginal block header
+	rlpBlock, err = rlp.EncodeToBytes(&lastBlock)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+	fmt.Printf("\nEncoded Block Header:\n%+x\n", rlpBlock)
+
+	// Marshal block into a JSON to allow manipulation of specific fields
 	b, err := json.MarshalIndent(lastBlock, "", " ")
 	if err != nil {
 		fmt.Printf("Error: %s", err)
@@ -118,14 +126,9 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 		return
 	}
 
-	// Generate an interface to encode the standard block header
-	blockInterface := GenerateInterface(blockHeader)
-	rlpBlock = EncodeBlock(blockInterface)
-	fmt.Printf("\nEncoded Block Header:\n%+x\n", rlpBlock)
-
 	// Generate an interface to encode the blockheader without the signature in the extraData
 	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
-	blockInterface = GenerateInterface(blockHeader)
+	blockInterface := GenerateInterface(blockHeader)
 	encodedPrefixBlock := EncodeBlock(blockInterface)
 	prefixBlock = encodedPrefixBlock[1:3]
 	fmt.Printf("\nSigned Block Header Prefix:\n%+x\n", prefixBlock)
@@ -144,6 +147,7 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 func GenerateInterface(blockHeader Header) (rest interface{}) {
 	blockInterface := []interface{}{}
 	s := reflect.ValueOf(&blockHeader).Elem()
+	// fmt.Println(s)
 
 	// Append items into the interface
 	for i := 0; i < s.NumField(); i++ {
@@ -158,6 +162,9 @@ func GenerateInterface(blockHeader Header) (rest interface{}) {
 		}
 
 		element, _ := hex.DecodeString(f)
+		// fmt.Printf("%+v\n", s.Field(i))
+		// fmt.Printf("%+x\n", f)
+		// fmt.Printf("%+x\n", element)
 		blockInterface = append(blockInterface, element)
 	}
 

@@ -35,7 +35,7 @@ contract.only('test.js', (accounts) => {
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
 
-  const ionAbi = [{"constant":false,"inputs":[{"name":"header","type":"bytes"}],"name":"ValidationTest","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"LatestBytes","outputs":[{"name":"_latestBytes","type":"bytes"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"m_blockheaders","outputs":[{"name":"prevBlockHash","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"LatestBlock","outputs":[{"name":"_latestBlock","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"header","type":"bytes"},{"name":"prefixHeader","type":"bytes"},{"name":"prefixExtraData","type":"bytes"}],"name":"ValidateBlock","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"GetValidators","outputs":[{"name":"_validators","type":"address[]"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[{"name":"_validators","type":"address[]"},{"name":"genHash","type":"bytes32"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"name":"owner","type":"address"}],"name":"broadcastSig","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"header","type":"bytes"},{"indexed":false,"name":"parentHash","type":"bytes"},{"indexed":false,"name":"rootHash","type":"bytes"}],"name":"broadcastHashData","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"blockHash","type":"bytes32"}],"name":"broadcastHash","type":"event"}];
+  const ionAbi = [{"constant":true,"inputs":[],"name":"LatestBytes","outputs":[{"name":"_latestBytes","type":"bytes"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"m_blockheaders","outputs":[{"name":"prevBlockHash","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"LatestBlock","outputs":[{"name":"_latestBlock","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"header","type":"bytes"},{"name":"prefixHeader","type":"bytes"},{"name":"prefixExtraData","type":"bytes"}],"name":"ValidateBlock","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"GetValidators","outputs":[{"name":"_validators","type":"address[]"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"header","type":"bytes"},{"name":"prefixHeader","type":"bytes"},{"name":"prefixExtraData","type":"bytes"}],"name":"ValidationTest","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"_validators","type":"address[]"},{"name":"genHash","type":"bytes32"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"name":"owner","type":"address"}],"name":"broadcastSig","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"header","type":"bytes"},{"indexed":false,"name":"parentHash","type":"bytes"},{"indexed":false,"name":"rootHash","type":"bytes"}],"name":"broadcastHashData","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"blockHash","type":"bytes32"}],"name":"broadcastHash","type":"event"}];
   const validators = ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d", "0x8671e5e08d74f338ee1c462340842346d797afd3"];
   const genHash = "0xc3bac257bbd04893316a76d41b6ff70de5f65c9f24db128864a6322d8e0e2f28";
 
@@ -141,6 +141,8 @@ contract.only('test.js', (accounts) => {
     ];
 
     console.log(newBlockHeader)
+    console.log(gasUsed)
+    console.log('0x' + rlp.encode(gasUsed).toString('hex'));
     const encodedBlockHeader = '0x' + rlp.encode(newBlockHeader).toString('hex');
     const blockHeaderHash = Web3Utils.sha3(encodedBlockHeader);
     assert.equal(block.hash, blockHeaderHash);
@@ -150,7 +152,7 @@ contract.only('test.js', (accounts) => {
     const prefixExtraData = '0xa0';
 
     console.log("Encoded Block Header:\n", encodedBlockHeader);
-    const ecrecoveryReceipt = await validation.ValidationTest(encodedBlockHeader, {from: signer, gas: 1000000});
+    const ecrecoveryReceipt = await validation.ValidationTest(encodedBlockHeader, prefixHeader, prefixExtraData, {from: signer, gas: 1000000});
     const latestBlockReceipt = await validation.LatestBlock();
     const latestBytesReceipt = await validation.LatestBytes();
     console.log("Expected Block Hash:\n", block.hash);

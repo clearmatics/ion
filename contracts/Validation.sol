@@ -102,7 +102,7 @@ contract Validation {
 
 	}
 
-	function ValidationTest(bytes header) public {
+	function ValidationTest(bytes header, bytes prefixHeader, bytes prefixExtraData) public {
 		bytes32 blockHash = keccak256(header);
 
 		someBytes = header;

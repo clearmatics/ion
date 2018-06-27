@@ -165,7 +165,6 @@ func Launch(setup config.Setup) {
 			} else {
 				c.Println("RLP encode block: " + c.Args[0])
 				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
-				c.Printf("\nEncoded Block:\n0x%x\n", encodedBlock)
 				res, err := validation.ValidateBlock(auth, encodedBlock, prefixBlock, prefixExtra)
 				if err != nil {
 					c.Printf("Error: %s", err)
@@ -188,15 +187,15 @@ func Launch(setup config.Setup) {
 				c.Println("Too many arguments entered.")
 			} else {
 				c.Println("RLP encode block: " + c.Args[0])
-				// encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
-				encodedBlock, _, _ := calculateRlpEncoding(client, c.Args[0])
+				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
+				// encodedBlock, _, _ := calculateRlpEncoding(client, c.Args[0])
 
 				// Fiddle around because otherwise the formatting is wrong
 				// encodedStr := hex.EncodeToString(encodedBlock)
 				// encodedHex, _ := hex.DecodeString(encodedStr)
 
 				// Submit to the validation contract
-				res, err := validation.ValidationTest(auth, encodedBlock)
+				res, err := validation.ValidationTest(auth, encodedBlock, prefixBlock, prefixExtra)
 				if err != nil {
 					c.Printf("Error: %s", err)
 					return
