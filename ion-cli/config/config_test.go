@@ -13,7 +13,7 @@ import (
 )
 
 func Test_Read_ValidSetupJson(t *testing.T) {
-	path := findPath() + "../setup.json"
+	path := findPath() + "./test.json"
 	setup := config.ReadSetup(path)
 
 	assert.Equal(t, "8501", setup.PortTo)
