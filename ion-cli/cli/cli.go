@@ -102,8 +102,8 @@ func Launch(setup config.Setup) {
 	})
 
 	shell.AddCmd(&ishell.Cmd{
-		Name: "latestBlockSubmitted",
-		Help: "Queries the validator contract for the last block submitted, arguments: latestBlockSubmitted",
+		Name: "latestValidationBlock",
+		Help: "Queries the validator contract for the last block submitted, arguments: latestValidationBlock",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			result, err := validation.LatestBlock(&bind.CallOpts{})
@@ -119,47 +119,12 @@ func Launch(setup config.Setup) {
 	})
 
 	shell.AddCmd(&ishell.Cmd{
-		Name: "latestBytesSubmitted",
-		Help: "Queries the validator contract for the last block submitted, arguments: latestBlockSubmitted",
-		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
-			result, err := validation.LatestBytes(&bind.CallOpts{})
-			if err != nil {
-				fmt.Printf("Error: %s", err)
-				return
-			}
-			c.Println("Last Bytes Submitted:")
-			c.Printf("0x%x\n", result)
-
-			c.Println("===============================================================")
-		},
-	})
-
-	// Get block N and spew out the RLP encoded block
-	shell.AddCmd(&ishell.Cmd{
-		Name: "rlpBlock",
-		Help: "Returns RLP encoded block header, arguments: rlpBlock [integer]",
+		Name: "submitValidationBlock",
+		Help: "Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract, arguments: submitValidationBlock [integer]",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			if len(c.Args) == 0 {
-				c.Println("Input argument required, e.g.: rlpBlock 10")
-			} else if len(c.Args) > 1 {
-				c.Println("Only enter single argument")
-			} else {
-				c.Println("RLP encode block: " + c.Args[0])
-				rlpEncodeBlock(client, c.Args[0])
-			}
-			c.Println("===============================================================")
-		},
-	})
-
-	shell.AddCmd(&ishell.Cmd{
-		Name: "submitRlpBlock",
-		Help: "Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract, arguments: submitRlpBlock [integer]",
-		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
-			if len(c.Args) == 0 {
-				c.Println("Choose a block")
+				c.Println("Select a block")
 			} else if len(c.Args) > 1 {
 				c.Println("Too many arguments entered.")
 			} else {
@@ -171,37 +136,6 @@ func Launch(setup config.Setup) {
 					return
 				}
 				c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
-			}
-			c.Println("===============================================================")
-		},
-	})
-
-	shell.AddCmd(&ishell.Cmd{
-		Name: "validationTest",
-		Help: "Gets the latestBlockHash updates the latestBlockSubmitted, arguments: validationTest [integer]",
-		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
-			if len(c.Args) == 0 {
-				c.Println("Choose a block")
-			} else if len(c.Args) > 1 {
-				c.Println("Too many arguments entered.")
-			} else {
-				c.Println("RLP encode block: " + c.Args[0])
-				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(client, c.Args[0])
-				// encodedBlock, _, _ := calculateRlpEncoding(client, c.Args[0])
-
-				// Fiddle around because otherwise the formatting is wrong
-				// encodedStr := hex.EncodeToString(encodedBlock)
-				// encodedHex, _ := hex.DecodeString(encodedStr)
-
-				// Submit to the validation contract
-				res, err := validation.ValidationTest(auth, encodedBlock, prefixBlock, prefixExtra)
-				if err != nil {
-					c.Printf("Error: %s", err)
-					return
-				}
-				c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
-
 			}
 			c.Println("===============================================================")
 		},

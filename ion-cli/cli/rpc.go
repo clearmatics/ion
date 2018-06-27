@@ -63,36 +63,6 @@ func getBlock(client *ethclient.Client, block string) {
 	fmt.Println(string(b))
 }
 
-// func rlpEncodeBlock(client *rpc.Client, block string) {
-func rlpEncodeBlock(client *ethclient.Client, block string) {
-	var blockHeader Header
-	blockNum := new(big.Int)
-	blockNum.SetString(block, 10)
-
-	lastBlock, err := client.HeaderByNumber(context.Background(), blockNum)
-	if err != nil {
-		fmt.Println("can't get requested block:", err)
-		return
-	}
-
-	// Marshal into a JSON
-	b, err := json.MarshalIndent(lastBlock, "", " ")
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-		return
-	}
-	err = json.Unmarshal([]byte(b), &blockHeader)
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-		return
-	}
-
-	// fmt.Printf("%+v\n", blockHeader)
-	blockInterface := GenerateInterface(blockHeader)
-	encodedBlock := EncodeBlock(blockInterface)
-	fmt.Printf("%+x\n", encodedBlock)
-}
-
 // func calculateRlpEncoding(client *ethclient.Client, block string) {
 func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []byte, prefixBlock []byte, prefixExtra []byte) {
 	var blockHeader Header
@@ -147,7 +117,6 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 func GenerateInterface(blockHeader Header) (rest interface{}) {
 	blockInterface := []interface{}{}
 	s := reflect.ValueOf(&blockHeader).Elem()
-	// fmt.Println(s)
 
 	// Append items into the interface
 	for i := 0; i < s.NumField(); i++ {
@@ -162,9 +131,6 @@ func GenerateInterface(blockHeader Header) (rest interface{}) {
 		}
 
 		element, _ := hex.DecodeString(f)
-		// fmt.Printf("%+v\n", s.Field(i))
-		// fmt.Printf("%+x\n", f)
-		// fmt.Printf("%+x\n", element)
 		blockInterface = append(blockInterface, element)
 	}
 
