@@ -123,5 +123,24 @@ User Account: 0x8671e5e08d74f338ee1c462340842346d797afd3
 ===============================================================
 >>>
 ```
+running help displays the available commands.
+```
+>>> help
+
+Commands:
+  clear                      clear the screen
+  exit                       exit the program
+  getBlock                   use: getBlock [integer] 
+                             description: Returns block header specified
+  getValidators              use: getValidators 
+                             description: Returns the whitelist of validators from validator contract
+  help                       display help
+  latestBlock                use: latestBlock  
+                             description: Returns number of latest block mined/sealed
+  latestValidationBlock      use: latestValidationBlock 
+                             description: Returns hash of the last block submitted to the validation contract
+  submitValidationBlock      use: submitValidationBlock [integer] 
+                             description: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract
+```
 
 

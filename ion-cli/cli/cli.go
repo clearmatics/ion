@@ -58,7 +58,7 @@ func Launch(setup config.Setup) {
 	// Get the latest block number
 	shell.AddCmd(&ishell.Cmd{
 		Name: "latestBlock",
-		Help: "Returns latest block number, arguments: latestBlock",
+		Help: "use: latestBlock  \n\t\t\t\tdescription: Returns number of latest block mined/sealed",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			c.Println("Get latest block number:")
@@ -70,7 +70,7 @@ func Launch(setup config.Setup) {
 	// Get block N
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getBlock",
-		Help: "Returns a block header, arguments: getBlock [integer]",
+		Help: "use: getBlock [integer] \n\t\t\t\tdescription: Returns block header specified",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			if len(c.Args) == 0 {
@@ -86,7 +86,7 @@ func Launch(setup config.Setup) {
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getValidators",
-		Help: "Queries the validator contract for the whitelist of validators, arguments: getValidatiors",
+		Help: "use: getValidators \n\t\t\t\tdescription: Returns the whitelist of validators from validator contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			result, err := validation.GetValidators(&bind.CallOpts{})
@@ -103,7 +103,7 @@ func Launch(setup config.Setup) {
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "latestValidationBlock",
-		Help: "Queries the validator contract for the last block submitted, arguments: latestValidationBlock",
+		Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			result, err := validation.LatestBlock(&bind.CallOpts{})
@@ -120,7 +120,7 @@ func Launch(setup config.Setup) {
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "submitValidationBlock",
-		Help: "Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract, arguments: submitValidationBlock [integer]",
+		Help: "use: submitValidationBlock [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			if len(c.Args) == 0 {
@@ -151,11 +151,11 @@ func printInfo(setup config.Setup) {
 	fmt.Println("Ion Command Line Interface\n")
 	fmt.Println("RPC Client [to]:")
 	fmt.Println("Listening on: " + setup.AddrTo + ":" + setup.PortTo)
-	fmt.Println("User Account: " + setup.AccountTo)
+	fmt.Println("user Account: " + setup.AccountTo)
 	fmt.Println("Ion Contract: " + setup.Ion)
 	fmt.Println("\nRPC Client [from]: ")
 	fmt.Println("Listening on: " + setup.AddrFrom + ":" + setup.PortFrom)
-	fmt.Println("User Account: " + setup.AccountFrom)
+	fmt.Println("user Account: " + setup.AccountFrom)
 	fmt.Println("===============================================================")
 }
 
