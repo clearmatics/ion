@@ -3,31 +3,52 @@
 package cli_test
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"testing"
 
 	"github.com/ion/ion-cli/cli"
+	"github.com/stretchr/testify/assert"
 )
 
-func Test_EncodeBlock(t *testing.T) {
+func Test_EncodePrefix(t *testing.T) {
+	prefixString := "0214"
+	expectedPrefix, _ := hex.DecodeString(prefixString)
+
 	// read a fake block
-	raw, _ := ioutil.ReadFile("../block.json")
+	raw, err := ioutil.ReadFile("../block.json")
+	if err != nil {
+		fmt.Println("cannot find test block.json file:", err)
+		return
+	}
 
-	const expectedRlpHex = "f90256a0b5567eddb3bf1b6d12af53e4f8983ee82684d48ce65afef8aa067bf6c59d801ea01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a0db37435caa1fca7e1aa5b4da1c69fdf1d127232519eb3b1b5069825e6c62f5dca056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020883fe01c880845b3252dcb861d78301080a846765746887676f312e392e33856c696e75780000000000000000af64d47b7b33960eff2eaedfd6fae84784e47f13c97df41498c81288c72fe63c2d0429d8692d756d1c7ccb84f68e20acc298465de6b841ee34edc2778b8af3ac00a00000000000000000000000000000000000000000000000000000000000000000880000000000000000"
-	const expectedHash = "e65c9896678436a46b106b85cdea91a425e7df7c73128163f66125eefb27fa53"
+	// Marshall fake block into the Header
+	var blockHeader cli.Header
+	json.Unmarshal(raw, &blockHeader)
+	prefix := cli.EncodePrefix(blockHeader)
 
-	var marshalledBlock cli.Header
-	json.Unmarshal(raw, &marshalledBlock)
+	assert.Equal(t, expectedPrefix, prefix)
 
-	fmt.Printf("%+v\n", marshalledBlock)
+}
 
-	// Now RLP encode the block
-	blockInterface := cli.GenerateInterface(marshalledBlock)
-	fmt.Println(blockInterface)
+func Test_EncodeExtraDataPrefix(t *testing.T) {
+	prefixString := "a0"
+	expectedPrefix, _ := hex.DecodeString(prefixString)
 
-	hash := cli.EncodeBlock(blockInterface)
-	fmt.Printf("%+v\n", hash)
-	// assert.Equal(t, expectedRlpHex, hex.EncodeToString(hash))
+	// read a fake block
+	raw, err := ioutil.ReadFile("../block.json")
+	if err != nil {
+		fmt.Println("cannot find test block.json file:", err)
+		return
+	}
+
+	// Marshall fake block into the Header
+	var blockHeader cli.Header
+	json.Unmarshal(raw, &blockHeader)
+	prefix := cli.EncodeExtraData(blockHeader)
+
+	assert.Equal(t, expectedPrefix, prefix)
+
 }

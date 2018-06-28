@@ -25,7 +25,8 @@ contract Validation {
 	event broadcastHash2(bytes blockHash);
 
 	/*
-	*	@param _validators			list of validators at block 0
+	*	@param _validators		list of validators at block 0
+	*	@param _genesisHash		genesis block hash
 	*/
 	constructor (address[] _validators, bytes32 genesisHash) public {
 		Owner = msg.sender;

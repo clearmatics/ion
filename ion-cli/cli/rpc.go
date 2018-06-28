@@ -97,20 +97,38 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 	}
 
 	// Generate an interface to encode the blockheader without the signature in the extraData
-	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
-	blockInterface := GenerateInterface(blockHeader)
-	encodedPrefixBlock := EncodeBlock(blockInterface)
-	prefixBlock = encodedPrefixBlock[1:3]
+	prefixBlock = encodeBlock(blockHeader)
 	fmt.Printf("\nSigned Block Header Prefix:\n%+x\n", prefixBlock)
 
 	// Generate an interface to encode the blockheader without the signature in the extraData
-	encExtra, _ := hex.DecodeString(blockHeader.Extra[2:])
-	encodedExtraData := EncodeBlock(encExtra)
-	prefixExtra = encodedExtraData[0:1]
+	prefixExtra = EncodeExtraData(blockHeader)
 	fmt.Printf("\nExtraData Field Prefix:\n%+x\n", prefixExtra)
 
 	return rlpBlock, prefixBlock, prefixExtra
 
+}
+
+// calculate prefix of the entire signed block
+func EncodePrefix(blockHeader Header) (prefix []byte) {
+	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
+	blockInterface := GenerateInterface(blockHeader)
+	encodedPrefixBlock := encodeBlock(blockInterface)
+
+	return encodedPrefixBlock[1:3]
+}
+
+// calculate prefix of the extraData with the signature
+func EncodeExtraData(blockHeader Header) (prefix []byte) {
+	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
+	encExtra, err := hex.DecodeString(blockHeader.Extra[2:])
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return
+	}
+
+	encodedExtraData := encodeBlock(encExtra)
+
+	return encodedExtraData[0:1]
 }
 
 // Creates an interface for a block
@@ -138,7 +156,7 @@ func GenerateInterface(blockHeader Header) (rest interface{}) {
 }
 
 // Encodes a block
-func EncodeBlock(blockInterface interface{}) (h []byte) {
+func encodeBlock(blockInterface interface{}) (h []byte) {
 	h, _ = rlp.EncodeToBytes(blockInterface)
 
 	return h
