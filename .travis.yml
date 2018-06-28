@@ -1,5 +1,5 @@
 language: go
-go_import_path: github.com/clearmatics/ion
+go_import_path: github.com/clearmatics/ion/ion-cli
 go: 1.8.x
 script:
   - cd ./ion-cli && make test
