@@ -78,7 +78,7 @@ contract Validation {
 		uint256 length = header.length;
 		bytes32 _blockHash = keccak256(header);
 
-		emit broadcastHash(blockHash);
+		emit broadcastHash(_blockHash);
 
 		bytes memory headerStart 	= new bytes(length - 141);
 		bytes memory extraData 		= new bytes(31);

@@ -6,7 +6,7 @@ module.exports = {
       network_id: "*",
       gas: 4600000
     },
-    poanetwork: {
+    clique: {
       host: "localhost",
       port: 8501,
       network_id: "*",

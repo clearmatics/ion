@@ -4,21 +4,23 @@ The Ion Interoperability Protocol provides mechanisms to perform atomic swaps an
 across multiple turing-complete blockchains.
 
 ## Block Validation Scheme
-Block validation scheme is a set of smart contract which aim to be able to ensure that block headers submitted to the contract are sealed by an approved partie(s). The motivation behind this is to update the state of a Clique PoA or Istanbul PBFT chain onto any other blockchain. To do this we first need to know which blocks are valid - dependent on the definition of a valid by the underlying consensus algorithm.
+Block validation scheme is a set of smart contracts which ensures that block headers submitted to the contract are mined/sealed by an approved partie(s). The motivation behind this is to update the state of a blockchain onto another blockchain. To do this we first need to know which blocks are valid - dependent on the definition of a valid by the underlying consensus algorithm. As deterministic finality is a requirement we seek Clique PoA and Istanbul PBFT consensus is to be used on the chain from which the state is being taken.
 
-At this stage a Clique PoA chain is launched and then the block headers updated to the smart contract which is deployed on itself. However in the near future this will be extended to update the Clique header onto any other chain. For a full description and roadmap of the project please refer to the Clearmatics [Ion-Stage-2 Wiki](https://github.com/clearmatics/ion/wiki/Ion-Stage-2---Proposal#validation).
+For a full description and roadmap of the project please refer to the Clearmatics [Ion-Stage-2 Wiki](https://github.com/clearmatics/ion/wiki/Ion-Stage-2---Proposal#validation).
 
 ## Running the Project
-This project contains a number of components:
+A Clique PoA chain is launched and then the block headers are taken and updated to the validation contract which is deployed on a ganache chain. However in the javascript tests the contract is deployed on the PoA chain itself for sake of simplicity, this has no bearing on the functionality of the project.
+
+Running the project requires initialisation of the following components:
   * Validation smart contract and tests
-  * Clique _proof of authority_ test network
-  * Command Line Interface for interacting with the smart contract
+  * Two separate blockchain: Clique _proof of authority_ network, Ganache test network
+  * Golang Ion CLI used to interact with the smart contract(s)
 
-In order to use the smart contracts and run the tests it is necessary to first initialise the test network.
+In order to use the smart contracts and run the tests it is necessary to first initialise the test networks.
 
-***Note:*** that as the contract searches for specific parts of the block header that only exist in Clique, Ganache or Ethash chains cannot be used.
+***Note:*** that as the contract searches for specific parts of the block header that only exist in Clique and IBFT, Ganache or Ethash chains cannot be used for the _root_ blockchain from which headers are extracted.
 
-### Initialise the Test Network
+### Initialise Clique PoA Blockchain
 The instructions are based on the tutorial of [Salanfe](https://hackernoon.com/setup-your-own-private-proof-of-authority-ethereum-network-with-geth-9a0a3750cda8) but has the more complicated parts already initialised.
 
 First install an instance of [geth](https://geth.ethereum.org/downloads/) and clone the repo.
@@ -89,7 +91,7 @@ $ geth attach node2/geth.ipc
 After launching the network, from the root of the repository:
 ```
 $ npm install
-$ truffle test
+$ npm run test
 ```
 
 ### Ion Command Line Interface
@@ -100,15 +102,19 @@ In its current form the Ion CLI allows the user to connect to two separate block
 #### Running the CLI
 As mentioned in the project description this simple implementation of the validation contract is active only on a single blockchain, however the CLI is simulating the passing of the headers to and from as if it were between separate chains.
 
-Having followed the instructions on how to setup a Clique blockchain, which is hosted on `127.0.0.1:8502`, and running another chain on `127.0.0.1:8501` we can attach the CLI.
+Having followed the instructions on how to setup a Clique blockchain, which is hosted on `127.0.0.1:8501`, we run a ganache-cli in another terminal on `127.0.0.1:8545`,
+```
+$ npm run testrpc
+```
 
+Following this we can attach to the Ion Command Line Interface,
 ```
 $ cd /path/to/validation/src
 $ make build
 ```
-Assuming a successful build the tool can be run,
+Assuming a successful build we must create a setup file which contains the connection of the separate blockchains, user accounts, account keystores, and the address of the deployed validation contract. Change the default values in the example setup.json then run the `ion-cli` poiinting to the modified setup file.
 ```
-$ ./ion-cli [/path/to/setup.json]
+$ ./ion-cli -config [/path/to/setup.json]
 ===============================================================
 Ion Command Line Interface
 
@@ -118,7 +124,7 @@ User Account: 0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d
 Ion Contract: 0xb9fd43a71c076f02d1dbbf473c389f0eacec559f
 
 RPC Client [from]: 
-Listening on: 127.0.0.1:8502
+Listening on: 127.0.0.1:8545
 User Account: 0x8671e5e08d74f338ee1c462340842346d797afd3
 ===============================================================
 >>>
