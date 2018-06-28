@@ -38,22 +38,25 @@ $ tree -L 1
 
 Which hopefully returns this:
 ```
-├── abi
-├── build
+├── CODE_OF_CONDUCT.md
 ├── contracts
+├── CONTRIBUTING.md
+├── docs
+├── ion-cli
+├── LICENSE
 ├── migrations
 ├── package.json
+├── package-lock.json
 ├── poa-network
 ├── README.md
-├── src
 ├── test
 └── truffle.js
 ```
 
 #### Initialise Nodes
-Network files are found in the `/path/to/validation/poa-network` directory. Enter the poa-network directory and initialise the two nodes which will be sealing blocks:
+Network files are found in the `/path/to/ion/poa-network` directory. Enter the poa-network directory and initialise the two nodes which will be sealing blocks:
 ```
-$ cd /path/to/validation/poa-network
+$ cd /path/to/ion/poa-network
 $ geth --datadir node1/ init genesis.json
 $ geth --datadir node2/ init genesis.json
 ```
@@ -102,9 +105,10 @@ In its current form the Ion CLI allows the user to connect to two separate block
 #### Running the CLI
 As mentioned in the project description this simple implementation of the validation contract is active only on a single blockchain, however the CLI is simulating the passing of the headers to and from as if it were between separate chains.
 
-Having followed the instructions on how to setup a Clique blockchain, which is hosted on `127.0.0.1:8501`, we run a ganache-cli in another terminal on `127.0.0.1:8545`,
+Having followed the instructions on how to setup a Clique blockchain, which is hosted on `127.0.0.1:8501`, we run a ganache-cli in another terminal on `127.0.0.1:8545` and deploy the contract to the ganache blockchain,
 ```
 $ npm run testrpc
+$ npm run deploy
 ```
 
 Following this we can attach to the Ion Command Line Interface,
