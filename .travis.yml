@@ -8,7 +8,7 @@ matrix:
       go: 1.8.x
       script:
         - make check
-	- make coverage
+      	- make coverage
 
 notifications:
   slack:
