@@ -5,9 +5,9 @@ package config
 import (
 	"log"
 
+	"github.com/clearmatics/ion/ion-cli/validation"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ion/ion-cli/validation"
 )
 
 func InitClient(port string, addr string) (clientTo *ethclient.Client) {
