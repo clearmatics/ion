@@ -20,6 +20,9 @@ In order to use the smart contracts and run the tests it is necessary to first i
 
 ***Note:*** that as the contract searches for specific parts of the block header that only exist in Clique and IBFT, Ganache or Ethash chains cannot be used for the _root_ blockchain from which headers are extracted.
 
+### Requirements
+* golang version: 1.9.x
+
 ### Initialise Clique PoA Blockchain
 The instructions are based on the tutorial of [Salanfe](https://hackernoon.com/setup-your-own-private-proof-of-authority-ethereum-network-with-geth-9a0a3750cda8) but has the more complicated parts already initialised.
 
@@ -44,9 +47,9 @@ Which hopefully returns this:
 ├── docs
 ├── ion-cli
 ├── LICENSE
+├── Makefile
 ├── migrations
 ├── package.json
-├── package-lock.json
 ├── poa-network
 ├── README.md
 ├── test
@@ -102,7 +105,15 @@ The Ion CLI is a tool for handling the passing of block headers between to block
 
 In its current form the Ion CLI allows the user to connect to two separate blockchains, via RPC, and submit block headers to a validation contract.
 
-#### Running the CLI
+#### Testing Ion CLI
+```
+$ cd ion-cli
+$ make build
+$ make test
+```
+If the tests pass successfully then the CLI can be run.
+
+#### Running Ion CLI
 As mentioned in the project description this simple implementation of the validation contract is active only on a single blockchain, however the CLI is simulating the passing of the headers to and from as if it were between separate chains.
 
 Having followed the instructions on how to setup a Clique blockchain, which is hosted on `127.0.0.1:8501`, we run a ganache-cli in another terminal on `127.0.0.1:8545` and deploy the contract to the ganache blockchain,

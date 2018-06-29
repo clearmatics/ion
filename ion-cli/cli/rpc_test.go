@@ -1,6 +1,6 @@
 // Copyright (c) 2018 Clearmatics Technologies Ltd
 
-package cli_test
+package cli
 
 import (
 	"encoding/hex"
@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/clearmatics/ion/ion-cli/cli"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,9 +24,9 @@ func Test_EncodePrefix(t *testing.T) {
 	}
 
 	// Marshall fake block into the Header
-	var blockHeader cli.Header
+	var blockHeader header
 	json.Unmarshal(raw, &blockHeader)
-	prefix := cli.EncodePrefix(blockHeader)
+	prefix := encodePrefix(blockHeader)
 
 	assert.Equal(t, expectedPrefix, prefix)
 
@@ -45,9 +44,9 @@ func Test_EncodeExtraDataPrefix(t *testing.T) {
 	}
 
 	// Marshall fake block into the Header
-	var blockHeader cli.Header
+	var blockHeader header
 	json.Unmarshal(raw, &blockHeader)
-	prefix := cli.EncodeExtraData(blockHeader)
+	prefix := encodeExtraData(blockHeader)
 
 	assert.Equal(t, expectedPrefix, prefix)
 
