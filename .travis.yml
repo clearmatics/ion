@@ -7,7 +7,7 @@ matrix:
       go: 1.8.x
       script:
         - cd ./ion-cli
-        - go get github.com/stretchr/testify/assert
+        - go dep
         - make test
 
 notifications:
