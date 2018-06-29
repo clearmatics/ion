@@ -87,25 +87,25 @@ contract Validation {
 		bytes memory headerEnd 		= new bytes(42);
 
 		// Extract the start of the header and replace the length
-		extractData(headerStart, header, 0, headerStart.length);
+		extractData(headerStart, header, 0);
 		assembly {
            let ret := staticcall(3000, 4, add(prefixHeader, 32), 2, add(headerStart, 33), 2)
 	    }
 
 		// Extract the real extra data and create the signed hash
-		extractData(extraData, header, length-140, extraData.length);
+		extractData(extraData, header, length-140);
 		assembly {
-				let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
+			let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
 		}
 
 		// Extract the end of the header
-		extractData(headerEnd, header, length-42, headerEnd.length);
+		extractData(headerEnd, header, length-42);
 		bytes memory newHeader = mergeHash(headerStart, extraData, headerEnd);
 
 		bytes32 hashData = keccak256(newHeader);
 
 		// Extract the signature of the hash create above
-		extractData(extraDataSig, header, length-107, extraDataSig.length);
+		extractData(extraDataSig, header, length-107);
 
 		address sig_addr = ECVerify.ecrecovery(hashData, extraDataSig);
 		require(m_validators[sig_addr]==true, "Signer not a validator!");
@@ -149,13 +149,14 @@ contract Validation {
 	/*
 	* @param data	memory allocation for the data you need to extract
 	* @param sig    array from which the data should be extracted
-	* @param start  index which the data starts within the byte array
-	* @param length total length of the data to be extracted
+	* @param start  index which the data starts within the byte array needs to have 32 bytes appended
 	*/
-	function extractData(bytes data, bytes input, uint start, uint length) private pure {
-		for (uint i=0; i<length; i++) {
-			data[i] = input[start+i];
-		}
+	function extractData(bytes data, bytes input, uint256 buffer) private view {
+		uint256 dataLength = data.length;
+		buffer = buffer + 32;
+		assembly {
+           let ret := staticcall(3000, 4, add(input, buffer), dataLength, add(data, 32), dataLength)
+	    }
 	}
 
 }
