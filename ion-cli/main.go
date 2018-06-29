@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ion/ion-cli/cli"
-	"github.com/ion/ion-cli/config"
+	"github.com/clearmatics/ion/ion-cli/cli"
+	"github.com/clearmatics/ion/ion-cli/config"
 )
 
 var configFile = flag.String("config", "setup.json", "Description:\n path to the configuration file")

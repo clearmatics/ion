@@ -14,8 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/ion/ion-cli/config"
-	"github.com/ion/ion-cli/validation"
+	"github.com/clearmatics/ion/ion-cli/config"
+	"github.com/clearmatics/ion/ion-cli/validation"
 )
 
 // Launch - definition of commands and creates the iterface

@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ion/ion-cli/cli"
+	"github.com/clearmatics/ion/ion-cli/cli"
 	"github.com/stretchr/testify/assert"
 )
 
