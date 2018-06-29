@@ -6,7 +6,7 @@ matrix:
       dist: trusty
       go: 1.8.x
       script:
-        - go get github.com/clearmatics/ion
+        - go get github.com/clearmatics/ion/ion-cli
         - cd ./ion-cli && make test
 
 notifications:
