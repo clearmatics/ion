@@ -54,6 +54,7 @@ Various separated components should be integrated with required tooling and docu
 
 Goals:
   * Ability to submit and verify proofs against Ion Relay contract
+  * Execute contract given state transition
 
 Achieved:
 
@@ -64,8 +65,9 @@ Description:
 We aim to be able to generate proofs _off-chain_, preferably using the Ion CLI. This is the key part to being able to make claims against state _on-chain_.
 
 Goals:
-  * Research indepth the complexities of creating continually executing smart-contracts and update specification
-  * Generate off-chain proofs of state transition
+  * Research indepth the complexities of creating continually executing smart-contracts
+  * Update Ion specification
+  * Generate off-chain proofs of state transition: Solidity, Golang, and Ion CLI Integration
   * Begin research into the outline of potential use cases i.e. PvP
   * Increase testing coverage of smart contracts and Ion CLI
 
