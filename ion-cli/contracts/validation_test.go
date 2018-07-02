@@ -1,4 +1,4 @@
-package validation
+package contract
 
 import (
 	"math/big"

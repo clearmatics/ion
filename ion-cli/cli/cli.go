@@ -15,11 +15,11 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/clearmatics/ion/ion-cli/config"
-	"github.com/clearmatics/ion/ion-cli/validation"
+	contract "github.com/clearmatics/ion/ion-cli/contracts"
 )
 
 // Launch - definition of commands and creates the iterface
-func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *validation.Validation) {
+func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contract.Validation) {
 	// by default, new shell includes 'exit', 'help' and 'clear' commands.
 	shell := ishell.New()
 
@@ -45,6 +45,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *valida
 		Help: "use: latestBlock  \n\t\t\t\tdescription: Returns number of latest block mined/sealed",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrFrom + ":" + setup.PortFrom)
 			c.Println("Get latest block number:")
 			latestBlock(clientFrom)
 			c.Println("===============================================================")
@@ -57,6 +58,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *valida
 		Help: "use: getBlock [integer] \n\t\t\t\tdescription: Returns block header specified",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrFrom + ":" + setup.PortFrom)
 			if len(c.Args) == 0 {
 				c.Println("Input argument required, e.g.: getBlock 10")
 			} else if len(c.Args) > 1 {
@@ -73,6 +75,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *valida
 		Help: "use: getValidators \n\t\t\t\tdescription: Returns the whitelist of validators from validator contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrFrom + ":" + setup.PortFrom)
 			result, err := Validation.GetValidators(&bind.CallOpts{})
 			if err != nil {
 				fmt.Printf("Error: %s", err)
@@ -90,6 +93,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *valida
 		Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrTo + ":" + setup.PortTo)
 			result, err := Validation.LatestBlock(&bind.CallOpts{})
 			if err != nil {
 				fmt.Printf("Error: %s", err)
@@ -107,6 +111,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *valida
 		Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrFrom + ":" + setup.PortFrom)
 			blockNum := new(big.Int)
 			blockNum.SetString(c.Args[0], 10)
 			result, err := Validation.GetBlock(&bind.CallOpts{}, blockNum)
@@ -128,6 +133,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *valida
 		Help: "use: submitValidationBlock [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrTo + ":" + setup.PortTo)
 			if len(c.Args) == 0 {
 				c.Println("Select a block")
 			} else if len(c.Args) > 1 {
