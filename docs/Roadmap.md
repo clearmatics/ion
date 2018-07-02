@@ -36,42 +36,40 @@ In order to perform a cross-chain PvP payment we must:
 ### Assumptions
 Listed here are the assumptions with which the project is being developed:
   * Ethereum-based blockchain
-  * PBFT Consensus Protocol or other immediate-finality algorithms
+  * IBFT Consensus Protocol or other immediate-finality algorithms
   * Permissioned network
   * Validator set is known and assumed as correct
 
 ## Project Planning
-Ion stage 2 will be developed using agile methodologies, with weekly sprints. Note that the sprint objective will remain dynamic and should change as the project continues.
+Ion stage 2 will be developed using agile methodologies, with fortnightly sprints. Note that the sprint objective will remain dynamic and should change as the project continues.
 
-### Sprint 1 - PoC Final Proposal Definition.
-Date: 04.06.2018 - 08.06.2018
+## Project Planning
+Ion stage 2 will be developed using agile methodologies, with fortnightly sprints. Note that the sprint objective will remain dynamic and should change as the project continues.
 
-Description:
-We aim to describe fully how the Phase 1 PoC would work, detailing in entirety the functionality of all smart-contracts to be developed.
-
-Output:
-  * Project specification.
-
-### Sprint 2 - Skeleton Implementation
-Date: 11.06.2018 - 15.06.2018
+### Sprint 6 - Minimal Viabable Ion Stage 2
+Date: 16.07.2018 - 23.07.2018
 
 Description:
-It should be shown that it is indeed possible to prove the state of a foreign on a native chain and make assertions of that state. Separately it should be shown that the validators from foreign chain can be added to the native chain. Blocks submitted and validated on the foreign chain validated on the native chain using the signature of the foreign validator set.
+Various separated components should be integrated with required tooling and documentation.
 
-Output:
-  * Smart contract for state proof verification
-  * Tests for state proofs
-  * Smart contract for block validation
-  * Tests for block validation
+Goals:
+  * Ability to submit and verify proofs against Ion Relay contract
 
-### Sprint 3 - Validation of Passed State
-Date: 18.06.2018 - 22.06.2018
+Achieved:
+
+### Sprint 5 - Off-Chain Proof Generation
+Date: 02.07.2018 - 13.07.2018
 
 Description:
-The two separate problems of validation and proofs should be integrated and a minimum smart-contract that allows the immediate validation of a submitted block be developed.
+We aim to be able to generate proofs _off-chain_, preferably using the Ion CLI. This is the key part to being able to make claims against state _on-chain_.
 
-Output:
-  * Single contract which allows state proof and block validation to be performed simultaneously
+Goals:
+  * Research indepth the complexities of creating continually executing smart-contracts and update specification
+  * Generate off-chain proofs of state transition
+  * Begin research into the outline of potential use cases i.e. PvP
+  * Increase testing coverage of smart contracts and Ion CLI
+
+Achieved:
 
 ### Sprint 4 - User Flow Development
 Date: 25.06.2018 - 29.06.2018
@@ -79,30 +77,58 @@ Date: 25.06.2018 - 29.06.2018
 Description:
 Given the original user stories the smart contract should now contain minimum functions necessary to interact with the project. This should naturally be an extension of the previous week to smooth out the integration and interaction flows of the stack.
 
-Output:
+Goals:
   * Smart contract should now have protection for edge-cases
   * Addition of user permissioniong
   * Automation of block generation
+  * Tutorial CLI and Validation contract
+  * CLI Golang
 
-### Sprint 5 - Tooling and Documentation
-Date: 02.07.2018 - 06.07.2018
+Achieved:
+  * Automation of block generation
+  * Tutorial CLI and Validation contract
+  * CLI Golang
+
+Notes:
+  * Sprints changed to fortnightly from this point onwards
+
+### Sprint 3 - Validation of Passed State
+Date: 18.06.2018 - 22.06.2018
 
 Description:
-Develop the tooling and documentation necessary for users to clone the repository and run the base functions immediately. We should write enough API documentation to allow developers to immediately be able to interface their own interoperability contracts to the Relay contract.
+The two separate problems of validation and proofs should be integrated and a minimum smart-contract that allows the immediate validation of a submitted block be developed.
 
-Output:
-  * CLI
-  * Tutorial
-  * Development Documentation
+Goals:
+  * Single contract which allows state proof and block validation to be performed simultaneously
 
-### Sprint 6 - Testing and QA
-Date: 09.07.2018 - 13.07.2018
+Achieved:
+
+### Sprint 2 - Skeleton Implementation
+Date: 11.06.2018 - 15.06.2018
 
 Description:
-Enhance testing to show attack resilience and any known vulnerabilities.
+It should be shown that it is indeed possible to prove the state of a foreign on a native chain and make assertions of that state. Separately it should be shown that the validators from foreign chain can be added to the native chain. Blocks submitted and validated on the foreign chain validated on the native chain using the signature of the foreign validator set.
 
-Output:
-  * Complete test coverage
-  * Code Review
-  * Documentation of all possible vulnerabilities
+Goals:
+  * Smart contract for state proof verification
+  * Tests for state proofs
+  * Smart contract for block validation
+  * Tests for block validation
+
+Achieved:
+
+
+### Sprint 1 - PoC Final Proposal Definition.
+Date: 04.06.2018 - 08.06.2018
+
+Description:
+We aim to describe fully how the Phase 1 PoC would work, detailing in entirety the functionality of all smart-contracts to be developed.
+
+Goals:
+  * Project specification.
+
+Achieved:
+  * Specification was released
+
+
 
