@@ -1,4 +1,4 @@
-package validation
+package contract
 
 import (
 	"math/big"
@@ -12,8 +12,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Initialisation array
+var val1 = common.HexToAddress("0x8671e5e08d74f338ee1c462340842346d797afd3")
+var val2 = common.HexToAddress("0x8671e5e08d74f338ee1c462340842346d797afd3")
+var initValidators = []common.Address{val1, val2}
+
+var genesisString = "c3bac257bbd04893316a76d41b6ff70de5f65c9f24db128864a6322d8e0e2f28"
+
 // Test inbox contract gets deployed correctly
-func TestDeployValidation(t *testing.T) {
+func Test_DeployValidation(t *testing.T) {
 
 	//Setup simulated block chain
 	key, _ := crypto.GenerateKey()
@@ -22,19 +29,14 @@ func TestDeployValidation(t *testing.T) {
 	alloc[auth.From] = core.GenesisAccount{Balance: big.NewInt(1000000000)}
 	blockchain := backends.NewSimulatedBackend(alloc)
 
-	// Initialisation array
-	val1 := common.HexToAddress("0x8671e5e08d74f338ee1c462340842346d797afd3")
-	val2 := common.HexToAddress("0x8671e5e08d74f338ee1c462340842346d797afd3")
-	validators := []common.Address{val1, val2}
-
 	genesisHash := [32]byte{}
-	copy(genesisHash[:], []byte("c3bac257bbd04893316a76d41b6ff70de5f65c9f24db128864a6322d8e0e2f28"))
+	copy(genesisHash[:], []byte(genesisString))
 
 	// Deploy contract
 	address, _, _, err := DeployValidation(
 		auth,
 		blockchain,
-		validators,
+		initValidators,
 		genesisHash,
 	)
 	// commit all pending transactions
@@ -60,13 +62,8 @@ func TestGetValidators(t *testing.T) {
 	alloc[auth.From] = core.GenesisAccount{Balance: big.NewInt(1000000000)}
 	blockchain := backends.NewSimulatedBackend(alloc)
 
-	// Initialisation array
-	val1 := common.HexToAddress("0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d")
-	val2 := common.HexToAddress("0x8671e5e08d74f338ee1c462340842346d797afd3")
-	initValidators := []common.Address{val1, val2}
-
 	genesisHash := [32]byte{}
-	copy(genesisHash[:], []byte("c3bac257bbd04893316a76d41b6ff70de5f65c9f24db128864a6322d8e0e2f28"))
+	copy(genesisHash[:], []byte(genesisString))
 
 	// Deploy contract
 	_, _, contract, _ := DeployValidation(
@@ -82,4 +79,31 @@ func TestGetValidators(t *testing.T) {
 	assert.Equal(t, validators[0], val1)
 	assert.Equal(t, validators[1], val2)
 
+}
+
+// Test that the latest block returns the last submitted block hash
+func Test_LatestBlock(t *testing.T) {
+
+	//Setup simulated block chain
+	key, _ := crypto.GenerateKey()
+	auth := bind.NewKeyedTransactor(key)
+	alloc := make(core.GenesisAlloc)
+	alloc[auth.From] = core.GenesisAccount{Balance: big.NewInt(1000000000)}
+	blockchain := backends.NewSimulatedBackend(alloc)
+
+	genesisHash := [32]byte{}
+	copy(genesisHash[:], []byte(genesisString))
+
+	// Deploy contract
+	_, _, contract, _ := DeployValidation(
+		auth,
+		blockchain,
+		initValidators,
+		genesisHash,
+	)
+	// commit all pending transactions
+	blockchain.Commit()
+
+	latestBlock, _ := contract.LatestBlock(&bind.CallOpts{})
+	assert.Equal(t, latestBlock, genesisHash)
 }

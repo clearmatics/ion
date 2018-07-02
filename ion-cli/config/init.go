@@ -5,7 +5,7 @@ package config
 import (
 	"log"
 
-	"github.com/clearmatics/ion/ion-cli/validation"
+	contract "github.com/clearmatics/ion/ion-cli/contracts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -20,10 +20,10 @@ func InitClient(port string, addr string) (clientTo *ethclient.Client) {
 	return
 }
 
-func InitValidationContract(setup Setup, client *ethclient.Client) (Validation *validation.Validation) {
+func InitValidationContract(setup Setup, client *ethclient.Client) (Validation *contract.Validation) {
 	// Initialise the contract
 	address := common.HexToAddress(setup.Ion)
-	Validation, err := validation.NewValidation(address, client)
+	Validation, err := contract.NewValidation(address, client)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -3,6 +3,7 @@
 pragma solidity ^0.4.23;
 
 import "./ECVerify.sol";
+import "./SolidityUtils.sol";
 
 contract Validation {
 	address Owner;
@@ -70,10 +71,7 @@ contract Validation {
 	*/
 	function ValidateBlock(bytes header, bytes prefixHeader, bytes prefixExtraData) public {
 		// Check the parent hash is the same as the previous block submitted
-		bytes32 _parentBlockHash;
-		assembly {
-			_parentBlockHash := mload(add(header, 36))
-		}
+		bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header, 4);
 		require(_parentBlockHash==blockHash, "Not child of previous block!");
 
 		uint256 length = header.length;
@@ -87,25 +85,25 @@ contract Validation {
 		bytes memory headerEnd 		= new bytes(42);
 
 		// Extract the start of the header and replace the length
-		extractData(headerStart, header, 0, headerStart.length);
+		SolUtils.BytesToBytes(headerStart, header, 0);
 		assembly {
            let ret := staticcall(3000, 4, add(prefixHeader, 32), 2, add(headerStart, 33), 2)
 	    }
 
 		// Extract the real extra data and create the signed hash
-		extractData(extraData, header, length-140, extraData.length);
+		SolUtils.BytesToBytes(extraData, header, length-140);
 		assembly {
-				let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
+			let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
 		}
 
 		// Extract the end of the header
-		extractData(headerEnd, header, length-42, headerEnd.length);
+		SolUtils.BytesToBytes(headerEnd, header, length-42);
 		bytes memory newHeader = mergeHash(headerStart, extraData, headerEnd);
 
 		bytes32 hashData = keccak256(newHeader);
 
 		// Extract the signature of the hash create above
-		extractData(extraDataSig, header, length-107, extraDataSig.length);
+		SolUtils.BytesToBytes(extraDataSig, header, length-107);
 
 		address sig_addr = ECVerify.ecrecovery(hashData, extraDataSig);
 		require(m_validators[sig_addr]==true, "Signer not a validator!");
@@ -144,18 +142,6 @@ contract Validation {
 		}
 
 		output = header;
-	}
-
-	/*
-	* @param data	memory allocation for the data you need to extract
-	* @param sig    array from which the data should be extracted
-	* @param start  index which the data starts within the byte array
-	* @param length total length of the data to be extracted
-	*/
-	function extractData(bytes data, bytes input, uint start, uint length) private pure {
-		for (uint i=0; i<length; i++) {
-			data[i] = input[start+i];
-		}
 	}
 
 }

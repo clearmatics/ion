@@ -14,7 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-type Header struct {
+// Header used to marshall blocks into a string based struct
+type header struct {
 	ParentHash  string `json:"parentHash"`
 	UncleHash   string `json:"sha3Uncles"`
 	Coinbase    string `json:"miner"`
@@ -44,7 +45,7 @@ func latestBlock(client *ethclient.Client) {
 }
 
 func getBlock(client *ethclient.Client, block string) {
-	// var blockHeader Header
+	// var blockHeader header
 	blockNum := new(big.Int)
 	blockNum.SetString(block, 10)
 
@@ -65,7 +66,7 @@ func getBlock(client *ethclient.Client, block string) {
 
 // func calculateRlpEncoding(client *ethclient.Client, block string) {
 func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []byte, prefixBlock []byte, prefixExtra []byte) {
-	var blockHeader Header
+	var blockHeader header
 	blockNum := new(big.Int)
 	blockNum.SetString(block, 10)
 
@@ -101,15 +102,15 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 	fmt.Printf("\nSigned Block Header Prefix:\n%+x\n", prefixBlock)
 
 	// Generate an interface to encode the blockheader without the signature in the extraData
-	prefixExtra = EncodeExtraData(blockHeader)
+	prefixExtra = encodeExtraData(blockHeader)
 	fmt.Printf("\nExtraData Field Prefix:\n%+x\n", prefixExtra)
 
 	return rlpBlock, prefixBlock, prefixExtra
 
 }
 
-// calculate prefix of the entire signed block
-func EncodePrefix(blockHeader Header) (prefix []byte) {
+// EncodePrefix calculate prefix of the entire signed block
+func encodePrefix(blockHeader header) (prefix []byte) {
 	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
 	blockInterface := GenerateInterface(blockHeader)
 	encodedPrefixBlock := encodeBlock(blockInterface)
@@ -117,8 +118,8 @@ func EncodePrefix(blockHeader Header) (prefix []byte) {
 	return encodedPrefixBlock[1:3]
 }
 
-// calculate prefix of the extraData with the signature
-func EncodeExtraData(blockHeader Header) (prefix []byte) {
+// EncodeExtraData calculate prefix of the extraData with the signature
+func encodeExtraData(blockHeader header) (prefix []byte) {
 	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
 	encExtra, err := hex.DecodeString(blockHeader.Extra[2:])
 	if err != nil {
@@ -131,8 +132,8 @@ func EncodeExtraData(blockHeader Header) (prefix []byte) {
 	return encodedExtraData[0:1]
 }
 
-// Creates an interface for a block
-func GenerateInterface(blockHeader Header) (rest interface{}) {
+// GenerateInterface Creates an interface for a block
+func GenerateInterface(blockHeader header) (rest interface{}) {
 	blockInterface := []interface{}{}
 	s := reflect.ValueOf(&blockHeader).Elem()
 
