@@ -19,8 +19,8 @@ func main() {
 	if *configFile != "" {
 		setup := config.ReadSetup(*configFile)
 
-		clientTo := config.InitClient(setup.PortTo, setup.AddrTo)
-		clientFrom := config.InitClient(setup.PortFrom, setup.AddrFrom)
+		clientTo := config.InitClient(setup.AddrTo)
+		clientFrom := config.InitClient(setup.AddrFrom)
 
 		Validation := config.InitValidationContract(setup, clientTo)
 
@@ -40,11 +40,11 @@ func printInfo(setup config.Setup) {
 	fmt.Println("===============================================================")
 	fmt.Println("Ion Command Line Interface\n")
 	fmt.Println("RPC Client [to]:")
-	fmt.Println("Listening on: " + setup.AddrTo + ":" + setup.PortTo)
+	fmt.Println("Listening on: " + setup.AddrTo)
 	fmt.Println("user Account: " + setup.AccountTo)
 	fmt.Println("Ion Contract: " + setup.Ion)
 	fmt.Println("\nRPC Client [from]: ")
-	fmt.Println("Listening on: " + setup.AddrFrom + ":" + setup.PortFrom)
+	fmt.Println("Listening on: " + setup.AddrFrom)
 	fmt.Println("user Account: " + setup.AccountFrom)
 	fmt.Println("===============================================================")
 }

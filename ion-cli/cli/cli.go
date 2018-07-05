@@ -45,7 +45,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 		Help: "use: latestBlock  \n\t\t\t\tdescription: Returns number of latest block mined/sealed",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrFrom + ":" + setup.PortFrom)
+			c.Println("Connecting to: " + setup.AddrFrom)
 			c.Println("Get latest block number:")
 			latestBlock(clientFrom)
 			c.Println("===============================================================")
@@ -58,7 +58,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 		Help: "use: getBlock [integer] \n\t\t\t\tdescription: Returns block header specified",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrFrom + ":" + setup.PortFrom)
+			c.Println("Connecting to: " + setup.AddrFrom)
 			if len(c.Args) == 0 {
 				c.Println("Input argument required, e.g.: getBlock 10")
 			} else if len(c.Args) > 1 {
@@ -75,7 +75,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 		Help: "use: getValidators \n\t\t\t\tdescription: Returns the whitelist of validators from validator contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrFrom + ":" + setup.PortFrom)
+			c.Println("Connecting to: " + setup.AddrFrom)
 			result, err := Validation.GetValidators(&bind.CallOpts{})
 			if err != nil {
 				fmt.Printf("Error: %s", err)
@@ -93,7 +93,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 		Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrTo + ":" + setup.PortTo)
+			c.Println("Connecting to: " + setup.AddrTo)
 			result, err := Validation.LatestBlock(&bind.CallOpts{})
 			if err != nil {
 				fmt.Printf("Error: %s", err)
@@ -111,7 +111,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 		Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrFrom + ":" + setup.PortFrom)
+			c.Println("Connecting to: " + setup.AddrFrom)
 			blockNum := new(big.Int)
 			blockNum.SetString(c.Args[0], 10)
 			result, err := Validation.GetBlock(&bind.CallOpts{}, blockNum)
@@ -133,7 +133,31 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 		Help: "use: submitValidationBlock [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrTo + ":" + setup.PortTo)
+			c.Println("Connecting to: " + setup.AddrTo)
+			if len(c.Args) == 0 {
+				c.Println("Select a block")
+			} else if len(c.Args) > 1 {
+				c.Println("Too many arguments entered.")
+			} else {
+				c.Println("RLP encode block: " + c.Args[0])
+				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(clientFrom, c.Args[0])
+				res, err := Validation.ValidateBlock(auth, encodedBlock, prefixBlock, prefixExtra)
+				if err != nil {
+					c.Printf("Error: %s", err)
+					return
+				}
+				c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
+			}
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "generateTxProof",
+		Help: "use: generateTxProof [txHash] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrTo)
 			if len(c.Args) == 0 {
 				c.Println("Select a block")
 			} else if len(c.Args) > 1 {

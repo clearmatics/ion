@@ -10,12 +10,10 @@ import (
 
 // Settings
 type Setup struct {
-	PortTo       string `json:"rpc-port-to"`
-	AddrTo       string `json:"rpc-addr-to"`
+	AddrTo       string `json:"rpc-to"`
 	AccountTo    string `json:"account-to"`
 	KeystoreTo   string `json:"keystore-to"`
-	PortFrom     string `json:"rpc-port-from"`
-	AddrFrom     string `json:"rpc-addr-from"`
+	AddrFrom     string `json:"rpc-from"`
 	AccountFrom  string `json:"account-from"`
 	KeystoreFrom string `json:"keystore-from"`
 	Ion          string `json:"ion-addr"`
