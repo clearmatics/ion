@@ -1,6 +1,7 @@
 pragma solidity ^0.4.23;
 
 import "./RLP.sol";
+import "./PatriciaTrie.sol";
 
 contract Ion {
     using RLP for RLP.RLPItem;
@@ -30,6 +31,7 @@ contract Ion {
         chainId = _id;
     }
 
+    event VerifiedTxProof(bytes32 chainId, bytes32 blockHash);
 /*
 ========================================================================================================================
 
@@ -53,6 +55,19 @@ contract Ion {
             }
         }
         require(chainRegistered, "Chain is not registered");
+        _;
+    }
+
+    modifier onlyExistingBlocks(bytes32 _id, bytes32 _hash) {
+        bool blockExists = false;
+        bytes32[] hashes = m_blockhashes[_id];
+        for (uint i = 0; i < hashes.length; i++) {
+            if (_hash == hashes[i]) {
+                blockExists = true;
+                break;
+            }
+        }
+        require(blockExists, "Block does not exist for chain");
         _;
     }
 
@@ -102,7 +117,27 @@ contract Ion {
         addBlockHashToChain(_id, _blockHash);
     }
 
-    function CheckTxProof() public {
+    /*
+    * CheckTxProof
+    * param: _id (bytes32) Unique id of chain submitting block from
+    * param: _blockHash (bytes32) Block hash of block being submitted
+    * param: _value (bytes) RLP-encoded transaction object array with fields defined as: https://github.com/ethereumjs/ethereumjs-tx/blob/0358fad36f6ebc2b8bea441f0187f0ff0d4ef2db/index.js#L50
+    * param: _parentNodes (bytes) RLP-encoded array of all relevant nodes from root node to node to prove
+    * param: _path (bytes) Byte array of the path to the node to be proved
+    *
+    * emits: VerifiedTxProof(chainId, blockHash)
+    *        chainId: (bytes32) hash of the chain verifying proof against
+    *        blockHash: (bytes32) hash of the block verifying proof against
+    *
+    * All data associated with the proof must be constructed and provided to this function. Modifiers restrict execution
+    * of this function to only allow if the chain the proof is for is registered to this contract and if the block that
+    * the proof is for has been submitted.
+    */
+    function CheckTxProof(bytes32 _id, bytes32 _blockHash, bytes _value, bytes _parentNodes, bytes _path) onlyRegisteredChains(_id) onlyExistingBlocks(_id, _blockHash) public returns (bool) {
+        BlockHeader storage blockHeader = m_blockheaders[_blockHash];
+        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.txRootHash) );
+        emit VerifiedTxProof(_id, _blockHash);
+        return true;
     }
 
     function CheckReceiptProof() public {

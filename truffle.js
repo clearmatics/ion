@@ -5,9 +5,9 @@ module.exports = {
       port: 8545,
       network_id: "*" // Match any network id
     },
-    ci: {
+    clique: {
       host: "localhost",
-      port: 8545,
+      port: 8501,
       network_id: "*" // Match any network id
     },
     coverage: {
@@ -17,16 +17,6 @@ module.exports = {
       gas: 0xFFFFFFF,
       gasprice: 0x1
     },
-    testrpca: {
-      host: "localhost",
-      port: 8545,
-      network_id: "*" // Match any network id
-    },
-    testrpcb: {
-      host: "localhost",
-      port: 8546,
-      network_id: "*" // Match any network id
-    }
   },
   mocha: {
     useColors: true,
