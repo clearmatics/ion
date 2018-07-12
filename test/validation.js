@@ -29,7 +29,7 @@ function bytesToHex(bytes) {
     return hex.join("");
 }
 
-contract('validation.js', (accounts) => {
+contract.only('validation.js', (accounts) => {
   const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('');
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
