@@ -40,7 +40,7 @@
     "compile": "truffle compile",
     "deploy": "truffle deploy",
     "depclique": "truffle deploy --network clique",
-    "test": "truffle test",
+    "test": "truffle test --network clique",
     "coverage": "solidity-coverage",
     "lint": "solhint contracts/**/*.sol",
     "genbin": "solc --overwrite --bin ./contracts/* -o abi",
