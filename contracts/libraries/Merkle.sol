@@ -1,6 +1,6 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 library Merkle {
     //uint256 constant ONE_SHL_255 = 57896044618658097711785492504343953926634992332820282019728792003956564819968;

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.23;
 
-import "./ECVerify.sol";
+import "./libraries/ECVerify.sol";
 
 contract Recover {
 	address Owner;

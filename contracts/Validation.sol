@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.23;
 
-import "./ECVerify.sol";
-import "./SolidityUtils.sol";
+import "./libraries/ECVerify.sol";
+import "./libraries/SolidityUtils.sol";
 
 contract Validation {
 	address Owner;
