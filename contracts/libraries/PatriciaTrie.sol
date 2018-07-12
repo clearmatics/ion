@@ -4,7 +4,7 @@ import "./RLP.sol";
 
 library PatriciaTrie {
 
-    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _root) returns (bool) {
+    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _root) public returns (bool) {
         RLP.RLPItem memory nodes = RLP.toRLPItem(_parentNodes);
         RLP.RLPItem[] memory parentNodes = RLP.toList(nodes);
 
@@ -65,7 +65,7 @@ library PatriciaTrie {
         }
     }
 
-    function toNibbleArray(bytes b, bool hexPrefixed) private returns (bytes) {
+    function toNibbleArray(bytes b, bool hexPrefixed) private pure returns (bytes) {
         bytes memory nibbleArray = new bytes(255);
 
         uint8 nibblesFound = 0;
@@ -99,11 +99,11 @@ library PatriciaTrie {
     }
 
     function leftShift(byte i, uint8 bits) private pure returns (byte) {
-        return byte(uint8(i) * 2 ** bits);
+        return byte(uint8(i) * uint8(2) ** uint8(bits));
     }
 
     function rightShift(byte i, uint8 bits) private pure returns (byte) {
-        return byte(uint8(i) / 2 ** bits);
+        return byte(uint8(i) / uint8(2) ** uint8(bits));
     }
 
     function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {

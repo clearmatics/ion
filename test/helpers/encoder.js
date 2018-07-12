@@ -26,7 +26,7 @@ function bytesToHex(bytes) {
 
 
 const block = web3.eth.getBlock(7);
-console.log("\n\n\n\nBlock = " + JSON.stringify(block))
+// console.log("\n\n\n\nBlock = " + JSON.stringify(block))
 // Decompose the values in the block to hash
 const parentHash = block.parentHash;
 const sha3Uncles = block.sha3Uncles;
@@ -72,7 +72,7 @@ const encodedHeader = rlp.encode(header);
 
 const headerHash = Web3Utils.sha3(encodedHeader);
 
-console.log("\n\n\nRLP-encoded header: " +bytesToHex(encodedHeader));
-console.log("\n\n\nHashed header: " +headerHash)
-console.log("\n\n\nExpected hash: " +block.hash)
-console.log("\n\n\n" + ((rlp.encode(parentHash))))
+// console.log("\n\n\nRLP-encoded header: " +bytesToHex(encodedHeader));
+// console.log("\n\n\nHashed header: " +headerHash)
+// console.log("\n\n\nExpected hash: " +block.hash)
+// console.log("\n\n\n" + ((rlp.encode(parentHash))))

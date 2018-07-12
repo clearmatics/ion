@@ -194,7 +194,7 @@ library RLP {
     /// Warning: This is inefficient, as it requires that the list is read twice.
     /// @param self The RLP item.
     /// @return Array of RLPItems.
-    function toList(RLPItem memory self) internal constant returns (RLPItem[] memory list) {
+    function toList(RLPItem memory self) internal pure returns (RLPItem[] memory list) {
         if(!isList(self))
             revert();
         uint numItems = items(self);
@@ -226,7 +226,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toUint(RLPItem memory self) internal constant returns (uint data) {
+    function toUint(RLPItem memory self) internal pure returns (uint data) {
         if(!isData(self))
             revert();
         uint rStartPos;
@@ -243,7 +243,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toBool(RLPItem memory self) internal constant returns (bool data) {
+    function toBool(RLPItem memory self) internal pure returns (bool data) {
         if(!isData(self))
             revert();
         uint rStartPos;
@@ -264,7 +264,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toByte(RLPItem memory self) internal constant returns (byte data) {
+    function toByte(RLPItem memory self) internal pure returns (byte data) {
         if(!isData(self))
             revert();
         uint rStartPos;
@@ -283,7 +283,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toInt(RLPItem memory self) internal constant returns (int data) {
+    function toInt(RLPItem memory self) internal pure returns (int data) {
         return int(toUint(self));
     }
 
@@ -291,7 +291,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toBytes32(RLPItem memory self) internal constant returns (bytes32 data) {
+    function toBytes32(RLPItem memory self) internal pure returns (bytes32 data) {
         return bytes32(toUint(self));
     }
 
@@ -299,7 +299,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toAddress(RLPItem memory self) internal constant returns (address data) {
+    function toAddress(RLPItem memory self) internal pure returns (address data) {
         if(!isData(self))
             revert();
         uint rStartPos;
@@ -359,7 +359,7 @@ library RLP {
     }
 
     // Get start position and length of the data.
-    function _decode(RLPItem memory self) private constant returns (uint memPtr, uint len) {
+    function _decode(RLPItem memory self) private pure returns (uint memPtr, uint len) {
         if(!isData(self))
             revert();
         uint b0;
@@ -387,7 +387,7 @@ library RLP {
     }
 
     // Assumes that enough memory has been allocated to store in target.
-    function _copyToBytes(uint btsPtr, bytes memory tgt, uint btsLen) private {
+    function _copyToBytes(uint btsPtr, bytes memory tgt, uint btsLen) private view {
         // Exploiting the fact that 'tgt' was the last thing to be allocated,
         // we can write entire words, and just overwrite any excess.
         assembly {

@@ -60,7 +60,7 @@ contract Ion {
 
     modifier onlyExistingBlocks(bytes32 _id, bytes32 _hash) {
         bool blockExists = false;
-        bytes32[] hashes = m_blockhashes[_id];
+        bytes32[] memory hashes = m_blockhashes[_id];
         for (uint i = 0; i < hashes.length; i++) {
             if (_hash == hashes[i]) {
                 blockExists = true;
@@ -140,10 +140,10 @@ contract Ion {
         return true;
     }
 
-    function CheckReceiptProof() public {
+    function CheckReceiptProof() public pure {
     }
 
-    function CheckRootsProof() public {
+    function CheckRootsProof() public pure {
     }
 
 
