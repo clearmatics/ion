@@ -31,7 +31,8 @@ contract Ion {
         chainId = _id;
     }
 
-    event VerifiedTxProof(bytes32 chainId, bytes32 blockHash);
+    enum ProofType { TX, RECEIPT }
+    event VerifiedProof(bytes32 chainId, bytes32 blockHash, uint proofType);
 /*
 ========================================================================================================================
 
@@ -133,17 +134,58 @@ contract Ion {
     * of this function to only allow if the chain the proof is for is registered to this contract and if the block that
     * the proof is for has been submitted.
     */
-    function CheckTxProof(bytes32 _id, bytes32 _blockHash, bytes _value, bytes _parentNodes, bytes _path) onlyRegisteredChains(_id) onlyExistingBlocks(_id, _blockHash) public returns (bool) {
+    function CheckTxProof(
+        bytes32 _id,
+        bytes32 _blockHash,
+        bytes _value,
+        bytes _parentNodes,
+        bytes _path
+    )
+    onlyRegisteredChains(_id)
+    onlyExistingBlocks(_id, _blockHash)
+    public
+    returns (bool)
+    {
         BlockHeader storage blockHeader = m_blockheaders[_blockHash];
         assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.txRootHash) );
-        emit VerifiedTxProof(_id, _blockHash);
+
+        emit VerifiedProof(_id, _blockHash, uint(ProofType.TX));
         return true;
     }
 
-    function CheckReceiptProof() public {
-    }
+    /*
+    * CheckReceiptProof
+    * param: _id (bytes32) Unique id of chain submitting block from
+    * param: _blockHash (bytes32) Block hash of block being submitted
+    * param: _value (bytes) RLP-encoded receipt object array with fields defined as: https://github.com/ethereumjs/ethereumjs-tx/blob/0358fad36f6ebc2b8bea441f0187f0ff0d4ef2db/index.js#L50
+    * param: _parentNodes (bytes) RLP-encoded array of all relevant nodes from root node to node to prove
+    * param: _path (bytes) Byte array of the path to the node to be proved
+    *
+    * emits: VerifiedTxProof(chainId, blockHash)
+    *        chainId: (bytes32) hash of the chain verifying proof against
+    *        blockHash: (bytes32) hash of the block verifying proof against
+    *
+    * All data associated with the proof must be constructed and provided to this function. Modifiers restrict execution
+    * of this function to only allow if the chain the proof is for is registered to this contract and if the block that
+    * the proof is for has been submitted.
+    */
+    function CheckReceiptProof(
+        bytes32 _id,
+        bytes32 _blockHash,
+        bytes _value,
+        bytes _parentNodes,
+        bytes _path
+    )
+        onlyRegisteredChains(_id)
+        onlyExistingBlocks(_id, _blockHash)
+        public
+        returns (bool)
+    {
+        BlockHeader storage blockHeader = m_blockheaders[_blockHash];
+        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.receiptRootHash) );
 
-    function CheckRootsProof() public {
+        emit VerifiedProof(_id, _blockHash, uint(ProofType.RECEIPT));
+        return true;
     }
 
 
