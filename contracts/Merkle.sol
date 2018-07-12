@@ -10,7 +10,8 @@ library Merkle {
         internal pure
         returns (uint256)
     {
-        uint256 x = uint256(keccak256(a, b));
+        bytes32 outputHash = keccak256(abi.encodePacked(a, b));
+        uint256 x = uint256(outputHash);
 
         // Clears highest bit from result
         // left/right of node is stored there

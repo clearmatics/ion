@@ -154,23 +154,18 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "generateTxProof",
-		Help: "use: generateTxProof [txHash] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
+		Help: "use: generateTxProof [Transaction Hash] [Block Number] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrTo)
 			if len(c.Args) == 0 {
 				c.Println("Select a block")
-			} else if len(c.Args) > 1 {
+			} else if len(c.Args) > 2 {
 				c.Println("Too many arguments entered.")
 			} else {
 				c.Println("RLP encode block: " + c.Args[0])
-				encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(clientFrom, c.Args[0])
-				res, err := Validation.ValidateBlock(auth, encodedBlock, prefixBlock, prefixExtra)
-				if err != nil {
-					c.Printf("Error: %s", err)
-					return
-				}
-				c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
+				rootHash, idx, leaf, proof := GenerateTxProof(clientFrom, c.Args[0], c.Args[1])
+				c.Printf("\nRoot Hash:\n% 0x\nTransaction Index:\n% 0x\nTransaction Leaf:\n% 0x\nProof:\n% 0x\n", rootHash, idx, leaf, proof)
 			}
 			c.Println("===============================================================")
 		},

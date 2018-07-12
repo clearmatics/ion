@@ -12,7 +12,7 @@ import (
 
 func InitClient(addr string) (clientTo *ethclient.Client) {
 	// Connect to the RPC Client
-	clientTo, err := ethclient.Dial("http://" + addr)
+	clientTo, err := ethclient.Dial(addr)
 	if err != nil {
 		log.Fatalf("could not create RPC client: %v", err)
 	}
