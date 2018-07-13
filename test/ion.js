@@ -88,7 +88,9 @@ contract('Ion.js', (accounts) => {
         await ion.RegisterChain(TESTCHAINID);
 
         // Submit block should succeed
-        await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING)
+        let tx = await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING)
+
+        console.log("Gas used to submit block header = " + tx.receipt.gasUsed.toString() + " gas");
 
         let blockHash = await ion.m_blockhashes(TESTCHAINID, 0);
         let header = await ion.getBlockHeader.call(blockHash);
@@ -128,7 +130,9 @@ contract('Ion.js', (accounts) => {
 
         await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
 
-        await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH);
+        let tx = await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH);
+
+        console.log("Gas used to submit check tx proof = " + tx.receipt.gasUsed.toString() + " gas");
     })
 
     it('Fail Tx Proof', async () => {
@@ -155,7 +159,9 @@ contract('Ion.js', (accounts) => {
 
         await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
 
-        await ion.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TEST_PATH);
+        let tx = await ion.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TEST_PATH);
+
+        console.log("Gas used to submit check receipt proof = " + tx.receipt.gasUsed.toString() + " gas");
     })
 
     it('Fail Receipt Proof', async () => {
@@ -182,7 +188,9 @@ contract('Ion.js', (accounts) => {
 
         await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
 
-        await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES);
+        let tx = await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES);
+
+        console.log("Gas used to submit check roots proof = " + tx.receipt.gasUsed.toString() + " gas");
     })
 
     it('Fail Roots Proof', async () => {
