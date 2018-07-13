@@ -81,6 +81,11 @@ const createMerkle = (items) => {
 const pathMerkle = (leaf,tree) => {
   const leafHash = merkleHash(leaf)
   let idx = tree[0].findIndex(h => h.equals(leafHash))
+  // console.log(leafHash)
+  // let idx = tree[0].findIndex(h => {
+  //   console.log(Object.keys(h));
+  //   h.equals(leafHash)
+  // })
   //console.log(tree.map(l => l.map(b=>(b||'0x0').toString(16))))
 
   const result = tree

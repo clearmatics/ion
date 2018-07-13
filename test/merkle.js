@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0+
 
 const Web3Utils = require('web3-utils');
-const BN = require('bignumber.js')
+// const BN = require('bignumber.js')
 const merkle = require('./helpers/merkle.js')
 
 contract('Merkle.js', () => {

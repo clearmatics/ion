@@ -4,7 +4,7 @@ import "./RLP.sol";
 
 library PatriciaTrie {
 
-    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _root) public returns (bool) {
+    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _root) public view returns (bool) {
         RLP.RLPItem memory nodes = RLP.toRLPItem(_parentNodes);
         RLP.RLPItem[] memory parentNodes = RLP.toList(nodes);
 
