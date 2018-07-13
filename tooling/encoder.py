@@ -2,6 +2,7 @@ import rlp
 from .ethrpc import EthJsonRpc
 from ethereum.utils import sha3
 from .utils import require
+import click
 
 class Block(object):
     def __init__(self, block_json):
@@ -52,7 +53,11 @@ def hexstring_to_bytes(hex):
         return int(hex, 16)
 
 class RLPEncoder(object):
-    def __init__(self, host, port, tls=False):
+    def __init__(self, host, port):
+        if port == 443:
+            tls = True
+        else:
+            tls = False
         self.rpc = EthJsonRpc(host, port, tls)
 
     def get_block_by_number(self, n):
@@ -84,3 +89,41 @@ class RLPEncoder(object):
         require('0x'+hash == block['hash'], "Block hash and hashed header do not match:\n{} expected\n{} acquired".format(block['hash'], '0x'+hash))
 
         return hash
+
+
+
+@click.command(help="Returns an RLP encoded block in hexadecimal format.")
+@click.argument('rpc-host', nargs=1, type=str)
+@click.argument('rpc-port', nargs=1, type=int)
+@click.argument('number', nargs=1, type=int)
+def get_encoded_block(rpc_host, rpc_port, number):
+    rlp_encoder = RLPEncoder(rpc_host, rpc_port)
+    block = rlp_encoder.get_block(number)
+    click.echo('0x'+rlp_encoder.encode_block(block).hex())
+
+@click.command(help="Returns block hash in hexadecimal format.")
+@click.argument('rpc-host', nargs=1, type=str)
+@click.argument('rpc-port', nargs=1, type=int)
+@click.argument('number', nargs=1, type=int)
+def get_block_hash(rpc_host, rpc_port, number):
+    rlp_encoder = RLPEncoder(rpc_host, rpc_port)
+    block = rlp_encoder.get_block(number)
+    click.echo('0x'+rlp_encoder.hash_block_header(block))
+
+
+@click.command(help="Returns a list of transaction hashes from a specified block")
+@click.argument('rpc-host', nargs=1, type=str)
+@click.argument('rpc-port', nargs=1, type=int)
+@click.argument('number', nargs=1, type=int)
+def get_block_transactions(rpc_host, rpc_port, number):
+    rlp_encoder = RLPEncoder(rpc_host, rpc_port)
+    block = rlp_encoder.get_block(number)
+    click.echo(rlp_encoder.get_transactions(block))
+
+commands = click.Group('commands')
+commands.add_command(get_encoded_block, "encodeblock")
+commands.add_command(get_block_hash, "blockhash")
+commands.add_command(get_block_transactions, "gettx")
+
+if __name__ == "__main__":
+    commands.main()

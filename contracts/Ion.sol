@@ -31,7 +31,7 @@ contract Ion {
         chainId = _id;
     }
 
-    enum ProofType { TX, RECEIPT }
+    enum ProofType { TX, RECEIPT, ROOTS }
     event VerifiedProof(bytes32 chainId, bytes32 blockHash, uint proofType);
 /*
 ========================================================================================================================
@@ -126,9 +126,10 @@ contract Ion {
     * param: _parentNodes (bytes) RLP-encoded array of all relevant nodes from root node to node to prove
     * param: _path (bytes) Byte array of the path to the node to be proved
     *
-    * emits: VerifiedTxProof(chainId, blockHash)
+    * emits: VerifiedTxProof(chainId, blockHash, proofType)
     *        chainId: (bytes32) hash of the chain verifying proof against
     *        blockHash: (bytes32) hash of the block verifying proof against
+    *        proofType: (uint) enum of proof type
     *
     * All data associated with the proof must be constructed and provided to this function. Modifiers restrict execution
     * of this function to only allow if the chain the proof is for is registered to this contract and if the block that
@@ -141,10 +142,10 @@ contract Ion {
         bytes _parentNodes,
         bytes _path
     )
-    onlyRegisteredChains(_id)
-    onlyExistingBlocks(_id, _blockHash)
-    public
-    returns (bool)
+        onlyRegisteredChains(_id)
+        onlyExistingBlocks(_id, _blockHash)
+        public
+        returns (bool)
     {
         BlockHeader storage blockHeader = m_blockheaders[_blockHash];
         assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.txRootHash) );
@@ -161,9 +162,10 @@ contract Ion {
     * param: _parentNodes (bytes) RLP-encoded array of all relevant nodes from root node to node to prove
     * param: _path (bytes) Byte array of the path to the node to be proved
     *
-    * emits: VerifiedTxProof(chainId, blockHash)
+    * emits: VerifiedTxProof(chainId, blockHash, proofType)
     *        chainId: (bytes32) hash of the chain verifying proof against
     *        blockHash: (bytes32) hash of the block verifying proof against
+    *        proofType: (uint) enum of proof type
     *
     * All data associated with the proof must be constructed and provided to this function. Modifiers restrict execution
     * of this function to only allow if the chain the proof is for is registered to this contract and if the block that
@@ -176,10 +178,10 @@ contract Ion {
         bytes _parentNodes,
         bytes _path
     )
-        onlyRegisteredChains(_id)
-        onlyExistingBlocks(_id, _blockHash)
-        public
-        returns (bool)
+    onlyRegisteredChains(_id)
+    onlyExistingBlocks(_id, _blockHash)
+    public
+    returns (bool)
     {
         BlockHeader storage blockHeader = m_blockheaders[_blockHash];
         assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.receiptRootHash) );
@@ -188,6 +190,41 @@ contract Ion {
         return true;
     }
 
+    /*
+    * CheckRootsProof
+    * param: _id (bytes32) Unique id of chain submitting block from
+    * param: _blockHash (bytes32) Block hash of block being submitted
+    * param: _txNodes (bytes) RLP-encoded relevant nodes of the Tx trie
+    * param: _receiptNodes (bytes) RLP-encoded relevant nodes of the Receipt trie
+    *
+    * emits: VerifiedTxProof(chainId, blockHash, proofType)
+    *        chainId: (bytes32) hash of the chain verifying proof against
+    *        blockHash: (bytes32) hash of the block verifying proof against
+    *        proofType: (uint) enum of proof type
+    *
+    * All data associated with the proof must be constructed and provided to this function. Modifiers restrict execution
+    * of this function to only allow if the chain the proof is for is registered to this contract and if the block that
+    * the proof is for has been submitted.
+    */
+    function CheckRootsProof(
+        bytes32 _id,
+        bytes32 _blockHash,
+        bytes _txNodes,
+        bytes _receiptNodes
+    )
+        onlyRegisteredChains(_id)
+        onlyExistingBlocks(_id, _blockHash)
+        public
+        returns (bool)
+    {
+        BlockHeader storage blockHeader = m_blockheaders[_blockHash];
+
+        assert( blockHeader.txRootHash == getRootNodeHash(_txNodes) );
+        assert( blockHeader.receiptRootHash == getRootNodeHash(_receiptNodes) );
+
+        emit VerifiedProof(_id, _blockHash, uint(ProofType.ROOTS));
+        return true;
+    }
 
     function addBlockHashToChain(bytes32 _chainId, bytes32 _hash) internal {
         bytes32[] storage blockHashes = m_blockhashes[_chainId];
@@ -210,6 +247,16 @@ contract Ion {
 
 ========================================================================================================================
 */
+
+    function getRootNodeHash(bytes _rlpNodes) private view returns (bytes32) {
+        RLP.RLPItem memory nodes = RLP.toRLPItem(_rlpNodes);
+        RLP.RLPItem[] memory nodeList = RLP.toList(nodes);
+
+        bytes memory b_nodeRoot = RLP.toBytes(nodeList[0]);
+
+        return keccak256(b_nodeRoot);
+    }
+
     function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
         bytes32 out;
 
