@@ -59,7 +59,7 @@ signHeader = (headerHash, privateKey, extraData) => {
 
 
 
-contract('Validation.js', (accounts) => {
+contract.only('Validation.js', (accounts) => {
   const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('');
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));

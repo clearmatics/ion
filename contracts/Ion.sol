@@ -1,3 +1,5 @@
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.23;
 
 import "./libraries/RLP.sol";
@@ -135,7 +137,7 @@ contract Ion {
     */
     function CheckTxProof(bytes32 _id, bytes32 _blockHash, bytes _value, bytes _parentNodes, bytes _path) onlyRegisteredChains(_id) onlyExistingBlocks(_id, _blockHash) public returns (bool) {
         BlockHeader storage blockHeader = m_blockheaders[_blockHash];
-        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.txRootHash) );
+        assert(PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.txRootHash));
         emit VerifiedTxProof(_id, _blockHash);
         return true;
     }
@@ -161,6 +163,7 @@ contract Ion {
 
         return [header.prevBlockHash, header.txRootHash, header.receiptRootHash];
     }
+
 /*
 ========================================================================================================================
 
@@ -176,5 +179,6 @@ contract Ion {
         }
         return out;
     }
+
 }
 
