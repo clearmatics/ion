@@ -7,7 +7,7 @@ module.exports = async (deployer) => {
   try {
     deployer.deploy(Recover)
       .then(() => Recover.deployed)
-      .then(() => deployer.deploy(Validation, ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d", "0x8671e5e08d74f338ee1c462340842346d797afd3"], "0xc3bac257bbd04893316a76d41b6ff70de5f65c9f24db128864a6322d8e0e2f28"))
+      .then(() => deployer.deploy(Validation, ["0x42eb768f2244c8811c63729a21a3569731535f06", "0x7ffc57839b00206d1ad20c69a1981b489f772031", "0xb279182d99e65703f0076e4812653aab85fca0f0"], "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177"))
       .then(() => Validation.deployed)
       .then(() => deployer.deploy(PatriciaTrie))
       .then(() => PatriciaTrie.deployed)

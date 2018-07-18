@@ -36,7 +36,7 @@
     "web3-utils": "^1.0.0-beta.33"
   },
   "scripts": {
-    "testrpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFF --gasPrice 0 --networkId 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
+    "testrpc": "ganache-cli --account='0xe176c157b5ae6413726c23094bb82198eb283030409624965231606ec0fbe65b,1000000000000000000000000000000000000000' --account='0xd18bc3878eb28192238d92ae085cdb9438527e36faa92484dea2e3baa047b083,1000000000000000000000000000000000000000' --port 8545 --gasLimit 0xFFFFFFF --gasPrice 0 --networkId 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "compile": "truffle compile",
     "deploy": "truffle deploy --network development",
     "depclique": "truffle deploy --network clique",

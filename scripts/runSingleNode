@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Launch the noodle 1
+tmux new -s node1 -n geth_and_console -d
+tmux send-keys -t node1 "rm -rf poa-network/single-peer/node1/geth/chaindata" C-m
+tmux send-keys -t node1 "geth --datadir poa-network/single-peer/node1/ init poa-network/single-peer/genesis.json" C-m
+tmux send-keys -t node1 "geth --datadir poa-network/single-peer/node1/ --syncmode 'full' --rpc --rpcaddr 'localhost' --rpcport 8501 --networkid 1515 --gasprice '0' -unlock '0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d' --password poa-network/single-peer/node1/password.txt --mine" C-m
+tmux split-window -h -t node1:geth_and_console
+tmux send-keys -t node1 "sleep 4s" C-m
+tmux send-keys -t node1 "geth attach ipc:poa-network/single-peer/node1/geth.ipc" C-m

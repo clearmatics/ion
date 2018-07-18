@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Launch the noodle 3 - testrpc
+tmux new -s node -n geth_and_console -d
+tmux send-keys -t node "rm -rf build/contracts/*" C-m
+tmux send-keys -t node "npm run testrpc" C-m
+tmux split-window -h -t node:geth_and_console
+tmux send-keys -t node "sleep 5s" C-m
+tmux send-keys -t node "npm run deploy" C-m
+tmux send-keys -t node "geth attach http://127.0.0.1:8545" C-m
+tmux ls
