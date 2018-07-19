@@ -22,8 +22,14 @@ var TESTBLOCK = []byte(`{'difficulty': 2,'extraData': '0xd88301080b8467657468886
 var KEY = `{"address":"2be5ab0e43b6dc2908d5321cf318f35b80d0c10d","crypto":{"cipher":"aes-128-ctr","ciphertext":"0b11aa865046778a1b16a9b8cb593df704e3fe09f153823d75442ad1aab66caa","cipherparams":{"iv":"4aa66b789ee2d98cf77272a72eeeaa50"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"b957fa7b7577240fd3791168bbe08903af4c8cc62c304f1df072dc2a59b1765e"},"mac":"197a06eb0449301d871400a6bdf6c136b6f7658ee41e3f2f7fd81ca11cd954a3"},"id":"a3cc1eae-3e36-4659-b759-6cf416216e72","version":3}`
 var IONADDR = common.HexToAddress("0x6aa4444974f60bf3a0bf074d3c194f88ae4d4613")
 
+// NOTE: These tests are skipped if go test -short is called
+
 // Test ion contract gets deployed correctly
 func Test_IonDeployment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testing in short mode")
+	}
+
 	// Create an IPC based RPC connection to a remote node
 	conn, err := ethclient.Dial(CLIENT)
 	if err != nil {
@@ -50,6 +56,9 @@ func Test_IonDeployment(t *testing.T) {
 
 // Tests register chain is successful
 func Test_RegisterChain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testing in short mode")
+	}
 	// Create an IPC based RPC connection to a remote node
 	conn, err := ethclient.Dial(CLIENT)
 	if err != nil {
