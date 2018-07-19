@@ -90,12 +90,14 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 		fmt.Printf("Error: %s", err)
 		return
 	}
+	fmt.Printf("\n%+x\n", b)
 	err = json.Unmarshal([]byte(b), &blockHeader)
 	if err != nil {
 		latestBlock(client)
 		fmt.Printf("Error: %s", err)
 		return
 	}
+	fmt.Printf("\n%v\n", blockHeader)
 
 	// Generate an interface to encode the blockheader without the signature in the extraData
 	prefixBlock = encodeBlock(blockHeader)
