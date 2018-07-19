@@ -97,9 +97,6 @@ contract('Ion.js', (accounts) => {
         await ion.RegisterChain(TESTCHAINID);
 
         // Submit block should succeed
-        console.log(TESTCHAINID)
-        console.log(TESTBLOCK.hash)
-        console.log(TESTBLOCK)
         await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING)
 
         let blockHash = await ion.m_blockhashes(TESTCHAINID, 0);
