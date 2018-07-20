@@ -3,12 +3,11 @@
 pragma solidity ^0.4.23;
 
 import "./libraries/ECVerify.sol";
-import "./libraries/RLP.sol";
 import "./libraries/SolidityUtils.sol";
 
 contract Validation {
 	address owner;
-	address[] public validators;
+	address[] validators;
 
 	uint256 blockHeight;
 	bytes32 blockHash;
@@ -22,9 +21,7 @@ contract Validation {
 	mapping (address => bool) m_validators;
 
 	event broadcastSig(address owner);
-	event broadcastHashData(bytes header, bytes parentHash, bytes rootHash);
 	event broadcastHash(bytes32 blockHash);
-	event broadcastHash2(bytes blockHash);
 
 	/*
 	*	@param _validators		list of validators at block 0
@@ -71,14 +68,13 @@ contract Validation {
 	* @param prefixHeader		the new prefix for the signed hash header
 	* @param prefixExtraData	the new prefix for the extraData field
 	*/
-	function ValidateBlock(bytes _header, bytes prefixHeader, bytes prefixExtraData) public {
+	function ValidateBlock(bytes header, bytes prefixHeader, bytes prefixExtraData) public {
 		// Check the parent hash is the same as the previous block submitted
-		bytes32 _parentBlockHash = SolUtils.BytesToBytes32(_header, 4);
-		
+		bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header, 4);
 		require(_parentBlockHash==blockHash, "Not child of previous block!");
 
-		uint256 length = _header.length;
-		bytes32 _blockHash = keccak256(_header);
+		uint256 length = header.length;
+		bytes32 _blockHash = keccak256(header);
 
 		emit broadcastHash(_blockHash);
 
@@ -88,28 +84,30 @@ contract Validation {
 		bytes memory headerEnd 		= new bytes(42);
 
 		// Extract the start of the header and replace the length
-		SolUtils.BytesToBytes(headerStart, _header, 0);
+		SolUtils.BytesToBytes(headerStart, header, 0);
 		assembly {
            let ret := staticcall(3000, 4, add(prefixHeader, 32), 2, add(headerStart, 33), 2)
 	    }
 
 		// Extract the real extra data and create the signed hash
-		SolUtils.BytesToBytes(extraData, _header, length-140);
+		SolUtils.BytesToBytes(extraData, header, length-140);
 		assembly {
 			let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
 		}
 
 		// Extract the end of the header
-		SolUtils.BytesToBytes(headerEnd, _header, length-42);
+		SolUtils.BytesToBytes(headerEnd, header, length-42);
 		bytes memory newHeader = mergeHash(headerStart, extraData, headerEnd);
+
+		// emit broadcastHash2(newHeader);
 
 		bytes32 hashData = keccak256(newHeader);
 
 		// Extract the signature of the hash create above
-		SolUtils.BytesToBytes(extraDataSig, _header, length-107);
+		SolUtils.BytesToBytes(extraDataSig, header, length-107);
 
 		address sig_addr = ECVerify.ecrecovery(hashData, extraDataSig);
-		require(m_validators[sig_addr]==true, "Signer not a validator!");
+		// require(m_validators[sig_addr]==true, "Signer not a validator!");
 
 		// Append the new block to the struct
 		blockHash = _blockHash;

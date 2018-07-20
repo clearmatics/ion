@@ -23,11 +23,7 @@ In order to use the smart contracts and run the tests it is necessary to first i
 ### Requirements
 * golang version: 1.9.x
 
-### Initialise Clique PoA Blockchain
-The instructions are based on the tutorial of [Salanfe](https://hackernoon.com/setup-your-own-private-proof-of-authority-ethereum-network-with-geth-9a0a3750cda8) but has the more complicated parts already initialised.
-
-First install an instance of [geth](https://geth.ethereum.org/downloads/) and clone the repo.
-
+### Installing Ion
 Having cloned and entered the repo:
 ```
 $ git clone git@github.com:maxrobot/validation.git
@@ -41,6 +37,8 @@ $ tree -L 1
 
 Which hopefully returns this:
 ```
+.
+├── abi
 ├── CODE_OF_CONDUCT.md
 ├── contracts
 ├── CONTRIBUTING.md
@@ -50,6 +48,7 @@ Which hopefully returns this:
 ├── Makefile
 ├── migrations
 ├── package.json
+├── package-lock.json
 ├── README.md
 ├── test
 └── truffle.js

@@ -67,7 +67,9 @@ contract.only('Validation.js', (accounts) => {
   const blockNum = 1;
 
   // Hash of the genesis block
-  const genHash = "0xfddbd5fe1a53989f2730c8f5cfd36eed28a8bf0837d6e95f9aa1e5fc01d157d9";
+  const genesisBlock = web3.eth.getBlock(0);
+  // const genHash = genesisBlock.hash;
+  const genHash = "0xaf0d377824ecc16cfdd5946ad0cd0da904cbcfff8c6cd31628c9c9e5bed2c95b";
 
   // Find the validator of block 1 as it is not known a priori
   const validators = ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d", "0x8671e5e08d74f338ee1c462340842346d797afd3"];
@@ -152,13 +154,14 @@ contract.only('Validation.js', (accounts) => {
     const encodedBlockHeader = '0x' + rlp.encode(blockHeader).toString('hex');
     const blockHeaderHash = Web3Utils.sha3(encodedBlockHeader);
     assert.equal(block.hash, blockHeaderHash);
-
+    
     const encodedHeader = '0x' + rlp.encode(header).toString('hex');
+    const encodedExtraData = '0x' + rlp.encode(extraDataShort).toString('hex');
     const headerHash = Web3Utils.sha3(encodedHeader);
 
-    // The new prefixes should be calculated off chain
-    const prefixHeader = '0x0214';
-    const prefixExtraData = '0xa0';
+    // Get Prefixes
+    const prefixHeader = '0x' + encodedHeader.substring(4, 8);
+    const prefixExtraData = '0x' + encodedExtraData.substring(2,4);
 
     const ecrecoveryReceipt = await validation.ValidateBlock(encodedBlockHeader, prefixHeader, prefixExtraData);
     const recoveredBlockHash = ecrecoveryReceipt.logs[0].args['blockHash'];
@@ -221,6 +224,7 @@ contract.only('Validation.js', (accounts) => {
 
     // Encode and sign the new header
     const encodedHeader = '0x' + rlp.encode(header).toString('hex');
+    const encodedExtraData = '0x' + rlp.encode(extraDataShort).toString('hex');
     const headerHash = Util.sha3(encodedHeader);
 
     // However we cannot be sure which validator is s
@@ -257,9 +261,9 @@ contract.only('Validation.js', (accounts) => {
     const blockHeaderHash = Web3Utils.sha3(encodedBlockHeader);
     assert.equal(block.hash, blockHeaderHash);
 
-    // The new prefixes should be calculated off chain
-    const prefixHeader = '0x0214';
-    const prefixExtraData = '0xa0';
+    // Get Prefixes
+    const prefixHeader = '0x' + encodedHeader.substring(4, 8);
+    const prefixExtraData = '0x' + encodedExtraData.substring(2,4);
 
     const ecrecoveryReceipt = await validation.ValidateBlock(encodedBlockHeader, prefixHeader, prefixExtraData);
     const recoveredBlockHash = ecrecoveryReceipt.logs[0].args['blockHash'];
@@ -271,7 +275,7 @@ contract.only('Validation.js', (accounts) => {
   it('Test: Inauthentic Block Submission - ValidateBlock()', async () => {
     const validation = await Validation.new(validators, genHash);
     const accounts = web3.eth.accounts;
-    const signer = validators[1];
+    const signer = validators[0];
 
     // Get a single block
     const block = web3.eth.getBlock(blockNum);
@@ -325,7 +329,7 @@ contract.only('Validation.js', (accounts) => {
     const encodedHeader = '0x' + rlp.encode(header).toString('hex');
     const headerHash = Util.sha3(encodedHeader);
 
-    const privateKey = Buffer.from('d18bc3878eb28192238d92ae085cdb9438527e36faa92484dea2e3baa047b083', 'hex')
+    const privateKey = Buffer.from('e176c157b5ae6413726c23094bb82198eb283030409624965231606ec0fbe65b', 'hex')
 
     const sig = Util.ecsign(headerHash, privateKey)
     if (this._chainId > 0) {
@@ -338,12 +342,13 @@ contract.only('Validation.js', (accounts) => {
     const newSigBytes = Buffer.concat([sig.r, sig.s]);
     let newSig;
 
+    // Need to understand why but signature requires different v than in others to recover correctly
     const bytes = hexToBytes(extraData);
     const finalByte = bytes.splice(bytes.length-1);
     if (finalByte.toString('hex')=="00")
-      newSig = newSigBytes.toString('hex') + '00';
-    else (finalByte.toString('hex')=="01")
       newSig = newSigBytes.toString('hex') + '01';
+    else (finalByte.toString('hex')=="01")
+      newSig = newSigBytes.toString('hex') + '00';
 
     // Append signature to the end of extraData
     const sigBytes = hexToBytes(newSig.toString('hex'));
@@ -370,11 +375,12 @@ contract.only('Validation.js', (accounts) => {
     ];
 
     const encodedBlockHeader = '0x' + rlp.encode(newBlockHeader).toString('hex');
+    const encodedExtraData = '0x' + rlp.encode(extraDataShort).toString('hex');
     const blockHeaderHash = Web3Utils.sha3(encodedBlockHeader);
 
-    // The new prefixes should be calculated off chain
-    const prefixHeader = '0x0214';
-    const prefixExtraData = '0xa0';
+    // Get Prefixes
+    const prefixHeader = '0x' + encodedHeader.substring(4, 8);
+    const prefixExtraData = '0x' + encodedExtraData.substring(2,4);
 
     const ecrecoveryReceipt = await validation.ValidateBlock(encodedBlockHeader, prefixHeader, prefixExtraData);
     const recoveredBlockHash = ecrecoveryReceipt.logs[0].args['blockHash'];
@@ -484,11 +490,12 @@ contract.only('Validation.js', (accounts) => {
     ];
 
     const encodedBlockHeader = '0x' + rlp.encode(newBlockHeader).toString('hex');
+    const encodedExtraData = '0x' + rlp.encode(extraDataShort).toString('hex');
     const blockHeaderHash = Web3Utils.sha3(encodedBlockHeader);
 
-    // The new prefixes should be calculated off chain
-    const prefixHeader = '0x0214';
-    const prefixExtraData = '0xa0';
+    // Get Prefixes
+    const prefixHeader = '0x' + encodedHeader.substring(4, 8);
+    const prefixExtraData = '0x' + encodedExtraData.substring(2,4);
 
     try {
           const ecrecoveryReceipt = await validation.ValidateBlock(encodedBlockHeader, prefixHeader, prefixExtraData);

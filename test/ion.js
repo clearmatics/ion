@@ -91,7 +91,7 @@ contract('Ion.js', (accounts) => {
         await ion.RegisterChain(TESTCHAINID).should.be.rejected;
     })
 
-    it.only('Submit Block', async () => {
+    it('Submit Block', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
 
         await ion.RegisterChain(TESTCHAINID);
