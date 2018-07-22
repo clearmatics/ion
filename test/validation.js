@@ -227,8 +227,6 @@ contract.only('Validation.js', (accounts) => {
     const encodedExtraData = '0x' + rlp.encode(extraDataShort).toString('hex');
     const headerHash = Util.sha3(encodedHeader);
 
-    // However we cannot be sure which validator is s
-    // const privateKey = Buffer.from('d18bc3878eb28192238d92ae085cdb9438527e36faa92484dea2e3baa047b083', 'hex')
     const privateKey = Buffer.from('e176c157b5ae6413726c23094bb82198eb283030409624965231606ec0fbe65b', 'hex')
 
     let signature = await signHeader(headerHash, privateKey, extraData);
@@ -338,17 +336,18 @@ contract.only('Validation.js', (accounts) => {
 
     const pubKey  = Util.ecrecover(headerHash, sig.v, sig.r, sig.s);
     const addrBuf = Util.pubToAddress(pubKey);
+    assert.equal(signer, '0x'+addrBuf.toString('hex'));
 
     const newSigBytes = Buffer.concat([sig.r, sig.s]);
     let newSig;
 
     // Need to understand why but signature requires different v than in others to recover correctly
-    const bytes = hexToBytes(extraData);
-    const finalByte = bytes.splice(bytes.length-1);
-    if (finalByte.toString('hex')=="00")
-      newSig = newSigBytes.toString('hex') + '01';
-    else (finalByte.toString('hex')=="01")
+    if (sig.v=="27") {
       newSig = newSigBytes.toString('hex') + '00';
+    }
+    if (sig.v=="28") {
+      newSig = newSigBytes.toString('hex') + '01';
+    }
 
     // Append signature to the end of extraData
     const sigBytes = hexToBytes(newSig.toString('hex'));
