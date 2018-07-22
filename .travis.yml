@@ -5,6 +5,8 @@ services:
 
 before_install:
   - docker build . -t node
+  - docker run --name testrpc --rm -d -it -p 127.0.0.1:8545:8545 node bash
+  - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
 
 matrix:
  include:
@@ -15,6 +17,7 @@ matrix:
         - cd ./ion-cli
         - go get -t ./...
         - make test
+        - make integration-test
 
 notifications:
   slack:

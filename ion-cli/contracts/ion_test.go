@@ -102,6 +102,10 @@ func Test_RegisterChain(t *testing.T) {
 
 // Test the a Tx Proof is successfully validated
 func Test_SubmitBlock(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testing in short mode")
+	}
+
 	// Create an IPC based RPC connection to a remote node
 	conn, err := ethclient.Dial(CLIENT)
 	if err != nil {
