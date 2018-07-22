@@ -8,7 +8,7 @@
   "license": "LGPL-3.0+",
   "dependencies": {
     "babel-preset-node6": "^11.0.0",
-    "eth-proof": "git@github.com:Shirikatsu/eth-proof.git#log-encoding",
+    "eth-proof": "git+https://git@github.com:Shirikatsu/eth-proof.git#log-encoding",
     "ethereumjs-block": "^2.0.0",
     "ethereumjs-tx": "^1.3.5",
     "merkle-patricia-tree": "^2.3.1",
