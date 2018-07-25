@@ -1,6 +1,7 @@
 pragma solidity ^0.4.23;
 
 import "./Ion.sol";
+import "./IonCompatible.sol";
 
 contract TriggerEventVerifier {
     function verify(bytes20 _contractEmittedAddress, bytes _rlpReceipt, bytes20 _expectedAddress) public returns (bool);
@@ -21,10 +22,7 @@ contract TriggerEventVerifier {
     This would also bloat the local scope which is prone to 'stack too deep' issues which would require custom
     workarounds.
 */
-contract Function {
-    /*  The Ion contract that proofs would be made to. Ensure that prior to verification attempts that the relevant
-        blocks have been submitted to the Ion contract. */
-    Ion ion;
+contract Function is IonCompatible {
 
     /*  The event verifier for the specific event being consumed. Each event would require a different event verifier to
         be deployed and each consumer would reference the relevant verifier to prove logs. */
@@ -35,8 +33,7 @@ contract Function {
 
     /*  Constructor. Requires Ion contract address and all used event verifier contract addresses. In this case we only
         use one verifier. */
-    constructor(address _ionAddr, address _verifierAddr) public {
-        ion = Ion(_ionAddr);
+    constructor(address _ionAddr, address _verifierAddr) IonCompatible(_ionAddr) public {
         verifier = TriggerEventVerifier(_verifierAddr);
     }
 
