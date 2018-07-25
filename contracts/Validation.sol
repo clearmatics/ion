@@ -107,7 +107,7 @@ contract Validation {
 		SolUtils.BytesToBytes(extraDataSig, header, length-107);
 
 		address sig_addr = ECVerify.ecrecovery(hashData, extraDataSig);
-		// require(m_validators[sig_addr]==true, "Signer not a validator!");
+		require(m_validators[sig_addr]==true, "Signer not a validator!");
 
 		// Append the new block to the struct
 		blockHash = _blockHash;

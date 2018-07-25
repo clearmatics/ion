@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0+
 
 const Web3Utils = require('web3-utils');
+const utils = require('./helpers/utils.js');
 const BN = require('bignumber.js')
 const merkle = require('./helpers/merkle.js')
 const encoder = require('./helpers/encoder.js')
@@ -14,7 +15,10 @@ const levelup = require('levelup');
 const sha3 = require('js-sha3').keccak_256
 const EP = require('eth-proof');
 
+// Connect to the Test RPC running
 const Web3 = require('web3');
+const web3 = new Web3();
+web3.setProvider(new web3.providers.HttpProvider('http://localhost:8501'));
 
 const Ion = artifacts.require("Ion");
 const PatriciaTrie = artifacts.require("PatriciaTrie");
@@ -67,6 +71,10 @@ const TEST_NODE_VALUE = "0xf86982093f85174876e80083015f909407340652d03d131cd5737
 const TEST_PATH = "0x80"
 const TEST_PARENT_NODES = "0xf8c3f851a0448f4ee6a987bf17a91096e25247c3d7d78dbd08afddb5cfd4186d6a9f36bbc080808080808080a0c47289442eb85e0ca1f12c5ac6168f15513036935879931655dadfad3586dcb78080808080808080f86e30b86bf86982093f85174876e80083015f909407340652d03d131cd5737aac4a88623682e7e4c40180820bf9a070d26860a32ef4d08d6d91afa73c067af3211dd692a372770927dc9cbddd7869a05aac135e61c984c356509fc27d41b9f0c9c1f23c76d99571491bb0d15936608a"
 
+const VALIDATORS = ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d"];
+const GENESIS_HASH = "0xaf0d377824ecc16cfdd5946ad0cd0da904cbcfff8c6cd31628c9c9e5bed2c95b";
+
+
 contract('Ion.js', (accounts) => {
     it('Deploy Ion', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
@@ -79,28 +87,51 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
 
         // Successfully add id of another chain
-        await ion.RegisterChain(TESTCHAINID);
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
         let chain = await ion.chains.call(0);
 
         assert.equal(chain, TESTCHAINID);
 
         // Fail adding id of this chain
-        await ion.RegisterChain(DEPLOYEDCHAINID).should.be.rejected;
+        await ion.RegisterChain(DEPLOYEDCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
 
         // Fail adding id of chain already registered
-        await ion.RegisterChain(TESTCHAINID).should.be.rejected;
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
     })
 
+    it('Register Chain - Check Genesis Hash', async () => {
+        const ion = await Ion.new(DEPLOYEDCHAINID);
+
+        // Successfully add id of another chain
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+
+        let header = await ion.m_blockheaders.call(TESTCHAINID, GENESIS_HASH);
+        let blockHeight = header[0];
+
+        assert.equal(0, blockHeight);
+;
+    })
+
+    it('Register Chain - Check Validators', async () => {
+        const ion = await Ion.new(DEPLOYEDCHAINID);
+
+        // Successfully add id of another chain
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+
+        let validators = await ion.m_validators.call(TESTCHAINID, VALIDATORS[0]);
+        assert.equal(validators, true);
+    })
+   
     it('Submit Block', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID);
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
         // Submit block should succeed
         await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING)
 
-        let blockHash = await ion.m_blockhashes(TESTCHAINID, 0);
-        let header = await ion.getBlockHeader.call(blockHash);
+        let blockHash = await ion.m_blockhashes(TESTCHAINID, TESTBLOCK.hash);
+        let header = await ion.getBlockHeader.call(TESTCHAINID, TESTBLOCK.hash);
 
         // Separate fetched header info
         parentHash = header[0];
@@ -108,7 +139,7 @@ contract('Ion.js', (accounts) => {
         receiptRootHash = header[2];
 
         // Assert that block was persisted correctly
-        assert.equal(blockHash, TESTBLOCK.hash);
+        assert.equal(blockHash, true);
         assert.equal(parentHash, TESTBLOCK.parentHash);
         assert.equal(txRootHash, TESTBLOCK.transactionsRoot);
         assert.equal(receiptRootHash, TESTBLOCK.receiptsRoot);
@@ -117,7 +148,7 @@ contract('Ion.js', (accounts) => {
     it('Fail Submit Block from unknown chain', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID);
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
         await ion.SubmitBlock(TESTCHAINID.slice(0, -2) + "ff", "0xe40cd510f5e415980a2a18ab97b1983c7da43ee56b299cf931c35d9c9ce435f2", "0xf9025ea0f4d7435eff2fcff295eca2c97a1299eeb1d2ce479b4c6e0e799f4a7bed6e4f72a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a019ac400db348a4975008c6e75c537bce261d116bcd74d8b75a9d6992e3b161eda087c9f55218d8784fa39a773791633e9d007a99bef43c12233ebf980810d47464a05ad439bb61e71db83d139847424ac55990546a1b55cc5dd12a57850fd47af845b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000281d2880d08334ef5308dff826928845b23c06eb861d88301080b846765746888676f312e31302e32856c696e757800000000000000461bc1df80fdafba4508e41ef01a570b7998fa0c64eaae65d62e57929afc232a0656a0a43e10387ffebcc8837d1c0d28ab801313e18775f574e73f119452b42e01a00000000000000000000000000000000000000000000000000000000000000000880000000000000000").should.be.rejected;
     })
@@ -125,7 +156,7 @@ contract('Ion.js', (accounts) => {
     it('Fail Submit Block with wrong block hash', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID);
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
         await ion.SubmitBlock(TESTCHAINID, "0xe4" + "1" + "cd510f5e415980a2a18ab97b1983c7da43ee56b299cf931c35d9c9ce435f2", "0xf9025ea0f4d7435eff2fcff295eca2c97a1299eeb1d2ce479b4c6e0e799f4a7bed6e4f72a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a019ac400db348a4975008c6e75c537bce261d116bcd74d8b75a9d6992e3b161eda087c9f55218d8784fa39a773791633e9d007a99bef43c12233ebf980810d47464a05ad439bb61e71db83d139847424ac55990546a1b55cc5dd12a57850fd47af845b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000281d2880d08334ef5308dff826928845b23c06eb861d88301080b846765746888676f312e31302e32856c696e757800000000000000461bc1df80fdafba4508e41ef01a570b7998fa0c64eaae65d62e57929afc232a0656a0a43e10387ffebcc8837d1c0d28ab801313e18775f574e73f119452b42e01a00000000000000000000000000000000000000000000000000000000000000000880000000000000000").should.be.rejected;
     })
@@ -133,15 +164,96 @@ contract('Ion.js', (accounts) => {
     it('Check Tx Proof', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID);
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
         await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
 
         await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_NODE_VALUE, TEST_PARENT_NODES, TEST_PATH);
     })
 
+    it('Validate Block', async () => {
+        const ion = await Ion.new(DEPLOYEDCHAINID);
+
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+
+        // Fetch block 1 from testrpc
+        const block = web3.eth.getBlock(1);
+
+        const signedHeader = [
+            block.parentHash,
+            block.sha3Uncles,
+            block.miner,
+            block.stateRoot,
+            block.transactionsRoot,
+            block.receiptsRoot,
+            block.logsBloom,
+            Web3Utils.toBN(block.difficulty),
+            Web3Utils.toBN(block.number),
+            block.gasLimit,
+            block.gasUsed,
+            Web3Utils.toBN(block.timestamp),
+            block.extraData,
+            block.mixHash,
+            block.nonce
+          ];
+
+        // Remove last 65 Bytes of extraData
+        const extraBytes = utils.hexToBytes(block.extraData);
+        const extraBytesShort = extraBytes.splice(1, extraBytes.length-66);
+        const extraDataSignature = '0x' + utils.bytesToHex(extraBytes.splice(extraBytes.length-65));
+        const extraDataShort = '0x' + utils.bytesToHex(extraBytesShort);
+
+        const unsignedHeader = [
+            block.parentHash,
+            block.sha3Uncles,
+            block.miner,
+            block.stateRoot,
+            block.transactionsRoot,
+            block.receiptsRoot,
+            block.logsBloom,
+            Web3Utils.toBN(block.difficulty),
+            Web3Utils.toBN(block.number),
+            block.gasLimit,
+            block.gasUsed,
+            Web3Utils.toBN(block.timestamp),
+            extraDataShort, // extraData minus the signature
+            block.mixHash,
+            block.nonce
+          ];
+
+        const encodedSignedHeader = '0x' + rlp.encode(signedHeader).toString('hex');
+        const signedHeaderHash = Web3Utils.sha3(encodedSignedHeader);
+        assert.equal(block.hash, signedHeaderHash);
+
+        const encodedUnsignedHeader = '0x' + rlp.encode(unsignedHeader).toString('hex');
+        const unsignedHeaderHash = Web3Utils.sha3(encodedUnsignedHeader);
+
+        // Submit block should succeed
+        const validationReceipt = await ion.ValidateBlock(TESTCHAINID, encodedUnsignedHeader, encodedSignedHeader);
+        const recoveredBlockHash = await validationReceipt.logs[0].args['blockHash'];
+        assert.equal(signedHeaderHash, recoveredBlockHash);
+
+
+
+        let blockHash = await ion.m_blockhashes(TESTCHAINID, block.hash);
+        assert.equal(blockHash, true);
+
+        let header = await ion.getBlockHeader.call(TESTCHAINID, block.hash);
+
+        // Separate fetched header info
+        parentHash = header[0];
+        txRootHash = header[1];
+        receiptRootHash = header[2];
+
+        // Assert that block was persisted correctly
+        assert.equal(parentHash, block.parentHash);
+        assert.equal(txRootHash, block.transactionsRoot);
+        assert.equal(receiptRootHash, block.receiptsRoot);
+    })
+
+
 //    it('Check EP Proofs', async () => {
-//        const ion = await Ion.new(DEPLOYEDCHAINID);
+//        const ion = await Ion.new(DEPLOYEDCHAINID, VALIDATORS, GENESIS_HASH);
 //
 //        // Building transactions in a block for better trie constructions
 //        for (let i = 0; i < 10; i++) {
@@ -208,7 +320,7 @@ contract('Ion.js', (accounts) => {
     it('Fail Tx Proof', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID);
+        await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
         await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
 

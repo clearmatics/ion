@@ -15,7 +15,7 @@ matrix:
       go: 1.9.x
       script:
         - npm install
-        - npm depclique 
+        - npm run depclique 
         - npm run test
         - cd ./ion-cli
         - go get -t ./...
