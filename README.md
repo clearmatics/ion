@@ -23,11 +23,7 @@ In order to use the smart contracts and run the tests it is necessary to first i
 ### Requirements
 * golang version: 1.9.x
 
-### Initialise Clique PoA Blockchain
-The instructions are based on the tutorial of [Salanfe](https://hackernoon.com/setup-your-own-private-proof-of-authority-ethereum-network-with-geth-9a0a3750cda8) but has the more complicated parts already initialised.
-
-First install an instance of [geth](https://geth.ethereum.org/downloads/) and clone the repo.
-
+### Installing Ion
 Having cloned and entered the repo:
 ```
 $ git clone git@github.com:maxrobot/validation.git
@@ -41,6 +37,8 @@ $ tree -L 1
 
 Which hopefully returns this:
 ```
+.
+├── abi
 ├── CODE_OF_CONDUCT.md
 ├── contracts
 ├── CONTRIBUTING.md
@@ -50,51 +48,18 @@ Which hopefully returns this:
 ├── Makefile
 ├── migrations
 ├── package.json
-├── poa-network
+├── package-lock.json
 ├── README.md
 ├── test
 └── truffle.js
 ```
 
-#### Initialise Nodes
-Network files are found in the `/path/to/ion/poa-network` directory. Enter the poa-network directory and initialise the two nodes which will be sealing blocks:
-```
-$ cd /path/to/ion/poa-network
-$ geth --datadir node1/ init genesis.json
-$ geth --datadir node2/ init genesis.json
-```
-
-#### Launch the Bootnode
-The boot node tells the peers how to connect with each other. In another terminal instance run:
-```
-$ bootnode -nodekey boot.key -verbosity 9 -addr :30310
-$ INFO [06-07|12:16:21] UDP listener up                          self=enode://dcb1dbf8d710eb7d10e0e2db1e6d3370c4b048efe47c7a85c4b537b60b5c11832ef25f026915b803e928c1d93f01b853131e412c6308c4c6141d1504c78823c8@[::]:30310
-```
-As the peers communicate this terminal should fill with logs.
-
-***Note:*** bootnode may not be found if go-ethereum/geth is not installed fully.
-
-#### Start and Attach to the Nodes
-Each node must be launched either as a background operation or on separate terminal instances. Thus from the poa-network directory for node 1 run:
-```
-$ geth --datadir node1/ --syncmode 'full' --port 30311 --rpc --rpcaddr 'localhost' --rpcport 8501 --bootnodes 'enode://dcb1dbf8d710eb7d10e0e2db1e6d3370c4b048efe47c7a85c4b537b60b5c11832ef25f026915b803e928c1d93f01b853131e412c6308c4c6141d1504c78823c8@127.0.0.1:30310' --networkid 1515 --gasprice '1' -unlock '0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d' --password node1/password.txt --mine
-```
-then attach:
-```
-$ geth attach node1/geth.ipc
-```
- and again for node 2:
-```
-$ geth --datadir node2/ --syncmode 'full' --port 30312 --rpc --rpcaddr 'localhost' --rpcport 8502 --bootnodes 'enode://dcb1dbf8d710eb7d10e0e2db1e6d3370c4b048efe47c7a85c4b537b60b5c11832ef25f026915b803e928c1d93f01b853131e412c6308c4c6141d1504c78823c8@127.0.0.1:30310' --networkid 1515 --gasprice '0' -unlock '0x8671e5e08d74f338ee1c462340842346d797afd3' --password node2/password.txt --mine
-```
-attaching:
-```
-$ geth attach node2/geth.ipc
-```
-***Note:*** that IPC has been used to attach to the nodes, this allows the clique module to be used.
-
 ### Testing Contracts
-After launching the network, from the root of the repository:
+In order to test the Solidity contracts using the Javascript tests a testrpc must be run. As the validation contract relies upon receiving signatures in the `extraData` field of the block header it is not sufficient to run an instance of ganache-cli, rather a Clique PoA chain must be initialised.
+
+To use the tests please follow the instructions on how to run a single validator Clique chain given [here](https://github.com/maxrobot/network-geth). Additionally you must ensure that the account sealing blocks is identical to that defined in the `validation.js` test itself `0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d`.
+
+Having launched a single-validator clique chain with the sealer `0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d`, run the tests as follows.
 ```
 $ npm install
 $ npm run test
@@ -109,9 +74,17 @@ In its current form the Ion CLI allows the user to connect to two separate block
 ```
 $ cd ion-cli
 $ make build
+```
+In order to run the basic unit tests for the Ion CLI run,
+```
 $ make test
 ```
 If the tests pass successfully then the CLI can be run.
+
+Additional integration tests can be run however it requires launching a Clique PoA chain as above. To run the integration tests launch command,
+```
+$ make integration-test
+```
 
 #### Running Ion CLI
 As mentioned in the project description this simple implementation of the validation contract is active only on a single blockchain, however the CLI is simulating the passing of the headers to and from as if it were between separate chains.
@@ -124,7 +97,7 @@ $ npm run deploy
 
 Following this we can attach to the Ion Command Line Interface,
 ```
-$ cd /path/to/validation/src
+$ cd /path/to/ion/ion-cli
 $ make build
 ```
 Assuming a successful build we must create a setup file which contains the connection of the separate blockchains, user accounts, account keystores, and the address of the deployed validation contract. Change the default values in the example setup.json then run the `ion-cli` poiinting to the modified setup file.
@@ -151,8 +124,12 @@ running help displays the available commands.
 Commands:
   clear                      clear the screen
   exit                       exit the program
+  generateTxProof            use: generateTxProof [Transaction Hash] [Block Number] 
+                             description: Returns the proof of a specific transaction held within a Patricia trie
   getBlock                   use: getBlock [integer] 
                              description: Returns block header specified
+  getValidationBlock         use: latestValidationBlock 
+                             description: Returns hash of the last block submitted to the validation contract
   getValidators              use: getValidators 
                              description: Returns the whitelist of validators from validator contract
   help                       display help

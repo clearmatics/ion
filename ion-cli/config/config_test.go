@@ -16,15 +16,13 @@ func Test_Read_ValidSetupJson(t *testing.T) {
 	path := findPath() + "./test.json"
 	setup := config.ReadSetup(path)
 
-	assert.Equal(t, "8501", setup.PortTo)
-	assert.Equal(t, "127.0.0.1", setup.AddrTo)
-	assert.Equal(t, "8502", setup.PortFrom)
-	assert.Equal(t, "127.0.0.1", setup.AddrFrom)
+	assert.Equal(t, "127.0.0.1:8545", setup.AddrTo)
+	assert.Equal(t, "127.0.0.1:8501", setup.AddrFrom)
 	assert.Equal(t, "0xb9fd43a71c076f02d1dbbf473c389f0eacec559f", setup.Ion)
 }
 
 func Test_Read_ValidKeystore(t *testing.T) {
-	path := findPath() + "../../poa-network/node1/keystore/UTC--2018-06-05T09-31-57.109288703Z--2be5ab0e43b6dc2908d5321cf318f35b80d0c10d"
+	path := findPath() + "./UTC--2018-06-05T09-31-57.109288703Z--2be5ab0e43b6dc2908d5321cf318f35b80d0c10d"
 	contents := config.ReadString(path)
 
 	const val = "{\"address\":\"2be5ab0e43b6dc2908d5321cf318f35b80d0c10d\",\"crypto\":{\"cipher\":\"aes-128-ctr\",\"ciphertext\":\"0b11aa865046778a1b16a9b8cb593df704e3fe09f153823d75442ad1aab66caa\",\"cipherparams\":{\"iv\":\"4aa66b789ee2d98cf77272a72eeeaa50\"},\"kdf\":\"scrypt\",\"kdfparams\":{\"dklen\":32,\"n\":262144,\"p\":1,\"r\":8,\"salt\":\"b957fa7b7577240fd3791168bbe08903af4c8cc62c304f1df072dc2a59b1765e\"},\"mac\":\"197a06eb0449301d871400a6bdf6c136b6f7658ee41e3f2f7fd81ca11cd954a3\"},\"id\":\"a3cc1eae-3e36-4659-b759-6cf416216e72\",\"version\":3}"

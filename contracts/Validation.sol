@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.23;
 
-import "./ECVerify.sol";
-import "./SolidityUtils.sol";
+import "./libraries/ECVerify.sol";
+import "./libraries/SolidityUtils.sol";
 
 contract Validation {
-	address Owner;
+	address owner;
 	address[] validators;
 
 	uint256 blockHeight;
@@ -21,16 +21,14 @@ contract Validation {
 	mapping (address => bool) m_validators;
 
 	event broadcastSig(address owner);
-	event broadcastHashData(bytes header, bytes parentHash, bytes rootHash);
 	event broadcastHash(bytes32 blockHash);
-	event broadcastHash2(bytes blockHash);
 
 	/*
 	*	@param _validators		list of validators at block 0
 	*	@param _genesisHash		genesis block hash
 	*/
 	constructor (address[] _validators, bytes32 genesisHash) public {
-		Owner = msg.sender;
+		owner = msg.sender;
 		for (uint i = 0; i < _validators.length; i++) {
 			validators.push(_validators[i]);
 			m_validators[_validators[i]] = true;
@@ -42,21 +40,22 @@ contract Validation {
 	}
 
 	/*
-	* Returns the validators array
+	* @description	returns the validators array
 	*/
 	function GetValidators() public view returns (address[] _validators) {
 		return validators;
 	}
 	
 	/*
-	* Returns the latest block submitted
+	* @description	returns the latest block submitted
 	*/
 	function LatestBlock() public view returns (bytes32 _latestBlock) {
 		return blockHash;
 	}
 
 	/*
-	* Returns the latest block submitted
+	* @description 			returns information regarding specific block
+	* @param blockNumber	specific block number
 	*/
 	function GetBlock(uint256 blockNumber) public view returns (bytes32 _blockHash, bytes32 _prevBlockHash, uint256 _blockHeight) {
 		_blockHash = m_blockheaders[blockNumber].blockHash;
@@ -100,6 +99,8 @@ contract Validation {
 		SolUtils.BytesToBytes(headerEnd, header, length-42);
 		bytes memory newHeader = mergeHash(headerStart, extraData, headerEnd);
 
+		// emit broadcastHash2(newHeader);
+
 		bytes32 hashData = keccak256(newHeader);
 
 		// Extract the signature of the hash create above
@@ -119,6 +120,12 @@ contract Validation {
 	}
 
 
+	/*
+	* @description			creates header from the original against which the signatures are recovered
+	* @param headerStart	all block header fields until extraData field
+	* @param extraData		extraData field minus signatures
+	* @param headerEnd		all block header fields post extraData field
+	*/
 	function mergeHash(bytes headerStart, bytes extraData, bytes headerEnd) internal view returns (bytes output) {
 		// Get the lengths sorted because they're needed later...
 		uint256 headerStartLength = headerStart.length;

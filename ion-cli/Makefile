@@ -8,6 +8,9 @@ clean:
 	@rm *.out
 
 test:
+	@go test ./... -v -short
+
+integration-test:
 	@go test ./... -v
 
 format:
