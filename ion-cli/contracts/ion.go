@@ -4,6 +4,7 @@
 package contract
 
 import (
+	"encoding/hex"
 	"math/big"
 	"strings"
 
@@ -33,6 +34,35 @@ func DeployIon(auth *bind.TransactOpts, backend bind.ContractBackend, _id [32]by
 	}
 	return address, tx, &Ion{IonCaller: IonCaller{contract: contract}, IonTransactor: IonTransactor{contract: contract}, IonFilterer: IonFilterer{contract: contract}}, nil
 }
+
+func LinkDeployIon(auth *bind.TransactOpts, backend bind.ContractBackend, _id [32]byte, linkAddr common.Address, linkString string) (common.Address, *types.Transaction, *Ion, error) {
+	// Convert address to string and replace library reference in Bin
+	linkAddrStr := hex.EncodeToString(linkAddr.Bytes())
+	NewIonBin := strings.Replace(IonBin, linkString, linkAddrStr, 1)
+
+	parsed, err := abi.JSON(strings.NewReader(IonABI))
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(NewIonBin), backend, _id)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	return address, tx, &Ion{IonCaller: IonCaller{contract: contract}, IonTransactor: IonTransactor{contract: contract}, IonFilterer: IonFilterer{contract: contract}}, nil
+}
+
+// Deploy and Link Ion to libraries
+// func LinkDeployIon(auth *bind.TransactOpts, backend bind.ContractBackend, _id [32]byte, linkAddr common.Address) (common.Address, *types.Transaction, *Ion, error) {
+// 	parsed, err := abi.JSON(strings.NewReader(IonABI))
+// 	if err != nil {
+// 		return common.Address{}, nil, nil, err
+// 	}
+// 	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(IonBin), backend, _id)
+// 	if err != nil {
+// 		return common.Address{}, nil, nil, err
+// 	}
+// 	return address, tx, &Ion{IonCaller: IonCaller{contract: contract}, IonTransactor: IonTransactor{contract: contract}, IonFilterer: IonFilterer{contract: contract}}, nil
+// }
 
 // Ion is an auto generated Go binding around an Ethereum contract.
 type Ion struct {

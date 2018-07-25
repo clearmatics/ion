@@ -43,8 +43,8 @@
     "test": "truffle test --network clique",
     "coverage": "solidity-coverage",
     "lint": "solhint contracts/**/*.sol",
-    "genbin": "solc --overwrite --bin ./contracts/* -o abi",
-    "genabi": "solc --overwrite --abi ./contracts/* -o abi",
+    "genbin": "solc --overwrite --bin ./contracts/*.sol -o abi",
+    "genabi": "solc --overwrite --abi ./contracts/*.sol -o abi",
     "abigen": "abigen --bin=abi/Validation.bin --abi=abi/Validation.abi --pkg=validation --out=validation.go"
   }
 }
