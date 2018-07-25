@@ -134,6 +134,15 @@ contract Ion {
         addBlockHashToChain(_id, _blockHash);
     }
 
+    /*
+    * ValidateBlock
+    * param: _id (bytes32) Unique id of chain submitting block from
+    * param: _rlpBlockHeader (bytes) RLP-encoded byte array of the block header from other chain without the signature in extraData
+    * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain with the signature in extraData
+    *
+    * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
+    * and if valid the block is persisted as BlockHeader structs defined above.
+    */
     function ValidateBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) public onlyRegisteredChains(_id) {
         RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
         RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
