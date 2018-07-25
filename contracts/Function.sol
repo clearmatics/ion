@@ -1,7 +1,10 @@
 pragma solidity ^0.4.23;
 
-import "./EventVerifier.sol";
 import "./Ion.sol";
+
+contract TriggerEventVerifier {
+    function verify(bytes20 _contractEmittedAddress, bytes _rlpReceipt, bytes20 _expectedAddress) public returns (bool);
+}
 
 /*
     This function contract is the consumer of an event and performs some execution thereafter. In practice, this would
@@ -25,7 +28,7 @@ contract Function {
 
     /*  The event verifier for the specific event being consumed. Each event would require a different event verifier to
         be deployed and each consumer would reference the relevant verifier to prove logs. */
-    EventVerifier verifier;
+    TriggerEventVerifier verifier;
 
     /* Custom event that fires when execution is performed successfully. */
     event Executed();
@@ -34,7 +37,7 @@ contract Function {
         use one verifier. */
     constructor(address _ionAddr, address _verifierAddr) public {
         ion = Ion(_ionAddr);
-        verifier = EventVerifier(_verifierAddr);
+        verifier = TriggerEventVerifier(_verifierAddr);
     }
 
     /* This is the function that is intended to be executed upon successful verification of proofs */
