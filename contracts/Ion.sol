@@ -26,7 +26,6 @@ contract Ion {
     uint256 public blockHeight;
 
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
-    // XXX: @shirikatsu this has changed from bytes32 to uint256 to allow block ordering
     mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
 
     // input chainId to validators address returning bool
@@ -116,36 +115,13 @@ contract Ion {
     /*
     * SubmitBlock
     * param: _id (bytes32) Unique id of chain submitting block from
-    * param: _blockHash (bytes32) Block hash of block being submitted
-    * param: _rlpBlockHeader (bytes) RLP-encoded byte array of the block header from other chain
-    *
-    * Submission of block headers from another chain, deconstructed and persisted as BlockHeader structs defined above
-    * and adds it to the list of known block hashes and headers of specified chain.
-    */
-    function SubmitBlock(bytes32 _id, bytes32 _blockHash, bytes _rlpBlockHeader) onlyRegisteredChains(_id) public {
-        RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
-
-        bytes32 hashedHeader = keccak256(_rlpBlockHeader);
-        require( hashedHeader == _blockHash );
-
-        BlockHeader storage blockHeader = m_blockheaders[_id][_blockHash];
-        blockHeader.prevBlockHash = bytesToBytes32(header[0].toBytes(), 1);
-        blockHeader.txRootHash = bytesToBytes32(header[4].toBytes(), 1);
-        blockHeader.receiptRootHash = bytesToBytes32(header[5].toBytes(), 1);
-
-        addBlockHashToChain(_id, _blockHash);
-    }
-
-    /*
-    * ValidateBlock
-    * param: _id (bytes32) Unique id of chain submitting block from
     * param: _rlpBlockHeader (bytes) RLP-encoded byte array of the block header from other chain without the signature in extraData
     * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain with the signature in extraData
     *
     * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
     * and if valid the block is persisted as BlockHeader structs defined above.
     */
-    function ValidateBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) public onlyRegisteredChains(_id) {
+    function SubmitBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) public onlyRegisteredChains(_id) {
         RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
         RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
 
@@ -187,7 +163,7 @@ contract Ion {
 
         // Recover the signature of 
         address sigAddr = ECVerify.ecrecovery(keccak256(_rlpBlockHeader), extraDataSig);
-		// require(m_validators[_id][sigAddr]==true, "Signer not a validator!");
+		require(m_validators[_id][sigAddr]==true, "Signer not a validator!");
 
         emit broadcastSignature(sigAddr);
     }
@@ -337,7 +313,7 @@ contract Ion {
 		}
 	}
 
-    	/*
+    /*
     * @description  copies output.length bytes from the input into the output
 	* @param output	memory allocation for the data you need to extract
 	* @param input  array from which the data should be extracted
