@@ -22,9 +22,10 @@ contract Ion {
     address[] public validators;
     bytes32 public blockHash;
     bytes32 public chainId;
-    bytes32[] public chains;
+    // bytes32[] public chains;
     uint256 public blockHeight;
 
+    mapping (bytes32 => bool) public chains;
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
     mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
 
@@ -65,14 +66,7 @@ contract Ion {
     * Modifier that checks if the provided chain id has been registered to this contract
     */
     modifier onlyRegisteredChains(bytes32 _id) {
-        bool chainRegistered = false;
-        for (uint i = 0; i < chains.length; i++) {
-            if (_id == chains[i]) {
-                chainRegistered = true;
-                break;
-            }
-        }
-        require(chainRegistered, "Chain is not registered");
+        require(chains[_id], "Chain is not registered");
         _;
     }
 
@@ -98,16 +92,13 @@ contract Ion {
     */
     function RegisterChain(bytes32 _id, address[] _validators, bytes32 _genesisHash) public {
         require( _id != chainId, "Cannot add this chain id to chain register" );
-        for (uint i = 0; i < chains.length; i++) {
-            require( chains[i] != _id, "Chain already exists" );
-        }
-        chains.push(_id);
+        require(!chains[_id], "Chain already exists" );
+        chains[_id] = true;
 
-        for (i = 0; i < _validators.length; i++) {
+        for (uint256 i = 0; i < _validators.length; i++) {
             m_validators[_id][_validators[i]] = true;
     	}
 
-		// blockHash = _genesisHash;
         m_blockhashes[_id][_genesisHash] = true;
 		m_blockheaders[_id][_genesisHash].blockHeight = 0;
     }

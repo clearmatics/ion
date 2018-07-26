@@ -154,7 +154,7 @@ const GENESIS_HASH = TESTBLOCK.parentHash;
 // const GENESIS_HASH = "0xaf0d377824ecc16cfdd5946ad0cd0da904cbcfff8c6cd31628c9c9e5bed2c95b";
 
 
-contract('Ion.js', (accounts) => {
+contract.only('Ion.js', (accounts) => {
     it('Deploy Ion', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         let chainId = await ion.chainId();
@@ -167,9 +167,9 @@ contract('Ion.js', (accounts) => {
 
         // Successfully add id of another chain
         await ion.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
-        let chain = await ion.chains.call(0);
+        let chain = await ion.chains(TESTCHAINID);
 
-        assert.equal(chain, TESTCHAINID);
+        assert.equal(chain, true);
 
         // Fail adding id of this chain
         await ion.RegisterChain(DEPLOYEDCHAINID, TEST_VALIDATORS, GENESIS_HASH).should.be.rejected;
@@ -200,31 +200,6 @@ contract('Ion.js', (accounts) => {
         let validators = await ion.m_validators.call(TESTCHAINID, TEST_VALIDATORS[0]);
         assert.equal(validators, true);
     })
-   
-    // it('Submit Block', async () => {
-    //     const ion = await Ion.new(DEPLOYEDCHAINID);
-
-    //     await ion.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-
-    //     // Submit block should succeed
-    //     let tx = await ion.SubmitBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING)
-
-    //     console.log("Gas used to submit block header = " + tx.receipt.gasUsed.toString() + " gas");
-
-    //     let blockHash = await ion.m_blockhashes(TESTCHAINID, TESTBLOCK.hash);
-    //     let header = await ion.getBlockHeader.call(TESTCHAINID, TESTBLOCK.hash);
-
-    //     // Separate fetched header info
-    //     parentHash = header[0];
-    //     txRootHash = header[1];
-    //     receiptRootHash = header[2];
-
-    //     // Assert that block was persisted correctly
-    //     assert.equal(blockHash, true);
-    //     assert.equal(parentHash, TESTBLOCK.parentHash);
-    //     assert.equal(txRootHash, TESTBLOCK.transactionsRoot);
-    //     assert.equal(receiptRootHash, TESTBLOCK.receiptsRoot);
-    // })
 
     it('Submit Block', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
