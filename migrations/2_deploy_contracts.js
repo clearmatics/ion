@@ -1,5 +1,6 @@
 const Ion = artifacts.require("Ion");
 const PatriciaTrie = artifacts.require("PatriciaTrie");
+const PatriciaTrieTest = artifacts.require("PatriciaTrieTest");
 const Function = artifacts.require("Function");
 const EventVerifier = artifacts.require("EventVerifier");
 
@@ -11,7 +12,7 @@ module.exports = async (deployer) => {
     eventVerifier = await deployer.deploy(EventVerifier);
     ion = await Ion.deployed();
     eventVerifier = await EventVerifier.deployed();
-    deployer.deploy(Function, ion.address, eventVerifier.address);
+    await deployer.deploy(Function, ion.address, eventVerifier.address);
 
   } catch(err) {
     console.log('ERROR on deploy:',err);

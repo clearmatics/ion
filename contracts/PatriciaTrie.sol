@@ -44,7 +44,7 @@ library PatriciaTrie {
     processExtensionLeafNode returns (bytes32 currentNodeKey, uint traversedNibbles)
 
     Due to the dual nature of how a branch node may be processed where the next node in the path could be either
-    referenced by hash or nested in the branch node is the total RLP-encoded node is less than 32 bytes (vestigial node),
+    referenced by hash or nested in the branch node is the total RLP-encoded node is less than 32 bytes (nested node),
     we required separation of logic due to "stack-too-deep" issues and opted for a messy returning of reused variables.
     These returned variables now hold two purposes:
 
@@ -69,8 +69,8 @@ library PatriciaTrie {
 
         bytes32 currentNodeKey;
         if (RLP.toBytes(nextNode).length < 32) {
-            //Vestigial 'Node'
-            (currentNodeKey, _traversedNibbles) = processVestigialNode(nextNode, _traversedNibbles, _path, _value);
+            //Nested 'Node'
+            (currentNodeKey, _traversedNibbles) = processNestedNode(nextNode, _traversedNibbles, _path, _value);
         } else {
             currentNodeKey = RLP.toBytes32(_currentNode[nextPathNibble]);
         }
@@ -96,7 +96,7 @@ library PatriciaTrie {
         return (currentNodeKey, _traversedNibbles);
     }
 
-    function processVestigialNode(RLP.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes _value) private returns (bytes32, uint) {
+    function processNestedNode(RLP.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes _value) private returns (bytes32, uint) {
         RLP.RLPItem[] memory currentNode = RLP.toList(_nextNode);
         if (currentNode.length == 17) {
             // Extension Node
