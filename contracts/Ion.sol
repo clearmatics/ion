@@ -5,6 +5,8 @@ pragma solidity ^0.4.23;
 import "./libraries/ECVerify.sol";
 import "./libraries/RLP.sol";
 import "./libraries/PatriciaTrie.sol";
+import "./libraries/SolidityUtils.sol";
+import "./Validation.sol";
 
 contract Ion {
     using RLP for RLP.RLPItem;
@@ -22,10 +24,10 @@ contract Ion {
     address[] public validators;
     bytes32 public blockHash;
     bytes32 public chainId;
-    // bytes32[] public chains;
     uint256 public blockHeight;
 
     mapping (bytes32 => bool) public chains;
+    mapping (bytes32 => address) public validation_addr;
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
     mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
 
@@ -85,12 +87,15 @@ contract Ion {
 
     /*
     * RegisterChain
-    * param: chainId (bytes32) Unique id of another chain to interoperate with
+    * param: chainId        Unique id of another chain to interoperate with
+    * param: validationAddr Address of the validation contract required to make modular validation
+    * param: _validators    List of validators on the block chain
+    * param: _genesisHash   Genesis blockhash of the interop block chain
     *
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
     * and adds it to the list of known chains.
     */
-    function RegisterChain(bytes32 _id, address[] _validators, bytes32 _genesisHash) public {
+    function RegisterChain(bytes32 _id, address validationAddr, address[] _validators, bytes32 _genesisHash) public {
         require( _id != chainId, "Cannot add this chain id to chain register" );
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
@@ -101,6 +106,13 @@ contract Ion {
 
         m_blockhashes[_id][_genesisHash] = true;
 		m_blockheaders[_id][_genesisHash].blockHeight = 0;
+
+        // Instantiate validation
+        Validation validation = Validation(validationAddr);
+        validation.InitChain(_id, _validators, _genesisHash);
+
+        // Create mapping of registered _id to the validation address
+        validation_addr[_id] = validationAddr;
     }
 
     /*
@@ -116,32 +128,21 @@ contract Ion {
         RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
         RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
 
-        // Check header and signedHeader contain the same data
-        for (uint256 i=0; i<signedHeader.length; i++) {
-            // Skip extra data field
-            if (i==12) {
-                continue;
-            } else{
-                require(keccak256(header[i].toBytes())==keccak256(signedHeader[i].toBytes()), "Header data doesn't match!");
-            }
-        }
-
-        // Check the parent hash is the same as the previous block submitted
-		bytes32 _parentBlockHash = bytesToBytes32(header[0].toBytes(), 1);
-		require(m_blockhashes[_id][_parentBlockHash]==true, "Not child of previous block!");
-
-        // Check the blockhash
-        bytes32 _blockHash = keccak256(_rlpSignedBlockHeader);
-        emit broadcastHash(_blockHash);
-
-        recoverSignature(_id, signedHeader[12].toBytes(), _rlpBlockHeader);
+        // Instantiate validation
+        address validationAddr = validation_addr[_id];
+        Validation validation = Validation(validationAddr);
+        validation.ValidateBlock(_id, _rlpBlockHeader, _rlpSignedBlockHeader);
 
         // Append the new block to the struct
-		blockHeight++;
+        bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
+        bytes32 _blockHash = keccak256(_rlpSignedBlockHeader);
+		uint256 blockHeight = m_blockheaders[_id][_parentBlockHash].blockHeight + 1;
+
+        // Add the updates to the m_blockheaders
 		m_blockheaders[_id][_blockHash].blockHeight = blockHeight;
 		m_blockheaders[_id][_blockHash].prevBlockHash = _parentBlockHash;
-        m_blockheaders[_id][_blockHash].txRootHash = bytesToBytes32(header[4].toBytes(), 1);
-        m_blockheaders[_id][_blockHash].receiptRootHash = bytesToBytes32(header[5].toBytes(), 1);
+        m_blockheaders[_id][_blockHash].txRootHash = SolUtils.BytesToBytes32(header[4].toBytes(), 1);
+        m_blockheaders[_id][_blockHash].receiptRootHash = SolUtils.BytesToBytes32(header[5].toBytes(), 1);
 
         addBlockHashToChain(_id, _blockHash);
 
@@ -150,7 +151,7 @@ contract Ion {
     function recoverSignature(bytes32 _id, bytes signedHeader, bytes _rlpBlockHeader) internal {
         bytes memory extraDataSig = new bytes(65);
         uint256 length = signedHeader.length;
-        bytesToBytes(extraDataSig, signedHeader, length-65);
+        SolUtils.BytesToBytes(extraDataSig, signedHeader, length-65);
 
         // Recover the signature of 
         address sigAddr = ECVerify.ecrecovery(keccak256(_rlpBlockHeader), extraDataSig);
@@ -276,12 +277,6 @@ contract Ion {
         m_blockhashes[_chainId][_hash] = true;
     }
 
-    // XXX: Requires addition documentation
-    function getBlockHeader(bytes32 _id, bytes32 _blockHash) public view returns (bytes32[3]) {
-        BlockHeader storage header = m_blockheaders[_id][_blockHash];
-
-        return [header.prevBlockHash, header.txRootHash, header.receiptRootHash];
-    }
 
 /*
 ========================================================================================================================
@@ -292,32 +287,10 @@ contract Ion {
 */
 
     /*
-    * @description  copies 32 bytes from input into the output
-	* @param output	memory allocation for the data you need to extract
-	* @param input  array from which the data should be extracted
-	* @param buf	index which the data starts within the byte array needs to have 32 bytes appended
+    * @description      returns the root node of an RLP encoded Patricia Trie
+	* @param _rlpNodes  RLP encoded trie
+	* @returns          root hash
 	*/
-	function bytesToBytes32(bytes input, uint256 buf) internal pure returns (bytes32 output) {
-		buf = buf + 32;
-        assembly {
-			output := mload(add(input, buf))
-		}
-	}
-
-    /*
-    * @description  copies output.length bytes from the input into the output
-	* @param output	memory allocation for the data you need to extract
-	* @param input  array from which the data should be extracted
-	* @param buf	index which the data starts within the byte array
-	*/
-	function bytesToBytes(bytes output, bytes input, uint256 buf) constant internal {
-		uint256 outputLength = output.length;
-		buf = buf + 32; // Append 32 as we need to point past the variable type definition
-		assembly {
-           let ret := staticcall(3000, 4, add(input, buf), outputLength, add(output, 32), outputLength)
-	    }
-	}
-
     function getRootNodeHash(bytes _rlpNodes) private view returns (bytes32) {
         RLP.RLPItem memory nodes = RLP.toRLPItem(_rlpNodes);
         RLP.RLPItem[] memory nodeList = RLP.toList(nodes);
