@@ -1,7 +1,8 @@
 # Ion Interoperability Protocol
 
-The Ion Interoperability Protocol provides mechanisms to perform atomic swaps and currency transfers
-across multiple turing-complete blockchains.
+The Ion Interoperability Protocol provides mechanisms to perform atomic swaps and currency transfers across multiple turing-complete blockchains.
+
+## Ion State Verification Scheme
 
 ## Block Validation Scheme
 Block validation scheme is a set of smart contracts which ensures that block headers submitted to the contract are mined/sealed by an approved partie(s). The motivation behind this is to update the state of a blockchain onto another blockchain. To do this we first need to know which blocks are valid - dependent on the definition of a valid by the underlying consensus algorithm. As deterministic finality is a requirement we seek Clique PoA and Istanbul PBFT consensus is to be used on the chain from which the state is being taken.
@@ -26,8 +27,8 @@ In order to use the smart contracts and run the tests it is necessary to first i
 ### Installing Ion
 Having cloned and entered the repo:
 ```
-$ git clone git@github.com:maxrobot/validation.git
-$ cd /path/to/validation
+$ git clone git@github.com:clearmatics/ion.git
+$ cd /path/to/ion
 ```
 
 Now run the command:

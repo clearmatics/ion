@@ -1,0 +1,1 @@
+[{"constant":false,"inputs":[{"name":"_contractEmittedAddress","type":"bytes20"},{"name":"_rlpReceipt","type":"bytes"},{"name":"_expectedAddress","type":"bytes20"}],"name":"verify","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]

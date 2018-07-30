@@ -1,0 +1,1 @@
+[{"constant":false,"inputs":[],"name":"fire","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"anonymous":false,"inputs":[{"indexed":false,"name":"caller","type":"address"}],"name":"Triggered","type":"event"}]

@@ -155,7 +155,7 @@ const GENESIS_HASH = TESTBLOCK.parentHash;
 // const GENESIS_HASH = "0xaf0d377824ecc16cfdd5946ad0cd0da904cbcfff8c6cd31628c9c9e5bed2c95b";
 
 
-contract('Ion.js', (accounts) => {
+contract.only('Ion.js', (accounts) => {
     it('Deploy Ion', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         let chainId = await ion.chainId();
@@ -168,115 +168,26 @@ contract('Ion.js', (accounts) => {
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
         // Successfully add id of another chain
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
         let chain = await ion.chains(TESTCHAINID);
 
         assert.equal(chain, true);
 
         // Fail adding id of this chain
-        await ion.RegisterChain(DEPLOYEDCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH).should.be.rejected;
+        await ion.RegisterChain(DEPLOYEDCHAINID, validation.address).should.be.rejected;
 
         // Fail adding id of chain already registered
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH).should.be.rejected;
-    })
-
-    it('Register Chain - Check Genesis Hash', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(DEPLOYEDCHAINID);
-
-        // Successfully add id of another chain
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
-
-        let header = await ion.m_blockheaders.call(TESTCHAINID, GENESIS_HASH);
-        let blockHeight = header[0];
-
-        assert.equal(0, blockHeight);
-;
-    })
-
-    it('Register Chain - Check Validators', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(DEPLOYEDCHAINID);
-
-        // Successfully add id of another chain
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
-
-        let validators = await ion.m_validators.call(TESTCHAINID, TEST_VALIDATORS[0]);
-        assert.equal(validators, true);
-    })
-
-    it('Submit Block', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(DEPLOYEDCHAINID);
-
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
-
-        // Submit block should succeed
-        const validationReceipt = await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
-        const recoveredBlockHash = await validationReceipt.logs[0].args['blockHash'];
-
-        let blockHash = await ion.m_blockhashes(TESTCHAINID, TESTBLOCK.hash);
-        assert.equal(blockHash, true);
-
-        let header = await ion.m_blockheaders(TESTCHAINID, TESTBLOCK.hash);
-
-        // Separate fetched header info
-        parentHash = header[1];
-        txRootHash = header[2];
-        receiptRootHash = header[3];
-
-        // Assert that block was persisted correctly
-        assert.equal(parentHash, TESTBLOCK.parentHash);
-        assert.equal(txRootHash, TESTBLOCK.transactionsRoot);
-        assert.equal(receiptRootHash, TESTBLOCK.receiptsRoot);
-    })
-
-    it('Fail Submit Block from unknown chain', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(DEPLOYEDCHAINID);
-
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
-
-        await ion.SubmitBlock(TESTCHAINID.slice(0, -2) + "ff", TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER).should.be.rejected;
-    })
-
-    it('Fail Submit Block with wrong unsigned header', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(DEPLOYEDCHAINID);
-
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
-
-        const incorrectHeader = [
-            TESTBLOCK.parentHash,
-            TESTBLOCK.sha3Uncles,
-            TESTBLOCK.miner,
-            TESTBLOCK.stateRoot,
-            TESTBLOCK.transactionsRoot,
-            TESTBLOCK.receiptsRoot.slice(0, -2) + "fa",
-            TESTBLOCK.logsBloom,
-            Web3Utils.toBN(TESTBLOCK.difficulty),
-            Web3Utils.toBN(TESTBLOCK.number),
-            TESTBLOCK.gasLimit,
-            TESTBLOCK.gasUsed,
-            Web3Utils.toBN(TESTBLOCK.timestamp),
-            extraDataShort, // extraData minus the signature
-            TESTBLOCK.mixHash,
-            TESTBLOCK.nonce
-            ];
-        
-        
-        const TEST_INCORRECT_UNSIGNED_HEADER = '0x' + rlp.encode(incorrectHeader).toString('hex');
-
-        await ion.SubmitBlock(TESTCHAINID, TEST_INCORRECT_UNSIGNED_HEADER, TEST_SIGNED_HEADER).should.be.rejected;
+        await ion.RegisterChain(TESTCHAINID, validation.address).should.be.rejected;
     })
 
     it('Check Tx Proof', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
 
-        await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
         let tx = await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH);
 
@@ -287,9 +198,10 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
 
-        await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
         // Fail with wrong chain ID
         await ion.CheckTxProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH).should.be.rejected;
@@ -305,9 +217,10 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
 
-        await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
         nodes = generateTestReceiptRLPNodes();
 
@@ -319,9 +232,10 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
 
-        await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
         // Fail with wrong chain ID
         await ion.CheckReceiptProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TEST_PATH).should.be.rejected;
@@ -337,9 +251,11 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
 
-        await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+
 
         let tx = await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES);
 
@@ -350,9 +266,11 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
 
-        await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+
 
         // Fail with wrong chain ID
         await ion.CheckRootsProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES).should.be.rejected
@@ -367,13 +285,13 @@ contract('Ion.js', (accounts) => {
         await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, "0xf90FF8f851a0e174e998404ccb578d781d64efceb6bf63547f4aed3d801e67229f1fbd827c6480808080808080a06e2f5c4a84018daf85387f2a09955f2fb535d8d459b867aabd0235ba97d991738080808080808080f85180a07d4e8719e289768c06065586d7e5b56a73b8c81e724724476ed75c9b5b59a5caa02eb7a5cd9716b4b4824e556c2df895a60fa6a0b68bd093081d24ba93eea522488080808080808080808080808080f9012f20b9012bf90128a0bbc7f826deb035ff86a12507aa7c967c931e920deffcf82bb61109267d88cab482f618b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0").should.be.rejected;
     })
 
-    it('Deploy Function Contract', async () => {
+    it.only('Deploy Function Contract', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
         const verifier = await TriggerEventVerifier.new();
-        const functionContract = await Function.new(ion.address, verifier.address);
-    })
+        // const functionContract = await Function.new(ion.address, verifier.address);
+})
 
     it('Verify Function Execution', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
@@ -383,9 +301,10 @@ contract('Ion.js', (accounts) => {
         const functionContract = await Function.new(ion.address, verifier.address);
 
         // Register chain and submit block to Ion
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
 
-        await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
         let tx = await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY);
 

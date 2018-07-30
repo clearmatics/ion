@@ -20,10 +20,10 @@ func InitClient(addr string) (clientTo *ethclient.Client) {
 	return
 }
 
-func InitValidationContract(setup Setup, client *ethclient.Client) (Validation *contract.Validation) {
+func InitValidationContract(setup Setup, client *ethclient.Client) (Ion *contract.Ion) {
 	// Initialise the contract
 	address := common.HexToAddress(setup.Ion)
-	Validation, err := contract.NewValidation(address, client)
+	Ion, err := contract.NewIon(address, client)
 	if err != nil {
 		log.Fatal(err)
 	}

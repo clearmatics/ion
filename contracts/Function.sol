@@ -34,7 +34,7 @@ contract Function is IonCompatible {
     /*  Constructor. Requires Ion contract address and all used event verifier contract addresses. In this case we only
         use one verifier. */
     constructor(address _ionAddr, address _verifierAddr) IonCompatible(_ionAddr) public {
-        verifier = TriggerEventVerifier(_verifierAddr);
+        // verifier = TriggerEventVerifier(_verifierAddr);
     }
 
     /* This is the function that is intended to be executed upon successful verification of proofs */
