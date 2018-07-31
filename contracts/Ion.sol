@@ -182,7 +182,8 @@ contract Ion {
         // Connect to validation contract
         Validation validation = Validation(m_validation[_id]);
         bytes32 txRootHash = validation.getTxRootHash(_id, _blockHash);
-        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, txRootHash) );
+        //assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, txRootHash) );
+        verifyProof(_value, _parentNodes, _path, txRootHash);
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.TX));
         return true;
@@ -219,10 +220,19 @@ contract Ion {
     {
         Validation validation = Validation(m_validation[_id]);
         bytes32 receiptRootHash = validation.getReceiptRootHash(_id, _blockHash);
-        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, receiptRootHash) );
+        // assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, receiptRootHash) );
+        verifyProof(_value, _parentNodes, _path, receiptRootHash);
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.RECEIPT));
         return true;
+    }
+
+    /*
+     * Verify proof assertion to avoid  stack to deep error (it doesn't show during compile time but it breaks
+     * blockchain simulator)
+     */
+    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _hash) {
+        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, _hash) );
     }
 
     /*
