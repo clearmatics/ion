@@ -21,13 +21,14 @@ contract Ion {
     }
 
 
-    address[] public validators;
+    // address[] public validators;
     bytes32 public blockHash;
     bytes32 public chainId;
+    bytes32[] public registeredChains;
     uint256 public blockHeight;
 
     mapping (bytes32 => bool) public chains;
-    mapping (bytes32 => address) public validation_addr;
+    mapping (bytes32 => address) public m_validation;
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
     mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
 
@@ -72,8 +73,16 @@ contract Ion {
         _;
     }
 
+    /*
+    * onlyExistingBlocks
+    * param: _id (bytes32) Unique id of chain supplied to function
+    * param: _hash (bytes32) Block hash which needs validation
+    *
+    * Modifier that checks if the provided block hash has been verified by the validation contract
+    */
     modifier onlyExistingBlocks(bytes32 _id, bytes32 _hash) {
-        require(m_blockhashes[_id][_hash], "Block does not exist for chain");
+        Validation validation = Validation(m_validation[_id]);
+        require(validation.m_blockhashes(_id, _hash), "Block does not exist for chain");
         _;
     }
 
@@ -95,24 +104,17 @@ contract Ion {
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
     * and adds it to the list of known chains.
     */
-    function RegisterChain(bytes32 _id, address validationAddr, address[] _validators, bytes32 _genesisHash) public {
+    function RegisterChain(bytes32 _id, address validationAddr) public {
         require( _id != chainId, "Cannot add this chain id to chain register" );
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
+        registeredChains.push(_id);
 
-        for (uint256 i = 0; i < _validators.length; i++) {
-            m_validators[_id][_validators[i]] = true;
-    	}
-
-        m_blockhashes[_id][_genesisHash] = true;
-		m_blockheaders[_id][_genesisHash].blockHeight = 0;
-
-        // Instantiate validation
-        Validation validation = Validation(validationAddr);
-        validation.InitChain(_id, _validators, _genesisHash);
+        // m_blockhashes[_id][_genesisHash] = true;
+		// m_blockheaders[_id][_genesisHash].blockHeight = 0;
 
         // Create mapping of registered _id to the validation address
-        validation_addr[_id] = validationAddr;
+        m_validation[_id] = validationAddr;
     }
 
     /*
@@ -124,41 +126,29 @@ contract Ion {
     * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
     * and if valid the block is persisted as BlockHeader structs defined above.
     */
-    function SubmitBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) public onlyRegisteredChains(_id) {
-        RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
-        RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
+    // function SubmitBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) public onlyRegisteredChains(_id) {
+    //     RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
+    //     RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
 
-        // Instantiate validation
-        address validationAddr = validation_addr[_id];
-        Validation validation = Validation(validationAddr);
-        validation.ValidateBlock(_id, _rlpBlockHeader, _rlpSignedBlockHeader);
+    //     // Instantiate validation
+    //     address validationAddr = validation_addr[_id];
+    //     Validation validation = Validation(validationAddr);
+    //     validation.ValidateBlock(_id, _rlpBlockHeader, _rlpSignedBlockHeader);
 
-        // Append the new block to the struct
-        bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
-        bytes32 _blockHash = keccak256(_rlpSignedBlockHeader);
-		uint256 blockHeight = m_blockheaders[_id][_parentBlockHash].blockHeight + 1;
+    //     // Append the new block to the struct
+    //     bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
+    //     bytes32 _blockHash = keccak256(_rlpSignedBlockHeader);
+	// 	uint256 blockHeight = m_blockheaders[_id][_parentBlockHash].blockHeight + 1;
 
-        // Add the updates to the m_blockheaders
-		m_blockheaders[_id][_blockHash].blockHeight = blockHeight;
-		m_blockheaders[_id][_blockHash].prevBlockHash = _parentBlockHash;
-        m_blockheaders[_id][_blockHash].txRootHash = SolUtils.BytesToBytes32(header[4].toBytes(), 1);
-        m_blockheaders[_id][_blockHash].receiptRootHash = SolUtils.BytesToBytes32(header[5].toBytes(), 1);
+    //     // Add the updates to the m_blockheaders
+	// 	m_blockheaders[_id][_blockHash].blockHeight = blockHeight;
+	// 	m_blockheaders[_id][_blockHash].prevBlockHash = _parentBlockHash;
+    //     m_blockheaders[_id][_blockHash].txRootHash = SolUtils.BytesToBytes32(header[4].toBytes(), 1);
+    //     m_blockheaders[_id][_blockHash].receiptRootHash = SolUtils.BytesToBytes32(header[5].toBytes(), 1);
 
-        addBlockHashToChain(_id, _blockHash);
+    //     addBlockHashToChain(_id, _blockHash);
 
-    }
-
-    function recoverSignature(bytes32 _id, bytes signedHeader, bytes _rlpBlockHeader) internal {
-        bytes memory extraDataSig = new bytes(65);
-        uint256 length = signedHeader.length;
-        SolUtils.BytesToBytes(extraDataSig, signedHeader, length-65);
-
-        // Recover the signature of 
-        address sigAddr = ECVerify.ecrecovery(keccak256(_rlpBlockHeader), extraDataSig);
-		require(m_validators[_id][sigAddr]==true, "Signer not a validator!");
-
-        emit broadcastSignature(sigAddr);
-    }
+    // }
 
     /*
     * CheckTxProof
@@ -189,8 +179,10 @@ contract Ion {
         public
         returns (bool)
     {
-        BlockHeader storage blockHeader = m_blockheaders[_id][_blockHash];
-        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.txRootHash) );
+        // Connect to validation contract
+        Validation validation = Validation(m_validation[_id]);
+        bytes32 txRootHash = validation.getTxRootHash(_id, _blockHash);
+        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, txRootHash) );
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.TX));
         return true;
@@ -225,8 +217,9 @@ contract Ion {
     public
     returns (bool)
     {
-        BlockHeader storage blockHeader = m_blockheaders[_id][_blockHash];
-        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, blockHeader.receiptRootHash) );
+        Validation validation = Validation(m_validation[_id]);
+        bytes32 receiptRootHash = validation.getReceiptRootHash(_id, _blockHash);
+        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, receiptRootHash) );
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.RECEIPT));
         return true;
@@ -259,10 +252,13 @@ contract Ion {
         public
         returns (bool)
     {
-        BlockHeader storage blockHeader = m_blockheaders[_id][_blockHash];
+        // BlockHeader storage blockHeader = m_blockheaders[_id][_blockHash];
+        Validation validation = Validation(m_validation[_id]);
+        bytes32 txRootHash = validation.getTxRootHash(_id, _blockHash);        
+        bytes32 receiptRootHash = validation.getReceiptRootHash(_id, _blockHash);
 
-        assert( blockHeader.txRootHash == getRootNodeHash(_txNodes) );
-        assert( blockHeader.receiptRootHash == getRootNodeHash(_receiptNodes) );
+        assert( txRootHash == getRootNodeHash(_txNodes) );
+        assert( receiptRootHash == getRootNodeHash(_receiptNodes) );
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.ROOTS));
         return true;

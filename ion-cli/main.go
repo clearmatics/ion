@@ -22,12 +22,12 @@ func main() {
 		clientTo := config.InitClient(setup.AddrTo)
 		clientFrom := config.InitClient(setup.AddrFrom)
 
-		Validation := config.InitValidationContract(setup, clientTo)
+		Ion := config.InitValidationContract(setup, clientTo)
 
 		printInfo(setup)
 
 		// Launch the CLI
-		cli.Launch(setup, clientFrom, Validation)
+		cli.Launch(setup, clientFrom, Ion)
 	} else {
 		fmt.Print("Error: empty config!\n")
 		os.Exit(3)

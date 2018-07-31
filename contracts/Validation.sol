@@ -21,12 +21,13 @@ contract Validation {
         uint256 blockHeight;
 		bytes32 latestHash; 
 		bytes32 prevBlockHash;
+        bytes32 txRootHash;
+        bytes32 receiptRootHash;
 	}
 
-    mapping (bytes32 => uint256) public blockHeight;
     mapping (bytes32 => bool) public chains;
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
-	mapping (bytes32 => BlockHeader) public m_blockheaders;
+	mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
 	mapping (bytes32 => mapping (address => bool)) public m_validators;
 
 	event broadcastSignature(address signer);
@@ -42,13 +43,13 @@ contract Validation {
 
 
     /*
-    * InitChain
+    * RegisterChain
     * param: chainId (bytes32) Unique id of another chain to interoperate with
     *
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
     * and adds it to the list of known chains.
     */
-    function InitChain(bytes32 _id, address[] _validators, bytes32 _genesisHash) public {
+    function RegisterChain(bytes32 _id, address[] _validators, bytes32 _genesisHash) public {
         require( _id != chainId, "Cannot add this chain id to chain register" );
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
@@ -58,9 +59,8 @@ contract Validation {
             m_validators[_id][_validators[i]] = true;
     	}
 
-        // m_blockhashes[_id][_genesisHash] = true;
-		m_blockheaders[_id].blockHeight = 0;
-		m_blockheaders[_id].latestHash = _genesisHash;
+		m_blockheaders[_id][_genesisHash].blockHeight = 0;
+		m_blockhashes[_id][_genesisHash] = true;
     }
 
 	/*
@@ -72,7 +72,7 @@ contract Validation {
     * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
     * and if valid the block is persisted as BlockHeader structs defined above.
     */
-    function ValidateBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) public onlyRegisteredChains(_id) {
+    function SubmitBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) onlyRegisteredChains(_id) public {
         RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
         RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
 
@@ -88,7 +88,7 @@ contract Validation {
 
         // Check the parent hash is the same as the previous block submitted
 		bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
-		require(m_blockheaders[_id].latestHash==_parentBlockHash, "Not child of previous block!");
+		require(m_blockhashes[_id][_parentBlockHash], "Not child of previous block!");
 
         // Check the blockhash
         bytes32 _blockHash = keccak256(_rlpSignedBlockHeader);
@@ -97,9 +97,11 @@ contract Validation {
         recoverSignature(_id, signedHeader[12].toBytes(), _rlpBlockHeader);
 
         // Append the new block to the struct
-		m_blockheaders[_id].blockHeight++;
-		m_blockheaders[_id].latestHash = _blockHash;
-		m_blockheaders[_id].prevBlockHash = _parentBlockHash;
+		m_blockheaders[_id][_blockHash].blockHeight = header[8].toUint();
+		m_blockheaders[_id][_blockHash].latestHash = _blockHash;
+		m_blockheaders[_id][_blockHash].prevBlockHash = _parentBlockHash;
+        m_blockheaders[_id][_blockHash].txRootHash = SolUtils.BytesToBytes32(header[4].toBytes(), 1);
+        m_blockheaders[_id][_blockHash].receiptRootHash = SolUtils.BytesToBytes32(header[5].toBytes(), 1);
 
         addBlockHashToChain(_id, _blockHash);
 
@@ -112,19 +114,38 @@ contract Validation {
 
         // Recover the signature of 
         address sigAddr = ECVerify.ecrecovery(keccak256(_rlpBlockHeader), extraDataSig);
-		require(m_validators[_id][sigAddr]==true, "Signer not a validator!");
+		require(m_validators[_id][sigAddr], "Signer not a validator!");
 
         emit broadcastSignature(sigAddr);
     }
 
     /*
     * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
-    * @param _chainId   unique identifier of the chain from which the block hails     
+    * @param _id        unique identifier of the chain from which the block hails     
     * @param _hash      root hash of the block being added
     */
-    function addBlockHashToChain(bytes32 _chainId, bytes32 _hash) internal {
-        m_blockhashes[_chainId][_hash] = true;
+    function addBlockHashToChain(bytes32 _id, bytes32 _hash) internal {
+        m_blockhashes[_id][_hash] = true;
     }
+
+    /*
+    * @description  returns the transaction root hash of a specific block
+    * @param _id    unique identifier of the chain from which the block hails     
+    * @param _hash  root hash of the block being queried
+    */
+    function getTxRootHash(bytes32 _id, bytes32 _hash) public returns(bytes32) {
+        return(m_blockheaders[_id][_hash].txRootHash);
+    }
+
+    /*
+    * @description  returns the receipt root hash of a specific block
+    * @param _id    unique identifier of the chain from which the block hails     
+    * @param _hash  root hash of the block being queried
+    */
+    function getReceiptRootHash(bytes32 _id, bytes32 _hash) public returns(bytes32) {
+        return(m_blockheaders[_id][_hash].receiptRootHash);
+    }
+
 
     /*
     * onlyRegisteredChains
