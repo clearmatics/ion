@@ -19,6 +19,7 @@ web3.setProvider(new web3.providers.HttpProvider('http://localhost:8501'));
 const Ion = artifacts.require("Ion");
 const Validation = artifacts.require("Validation");
 const PatriciaTrie = artifacts.require("PatriciaTrie");
+const PatriciaTrieTest = artifacts.require("PatriciaTrieTest");
 const TriggerEventVerifier = artifacts.require("TriggerEventVerifier");
 const Function = artifacts.require("Function");
 
@@ -155,7 +156,7 @@ const GENESIS_HASH = TESTBLOCK.parentHash;
 // const GENESIS_HASH = "0xaf0d377824ecc16cfdd5946ad0cd0da904cbcfff8c6cd31628c9c9e5bed2c95b";
 
 
-contract.only('Ion.js', (accounts) => {
+contract('Ion.js', (accounts) => {
     it('Deploy Ion', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         let chainId = await ion.chainId();
@@ -285,13 +286,13 @@ contract.only('Ion.js', (accounts) => {
         await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, "0xf90FF8f851a0e174e998404ccb578d781d64efceb6bf63547f4aed3d801e67229f1fbd827c6480808080808080a06e2f5c4a84018daf85387f2a09955f2fb535d8d459b867aabd0235ba97d991738080808080808080f85180a07d4e8719e289768c06065586d7e5b56a73b8c81e724724476ed75c9b5b59a5caa02eb7a5cd9716b4b4824e556c2df895a60fa6a0b68bd093081d24ba93eea522488080808080808080808080808080f9012f20b9012bf90128a0bbc7f826deb035ff86a12507aa7c967c931e920deffcf82bb61109267d88cab482f618b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0").should.be.rejected;
     })
 
-    it.only('Deploy Function Contract', async () => {
+    it('Deploy Function Contract', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
         const verifier = await TriggerEventVerifier.new();
-        // const functionContract = await Function.new(ion.address, verifier.address);
-})
+        const functionContract = await Function.new(ion.address, verifier.address);
+    })
 
     it('Verify Function Execution', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
@@ -324,9 +325,10 @@ contract.only('Ion.js', (accounts) => {
         const functionContract = await Function.new(ion.address, verifier.address);
 
         // Register chain and submit block to Ion
-        await ion.RegisterChain(TESTCHAINID, validation.address, TEST_VALIDATORS, GENESIS_HASH);
+        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
         
-        await ion.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
         // Fail with wrong chain ID
         await functionContract.verifyAndExecute(DEPLOYEDCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY).should.be.rejected;
@@ -349,6 +351,39 @@ contract.only('Ion.js', (accounts) => {
         // Fail with wrong expected value
         await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_DEPLOYED_RINKEBY_ADDR).should.be.rejected;
     })
+
+//    it('Verify Nested Nodes Verification', async () => {
+//        const patricia = await PatriciaTrieTest.new();
+//
+//        path = "0x8461626364";
+//        value = "0x857465737434";
+//        nodes = "0xf8cbf839808080808080c8318685746573743180a0207947cf85c03bd3d9f9ff5119267616318dcef0e12de2f8ca02ff2cdc720a978080808080808080f8428080c58320616274cc842061626386857465737433a05d495bd9e35ab0dab60dec18b21acc860829508e7df1064fce1f0b8fa4c0e8b2808080808080808080808080e583161626a06b1a1127b4c489762c8259381ff9ecf51b7ef0c2879b89e72c993edc944f1ccce5808080ca8220648685746573743480ca822064868574657374358080808080808080808080"
+//        rootHash = "0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c";
+//
+//        verified = await patricia.verifyProof.call(value, nodes, path, rootHash);
+//        assert.ok(verified, "Patricia proof failed.");
+//    })
+//
+//    it('Fail Nested Nodes Verification', async () => {
+//        const patricia = await PatriciaTrieTest.new();
+//
+//        path = "0x8461626364";
+//        value = "0x857465737434";
+//        nodes = "0xf8cbf839808080808080c8318685746573743180a0207947cf85c03bd3d9f9ff5119267616318dcef0e12de2f8ca02ff2cdc720a978080808080808080f8428080c58320616274cc842061626386857465737433a05d495bd9e35ab0dab60dec18b21acc860829508e7df1064fce1f0b8fa4c0e8b2808080808080808080808080e583161626a06b1a1127b4c489762c8259381ff9ecf51b7ef0c2879b89e72c993edc944f1ccce5808080ca8220648685746573743480ca822064868574657374358080808080808080808080"
+//        rootHash = "0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c";
+//
+//        // Fail with incorrect node value
+//        await patricia.verifyProof.call(value.slice(0,-2) + "f", nodes, path, rootHash).should.be.rejected;
+//
+//        // Fail with incorrect RLP-encoded nodes
+//        await patricia.verifyProof.call(value, nodes.slice(0, -2) + "f", path, rootHash).should.be.rejected;
+//
+//        // Fail with incorrect path
+//        await patricia.verifyProof.call(value, nodes, path.slice(0, -2) + "f", rootHash).should.be.rejected;
+//
+//        // Fail with incorrect root node hash
+//        await patricia.verifyProof.call(value, nodes, path, rootHash.slice(0, -2) + "f").should.be.rejected;
+//    })
 
 })
 
