@@ -92,12 +92,12 @@ func TestRawTransactionSimulated(t *testing.T) {
 // inspired by https://medium.com/@akshay_111meher/creating-offline-raw-transactions-with-go-ethereum-8d6cc8174c5d
 func TestDeployRawContract(t *testing.T) {
 
+	// solidity compiled contracts ABI and Bin
 	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/abi/"
 	patriciaTrieABIPath := basePath + "PatriciaTrie.abi"
 	patriciaTrieBinPath := basePath + "PatriciaTrie.bin"
 	ionABIPath := basePath + "Ion.abi"
 	ionBinPath := basePath + "Ion.bin"
-
 	patriciaTrieABIData, _ := ioutil.ReadFile(patriciaTrieABIPath)
 	patriciaTrieBinData, _ := ioutil.ReadFile(patriciaTrieBinPath)
 	ionABIData, _ := ioutil.ReadFile(ionABIPath)
