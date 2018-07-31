@@ -121,7 +121,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Ion *contract.Ion)
 			c.Print("New ChainId: ")
 			chainId := c.ReadLine()
 
-			c.Printf("Running Command:\t%s\t%s", chainId
+			c.Printf("Running Command:\t%s\t%s", chainId)
 			c.Println("===============================================================")
 		},
 	})
