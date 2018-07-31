@@ -44,7 +44,6 @@
     "coverage": "solidity-coverage",
     "lint": "solhint contracts/**/*.sol",
     "genbin": "solc --overwrite --bin ./contracts/*.sol -o abi",
-    "genabi": "solc --overwrite --abi ./contracts/*.sol -o abi",
-    "abigen": "abigen --bin=abi/Validation.bin --abi=abi/Validation.abi --pkg=validation --out=validation.go"
+    "genabi": "solc --overwrite --abi ./contracts/*.sol -o abi"
   }
 }

@@ -2,7 +2,7 @@ pragma solidity ^0.4.23;
 
 import "truffle/Assert.sol";
 import "truffle/DeployedAddresses.sol";
-import "./libraries/PatriciaTrie.sol";
+import "../contracts/libraries/PatriciaTrie.sol";
 
 contract PatriciaTrieTest {
     PatriciaTrie instance;
