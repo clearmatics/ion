@@ -184,7 +184,7 @@ func TestDeployRawContract(t *testing.T) {
 	bytecodeIon := common.Hex2Bytes(contractIonBinStrWithLibAddr)
 	abiIon, err := abi.JSON(strings.NewReader(contractIonABIStr))
 	if err != nil {
-		t.Fatal("ERROR reading PatriciaTrie ABI ", err)
+		t.Fatal("ERROR reading Ion ABI ", err)
 	}
 
 	constructorArg1Ion := crypto.Keccak256Hash([]byte("test argument")) // Ion argument
