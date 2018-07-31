@@ -3,12 +3,13 @@ package ionflow
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 	"math/big"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
 
-	contract "github.com/clearmatics/ion/ion-cli/contracts"
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
@@ -90,6 +91,18 @@ func TestRawTransactionSimulated(t *testing.T) {
 
 // inspired by https://medium.com/@akshay_111meher/creating-offline-raw-transactions-with-go-ethereum-8d6cc8174c5d
 func TestDeployRawContract(t *testing.T) {
+
+	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/abi/"
+	patriciaTrieABIPath := basePath + "PatriciaTrie.abi"
+	patriciaTrieBinPath := basePath + "PatriciaTrie.bin"
+	ionABIPath := basePath + "Ion.abi"
+	ionBinPath := basePath + "Ion.bin"
+
+	patriciaTrieABIData, _ := ioutil.ReadFile(patriciaTrieABIPath)
+	patriciaTrieBinData, _ := ioutil.ReadFile(patriciaTrieBinPath)
+	ionABIData, _ := ioutil.ReadFile(ionABIPath)
+	ionBinData, _ := ioutil.ReadFile(ionBinPath)
+
 	ctx := context.Background()
 	initialBalance := big.NewInt(1000000000)
 
@@ -107,8 +120,8 @@ func TestDeployRawContract(t *testing.T) {
 	// DEPLOY PATRICIA LIB ADDRESS
 	// ---------------------------------------------
 	// generate payload bytes (we are using PatriciaTrie in our example)
-	contractBinStr := contract.PatriciaTrieBin
-	contractABIStr := contract.PatriciaTrieABI
+	contractBinStr := string(patriciaTrieBinData) // contract.PatriciaTrieBin
+	contractABIStr := string(patriciaTrieABIData) // contract.PatriciaTrieABI
 	bytecode := common.Hex2Bytes(contractBinStr)
 	abiPatriciaTrie, err := abi.JSON(strings.NewReader(contractABIStr))
 	if err != nil {
@@ -161,8 +174,8 @@ func TestDeployRawContract(t *testing.T) {
 
 	// generate payload bytes (we are using  Ion in our example)
 	// we added the key word Ion to make the variables different form the previous
-	contractIonBinStr := contract.IonBin
-	contractIonABIStr := contract.IonABI
+	contractIonBinStr := string(ionBinData) // contract.IonBin
+	contractIonABIStr := string(ionABIData) // contract.IonABI
 
 	// add library address to Ion bytecode
 	var re = regexp.MustCompile(`__.*PatriciaTrie.*__`)
