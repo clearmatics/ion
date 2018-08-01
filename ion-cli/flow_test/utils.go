@@ -50,16 +50,16 @@ func generateContractPayload(contractBinStr string, contractABIStr string, const
 	return payloadBytecode
 }
 
-func generateContractDeployTx(
+func newTx(
 	ctx context.Context,
 	client bind.ContractTransactor,
-	from common.Address,
+	from, to *common.Address,
 	amount *big.Int,
 	gasLimit uint64,
 	payloadBytecode []byte,
 ) *types.Transaction {
 
-	nonce, err := client.PendingNonceAt(ctx, from) // uint64(0)
+	nonce, err := client.PendingNonceAt(ctx, *from) // uint64(0)
 	if err != nil {
 		log.Fatal("Error getting pending nonce ", err)
 	}
@@ -70,7 +70,12 @@ func generateContractDeployTx(
 
 	// create contract transaction NewContractCreation is the same has NewTransaction with `to` == nil
 	// tx := types.NewTransaction(nonce, nil, amount, gasLimit, gasPrice, payloadBytecode)
-	tx := types.NewContractCreation(nonce, amount, gasLimit, gasPrice, payloadBytecode)
+	var tx *types.Transaction
+	if to == nil {
+		tx = types.NewContractCreation(nonce, amount, gasLimit, gasPrice, payloadBytecode)
+	} else {
+		tx = types.NewTransaction(nonce, *to, amount, gasLimit, gasPrice, payloadBytecode)
+	}
 	return tx
 }
 
@@ -96,7 +101,7 @@ func compileAndDeployContract(
 ) *types.Transaction {
 	payload := generateContractPayload(binStr, abiStr, constructorArgs...)
 	userAddr := crypto.PubkeyToAddress(userKey.PublicKey)
-	tx := generateContractDeployTx(ctx, client, userAddr, amount, gasLimit, payload)
+	tx := newTx(ctx, client, &userAddr, nil, amount, gasLimit, payload)
 	signedTx := signTx(tx, userKey)
 
 	err := client.SendTransaction(ctx, signedTx)
@@ -114,6 +119,7 @@ func CallContract(
 	from, to common.Address,
 	methodName string,
 	out interface{},
+	args ...interface{},
 ) {
 	abiStr, err := json.Marshal(contract.Info.AbiDefinition)
 	if err != nil {
@@ -125,9 +131,9 @@ func CallContract(
 		log.Fatal("ERROR reading contract ABI ", err)
 	}
 
-	input, err := abiContract.Pack(methodName)
+	input, err := abiContract.Pack(methodName, args...)
 	if err != nil {
-		log.Fatal("ERROR packing the method name for the contract call", err)
+		log.Fatal("ERROR packing the method name for the contract call: ", err)
 	}
 	msg := ethereum.CallMsg{From: from, To: &to, Data: input}
 	output, err := client.CallContract(ctx, msg, nil)
@@ -136,8 +142,46 @@ func CallContract(
 	}
 	err = abiContract.Unpack(out, methodName, output)
 	if err != nil {
-		log.Fatal("ERROR upacking the call", err)
+		log.Fatal("ERROR upacking the call: ", err)
 	}
+}
+
+// TransactionContract execute function in contract
+func TransactionContract(
+	ctx context.Context,
+	client bind.ContractTransactor,
+	userKey *ecdsa.PrivateKey,
+	contract *compiler.Contract,
+	to common.Address,
+	amount *big.Int,
+	gasLimit uint64,
+	methodName string,
+	args ...interface{},
+) *types.Transaction {
+	abiStr, err := json.Marshal(contract.Info.AbiDefinition)
+	if err != nil {
+		log.Fatal("ERROR marshalling abi to string", err)
+	}
+
+	abiContract, err := abi.JSON(strings.NewReader(string(abiStr)))
+	if err != nil {
+		log.Fatal("ERROR reading contract ABI ", err)
+	}
+
+	payload, err := abiContract.Pack(methodName, args...)
+	if err != nil {
+		log.Fatal("ERROR packing the method name for the contract call: ", err)
+	}
+
+	from := crypto.PubkeyToAddress(userKey.PublicKey)
+	tx := newTx(ctx, client, &from, &to, amount, gasLimit, payload)
+	signedTx := signTx(tx, userKey)
+
+	err = client.SendTransaction(ctx, signedTx)
+	if err != nil {
+		log.Fatal("ERROR sending contract deployment transaction")
+	}
+	return signedTx
 }
 
 // CompileAndDeployIon specific compile and deploy ion contract
@@ -219,6 +263,60 @@ func CompileAndDeployIon(
 		}
 
 		resChan <- ContractInstance{ionContract, ionAddr}
+	}()
+
+	return resChan
+}
+
+// CompileAndDeployValidation method
+func CompileAndDeployValidation(
+	ctx context.Context,
+	client bind.ContractTransactor,
+	userKey *ecdsa.PrivateKey,
+	chainID interface{},
+) <-chan ContractInstance {
+	// ---------------------------------------------
+	// COMPILE VALIDATION AND DEPENDENCIES
+	// ---------------------------------------------
+	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
+	validationContractPath := basePath + "Validation.sol"
+
+	contracts, err := compiler.CompileSolidity("", validationContractPath)
+	if err != nil {
+		log.Fatal("ERROR failed to compile Ion.sol:", err)
+	}
+
+	validationContract := contracts[basePath+"Validation.sol:Validation"]
+	validationBinStr, validationABIStr := getContractBytecodeAndABI(validationContract)
+
+	// ---------------------------------------------
+	// DEPLOY VALIDATION CONTRACT
+	// ---------------------------------------------
+	validationSignedTx := compileAndDeployContract(
+		ctx,
+		client,
+		userKey,
+		validationBinStr,
+		validationABIStr,
+		nil,
+		uint64(3000000),
+		chainID,
+	)
+
+	resChan := make(chan ContractInstance)
+
+	// Go-Routine that waits for PatriciaTrie Library and Ion Contract to be deployed
+	// Ion depends on PatriciaTrie library
+	go func() {
+		defer close(resChan)
+		deployBackend := client.(bind.DeployBackend)
+
+		// wait for PatriciaTrie library to be deployed
+		validationAddr, err := bind.WaitDeployed(ctx, deployBackend, validationSignedTx)
+		if err != nil {
+			log.Fatal("ERROR while waiting for contract deployment")
+		}
+		resChan <- ContractInstance{validationContract, validationAddr}
 	}()
 
 	return resChan
