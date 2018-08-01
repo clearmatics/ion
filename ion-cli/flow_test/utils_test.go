@@ -28,7 +28,8 @@ func TestCompileAndDeployIon(t *testing.T) {
 	}
 	blockchain := backends.NewSimulatedBackend(alloc)
 
-	contractChan := CompileAndDeployIon(ctx, blockchain, userAKey)
+	chainID := crypto.Keccak256Hash([]byte("test argument")) // Ion argument
+	contractChan := CompileAndDeployIon(ctx, blockchain, userAKey, chainID)
 	blockchain.Commit()
 	patriciaTrieContractInstance := <-contractChan
 	t.Log(patriciaTrieContractInstance)

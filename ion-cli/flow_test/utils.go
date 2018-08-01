@@ -106,7 +106,7 @@ type ContractInstance struct {
 }
 
 // CompileAndDeployIon specific compile and deploy ion contract
-func CompileAndDeployIon(ctx context.Context, client bind.ContractTransactor, userKey *ecdsa.PrivateKey) <-chan ContractInstance {
+func CompileAndDeployIon(ctx context.Context, client bind.ContractTransactor, userKey *ecdsa.PrivateKey, chainID interface{}) <-chan ContractInstance {
 	// ---------------------------------------------
 	// COMPILE ION AND DEPENDENCIES
 	// ---------------------------------------------
@@ -139,7 +139,8 @@ func CompileAndDeployIon(ctx context.Context, client bind.ContractTransactor, us
 
 	resChan := make(chan ContractInstance)
 
-	// TODO: make this a go routine
+	// Go-Routine that waits for PatriciaTrie Library and Ion Contract to be deployed
+	// Ion depends on PatriciaTrie library
 	go func() {
 		defer close(resChan)
 		deployBackend := client.(bind.DeployBackend)
@@ -156,7 +157,6 @@ func CompileAndDeployIon(ctx context.Context, client bind.ContractTransactor, us
 		// replace palceholder with Prticia Trie Lib address
 		var re = regexp.MustCompile(`__.*__`)
 		ionBinStrWithLibAddr := re.ReplaceAllString(ionBinStr, patriciaTrieAddr.Hex()[2:])
-		constructorArg1Ion := crypto.Keccak256Hash([]byte("test argument")) // Ion argument
 		ionSignedTx := compileAndDeployContract(
 			ctx,
 			client,
@@ -165,11 +165,11 @@ func CompileAndDeployIon(ctx context.Context, client bind.ContractTransactor, us
 			ionABIStr,
 			nil,
 			uint64(3000000),
-			constructorArg1Ion,
+			chainID,
 		)
 
 		// only stop blocking the first result after the Ion contract as been deploy
-		// this garuantees that it works well with the blockchain simulator Commit()
+		// this guarantees that it works well with the blockchain simulator Commit()
 		resChan <- ContractInstance{patriciaTrieContract, patriciaTrieAddr}
 
 		// wait for Ion to be deployed
