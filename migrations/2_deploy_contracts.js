@@ -2,7 +2,6 @@ const Ion = artifacts.require("Ion");
 const Recover = artifacts.require("Recover");
 const Validation = artifacts.require("Validation");
 const PatriciaTrie = artifacts.require("PatriciaTrie");
-const PatriciaTrieTest = artifacts.require("PatriciaTrieTest");
 const EventFunction = artifacts.require("Function");
 const EventVerifier = artifacts.require("EventVerifier");
 

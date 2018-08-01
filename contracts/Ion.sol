@@ -110,9 +110,6 @@ contract Ion {
         chains[_id] = true;
         registeredChains.push(_id);
 
-        // m_blockhashes[_id][_genesisHash] = true;
-		// m_blockheaders[_id][_genesisHash].blockHeight = 0;
-
         // Create mapping of registered _id to the validation address
         m_validation[_id] = validationAddr;
     }
