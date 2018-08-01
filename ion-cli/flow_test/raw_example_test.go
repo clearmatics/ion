@@ -3,7 +3,8 @@ package ionflow
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"encoding/json"
+	"log"
 	"math/big"
 	"os"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/compiler"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -89,19 +91,139 @@ func TestRawTransactionSimulated(t *testing.T) {
 	}
 }
 
+func TestCompileContract(t *testing.T) {
+	// ---------------------------------------------
+	// COMPILE ION AND DEPENDENCIES
+	// ---------------------------------------------
+	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
+	ionContractPath := basePath + "Ion.sol"
+
+	contracts, err := compiler.CompileSolidity("", ionContractPath)
+	if err != nil {
+		t.Fatal("ERROR failed to compile Ion.sol:", err)
+	}
+
+	patriciaTrieContract := contracts[basePath+"libraries/PatriciaTrie.sol:PatriciaTrie"]
+	if patriciaTrieContract == nil {
+		log.Fatal("ERROR solc compiler in go-ethereum did not compile expected depency: Ion.sol expected to depend on PatriciaTrie")
+	}
+
+	patriciaTrieABIBytes, err := json.Marshal(patriciaTrieContract.Info.AbiDefinition)
+	if err != nil {
+		t.Fatal("ERROR marshalling PatriciaTrie ABI:", err)
+	}
+	contractBinStr := patriciaTrieContract.Code
+	contractABIStr := string(patriciaTrieABIBytes)
+
+	// ---------------------------------------------
+	// START BLOCKCHAIN SIMULATOR
+	// ---------------------------------------------
+	ctx := context.Background()
+	initialBalance := big.NewInt(1000000000)
+
+	userAKey, _ := crypto.GenerateKey()
+	userAAddr := crypto.PubkeyToAddress(userAKey.PublicKey)
+
+	// start simulated blockchain
+	alloc := make(core.GenesisAlloc)
+	alloc[userAAddr] = core.GenesisAccount{
+		Balance: initialBalance,
+	}
+	blockchain := backends.NewSimulatedBackend(alloc)
+
+	// ---------------------------------------------
+	// DEPLOY PATRICIA LIB ADDRESS
+	// ---------------------------------------------
+	// generate payload bytes (we are using PatriciaTrie in our example)
+	bytecode := common.Hex2Bytes(contractBinStr)
+	abiPatriciaTrie, err := abi.JSON(strings.NewReader(contractABIStr))
+	if err != nil {
+		t.Fatal("ERROR reading PatriciaTrie ABI ", err)
+	}
+	// packedABI, err := abi.Pack("",arg1,arg2,arg3) // if there is construxtor
+	packedABI, err := abiPatriciaTrie.Pack("")
+	if err != nil {
+		t.Fatal("ERROR packing ABI ", err)
+	}
+	payloadBytecode := append(bytecode, packedABI...)
+
+	// transaction parameters
+	from := userAAddr                                  // useless variable, just to make clear who the signer is
+	nonce, err := blockchain.PendingNonceAt(ctx, from) // uint64(0)
+	if err != nil {
+		t.Fatal("Error getting pending nonce ", err)
+	}
+	amount := big.NewInt(0)                          // random amount
+	gasLimit := uint64(3000000)                      // random magic number (we could estimate)
+	gasPrice, err := blockchain.SuggestGasPrice(ctx) //new(big.Int)
+	if err != nil {
+		t.Fatal("Error suggesting gas price ", err)
+	}
+
+	// create contract transaction NewContractCreation is the same has NewTransaction with `to` == nil
+	// tx := types.NewTransaction(nonce, nil, amount, gasLimit, gasPrice, payloadBytecode)
+	tx := types.NewContractCreation(nonce, amount, gasLimit, gasPrice, payloadBytecode)
+
+	// sign transaction
+	signer := types.HomesteadSigner{}
+	signedTx, err := types.SignTx(tx, signer, userAKey)
+	if err != nil {
+		t.Fatal("Error signing tx: ", err)
+	}
+
+	err = blockchain.SendTransaction(ctx, signedTx)
+	if err != nil {
+		t.Fatal("ERROR sending contract transaction")
+	}
+	blockchain.Commit()
+
+	txReceipt, err := blockchain.TransactionReceipt(ctx, signedTx.Hash())
+	if err != nil {
+		t.Fatal("ERROR getting tx receipt", err)
+	}
+	if txReceipt.GasUsed == 0 || txReceipt.Status == 0 {
+		t.Fatal("ERROR contract did not deploy properly")
+	}
+}
+
 // inspired by https://medium.com/@akshay_111meher/creating-offline-raw-transactions-with-go-ethereum-8d6cc8174c5d
 func TestDeployRawContract(t *testing.T) {
 
-	// solidity compiled contracts ABI and Bin
-	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/abi/"
-	patriciaTrieABIPath := basePath + "PatriciaTrie.abi"
-	patriciaTrieBinPath := basePath + "PatriciaTrie.bin"
-	ionABIPath := basePath + "Ion.abi"
-	ionBinPath := basePath + "Ion.bin"
-	patriciaTrieABIData, _ := ioutil.ReadFile(patriciaTrieABIPath)
-	patriciaTrieBinData, _ := ioutil.ReadFile(patriciaTrieBinPath)
-	ionABIData, _ := ioutil.ReadFile(ionABIPath)
-	ionBinData, _ := ioutil.ReadFile(ionBinPath)
+	// ---------------------------------------------
+	// COMPILE ION AND DEPENDENCIES
+	// ---------------------------------------------
+	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
+	ionContractPath := basePath + "Ion.sol"
+
+	contracts, err := compiler.CompileSolidity("", ionContractPath)
+	if err != nil {
+		t.Fatal("ERROR failed to compile Ion.sol:", err)
+	}
+
+	patriciaTrieContract := contracts[basePath+"libraries/PatriciaTrie.sol:PatriciaTrie"]
+	if patriciaTrieContract == nil {
+		log.Fatal("ERROR solc compiler in go-ethereum did not compile expected depency: Ion.sol expected to depend on PatriciaTrie")
+	}
+
+	patriciaTrieABIBytes, err := json.Marshal(patriciaTrieContract.Info.AbiDefinition)
+	if err != nil {
+		t.Fatal("ERROR marshalling PatriciaTrie ABI:", err)
+	}
+
+	ionContract := contracts[basePath+"Ion.sol:Ion"]
+	ionABIBytes, err := json.Marshal(ionContract.Info.AbiDefinition)
+	if err != nil {
+		t.Fatal("ERROR marshalling Ion ABI:", err)
+	}
+
+	contractBinStr := patriciaTrieContract.Code[2:]
+	contractABIStr := string(patriciaTrieABIBytes)
+	contractIonBinStr := ionContract.Code[2:]
+	contractIonABIStr := string(ionABIBytes) // contract.IonABI
+
+	// ---------------------------------------------
+	// START BLOCKCHAIN SIMULATOR
+	// ---------------------------------------------
 
 	ctx := context.Background()
 	initialBalance := big.NewInt(1000000000)
@@ -120,8 +242,6 @@ func TestDeployRawContract(t *testing.T) {
 	// DEPLOY PATRICIA LIB ADDRESS
 	// ---------------------------------------------
 	// generate payload bytes (we are using PatriciaTrie in our example)
-	contractBinStr := string(patriciaTrieBinData) // contract.PatriciaTrieBin
-	contractABIStr := string(patriciaTrieABIData) // contract.PatriciaTrieABI
 	bytecode := common.Hex2Bytes(contractBinStr)
 	abiPatriciaTrie, err := abi.JSON(strings.NewReader(contractABIStr))
 	if err != nil {
@@ -172,13 +292,8 @@ func TestDeployRawContract(t *testing.T) {
 	// after PatriciaTrie is deployed we deploy the Ion contract
 	patriciaTrieLibAddr := txReceipt.ContractAddress
 
-	// generate payload bytes (we are using  Ion in our example)
-	// we added the key word Ion to make the variables different form the previous
-	contractIonBinStr := string(ionBinData) // contract.IonBin
-	contractIonABIStr := string(ionABIData) // contract.IonABI
-
 	// add library address to Ion bytecode
-	var re = regexp.MustCompile(`__.*PatriciaTrie.*__`)
+	var re = regexp.MustCompile(`__.*__`)
 	contractIonBinStrWithLibAddr := re.ReplaceAllString(contractIonBinStr, patriciaTrieLibAddr.Hex()[2:])
 
 	bytecodeIon := common.Hex2Bytes(contractIonBinStrWithLibAddr)
