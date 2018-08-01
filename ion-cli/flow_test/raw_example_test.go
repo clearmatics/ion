@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log"
 	"math/big"
 	"os"
 	"regexp"
@@ -105,7 +104,7 @@ func TestCompileContract(t *testing.T) {
 
 	patriciaTrieContract := contracts[basePath+"libraries/PatriciaTrie.sol:PatriciaTrie"]
 	if patriciaTrieContract == nil {
-		log.Fatal("ERROR solc compiler in go-ethereum did not compile expected depency: Ion.sol expected to depend on PatriciaTrie")
+		t.Fatal("ERROR solc compiler in go-ethereum did not compile expected depency: Ion.sol expected to depend on PatriciaTrie")
 	}
 
 	patriciaTrieABIBytes, err := json.Marshal(patriciaTrieContract.Info.AbiDefinition)
@@ -202,7 +201,7 @@ func TestDeployRawContract(t *testing.T) {
 
 	patriciaTrieContract := contracts[basePath+"libraries/PatriciaTrie.sol:PatriciaTrie"]
 	if patriciaTrieContract == nil {
-		log.Fatal("ERROR solc compiler in go-ethereum did not compile expected depency: Ion.sol expected to depend on PatriciaTrie")
+		t.Fatal("ERROR solc compiler in go-ethereum did not compile expected depency: Ion.sol expected to depend on PatriciaTrie")
 	}
 
 	patriciaTrieABIBytes, err := json.Marshal(patriciaTrieContract.Info.AbiDefinition)
