@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,6 +18,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 )
+
+// ContractInstance is just an util type to output contract and address
+type ContractInstance struct {
+	Contract *compiler.Contract
+	Address  common.Address
+}
 
 func getContractBytecodeAndABI(c *compiler.Contract) (string, string) {
 	cABIBytes, err := json.Marshal(c.Info.AbiDefinition)
@@ -31,11 +38,11 @@ func getContractBytecodeAndABI(c *compiler.Contract) (string, string) {
 
 func generateContractPayload(contractBinStr string, contractABIStr string, constructorArgs ...interface{}) []byte {
 	bytecode := common.Hex2Bytes(contractBinStr)
-	abiPatriciaTrie, err := abi.JSON(strings.NewReader(contractABIStr))
+	abiContract, err := abi.JSON(strings.NewReader(contractABIStr))
 	if err != nil {
 		log.Fatal("ERROR reading contract ABI ", err)
 	}
-	packedABI, err := abiPatriciaTrie.Pack("", constructorArgs...)
+	packedABI, err := abiContract.Pack("", constructorArgs...)
 	if err != nil {
 		log.Fatal("ERROR packing ABI ", err)
 	}
@@ -99,14 +106,47 @@ func compileAndDeployContract(
 	return signedTx
 }
 
-// ContractInstance is just an util type to output contract and address
-type ContractInstance struct {
-	Contract *compiler.Contract
-	Address  common.Address
+// CallContract without changing the state
+func CallContract(
+	ctx context.Context,
+	client bind.ContractCaller,
+	contract *compiler.Contract,
+	from, to common.Address,
+	methodName string,
+	out interface{},
+) {
+	abiStr, err := json.Marshal(contract.Info.AbiDefinition)
+	if err != nil {
+		log.Fatal("ERROR marshalling abi to string", err)
+	}
+
+	abiContract, err := abi.JSON(strings.NewReader(string(abiStr)))
+	if err != nil {
+		log.Fatal("ERROR reading contract ABI ", err)
+	}
+
+	input, err := abiContract.Pack(methodName)
+	if err != nil {
+		log.Fatal("ERROR packing the method name for the contract call", err)
+	}
+	msg := ethereum.CallMsg{From: from, To: &to, Data: input}
+	output, err := client.CallContract(ctx, msg, nil)
+	if err != nil {
+		log.Fatal("ERROR calling the Ion Contract", err)
+	}
+	err = abiContract.Unpack(out, methodName, output)
+	if err != nil {
+		log.Fatal("ERROR upacking the call", err)
+	}
 }
 
 // CompileAndDeployIon specific compile and deploy ion contract
-func CompileAndDeployIon(ctx context.Context, client bind.ContractTransactor, userKey *ecdsa.PrivateKey, chainID interface{}) <-chan ContractInstance {
+func CompileAndDeployIon(
+	ctx context.Context,
+	client bind.ContractTransactor,
+	userKey *ecdsa.PrivateKey,
+	chainID interface{},
+) <-chan ContractInstance {
 	// ---------------------------------------------
 	// COMPILE ION AND DEPENDENCIES
 	// ---------------------------------------------
