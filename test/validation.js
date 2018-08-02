@@ -10,6 +10,7 @@ const Web3Accounts = require('web3-eth-accounts');
 const rlp = require('rlp');
 
 const Validation = artifacts.require("Validation");
+const Ion = artifacts.require("Ion");
 const Recover = artifacts.require("Recover");
 
 const web3 = new Web3();
@@ -61,26 +62,28 @@ contract('Validation.js', (accounts) => {
   })
 
   it('Test: Register Chain', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
     // Successfully add id of another chain
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
     let chain = await validation.chains(TESTCHAINID);
 
     assert.equal(chain, true);
 
     // Fail adding id of this chain
-    await validation.RegisterChain(DEPLOYEDCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
+    await validation.RegisterChain(DEPLOYEDCHAINID, ion.address, VALIDATORS, GENESIS_HASH).should.be.rejected;
 
     // Fail adding id of chain already initialised
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH).should.be.rejected;
   })
 
   it('Test: Register Chain - Check Validators', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
     // Successfully add id of another chain
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
     let validators = await validation.m_validators.call(TESTCHAINID, VALIDATORS[0]);
     assert.equal(validators, true);
@@ -88,10 +91,11 @@ contract('Validation.js', (accounts) => {
 
 
   it('Test: Register Chain - Check Genesis Hash', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
     // Successfully add id of another chain
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
     let header = await validation.m_blockheaders.call(TESTCHAINID, GENESIS_HASH);
     let blockHeight = header[0];
@@ -101,9 +105,10 @@ contract('Validation.js', (accounts) => {
 })
 
   it('Test: Authentic Submission Happy Path - SubmitBlock()', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);
@@ -176,9 +181,10 @@ contract('Validation.js', (accounts) => {
 
   // Here the block header is signed off chain but by a whitelisted validator
   it('Test: Authentic Submission Off-Chain Signature - SubmitBlock()', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);
@@ -286,9 +292,10 @@ contract('Validation.js', (accounts) => {
 
   // Here the block header is signed off chain but by a whitelisted validator who alters the block
   it('Test: Inauthentic Block Submission - SubmitBlock()', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);
@@ -407,9 +414,10 @@ contract('Validation.js', (accounts) => {
 
   // Here the block header is signed off chain but by a a non-whitelisted validator
   it('Test: Fail Submit Block unkown validator - SubmitBlock()', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);
@@ -503,9 +511,10 @@ contract('Validation.js', (accounts) => {
   })
 
   it('Test: Fail Submit Block from unknown chain - SubmitBlock()', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);
@@ -565,9 +574,10 @@ contract('Validation.js', (accounts) => {
   })
 
   it('Test: Fail Submit Block with wrong unsigned header - SubmitBlock()', async () => {
+    const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
-    await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);

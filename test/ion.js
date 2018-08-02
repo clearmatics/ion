@@ -85,7 +85,7 @@ const TESTBLOCK = {
     uncles: []
 }
 
-const TEST_VALIDATORS = ["0x42eb768f2244c8811c63729a21a3569731535f06", "0x6635f83421bf059cd8111f180f0727128685bae4", "0x7ffc57839b00206d1ad20c69a1981b489f772031", "0xb279182d99e65703f0076e4812653aab85fca0f0", "0xd6ae8250b8348c94847280928c79fb3b63ca453e", "0xda35dee8eddeaa556e4c26268463e26fb91ff74f", "0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"]
+const VALIDATORS = ["0x42eb768f2244c8811c63729a21a3569731535f06", "0x6635f83421bf059cd8111f180f0727128685bae4", "0x7ffc57839b00206d1ad20c69a1981b489f772031", "0xb279182d99e65703f0076e4812653aab85fca0f0", "0xd6ae8250b8348c94847280928c79fb3b63ca453e", "0xda35dee8eddeaa556e4c26268463e26fb91ff74f", "0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"]
 
 const signedHeader = [
     TESTBLOCK.parentHash,
@@ -130,11 +130,9 @@ const unsignedHeader = [
     ];
 
 const TEST_SIGNED_HEADER = '0x' + rlp.encode(signedHeader).toString('hex');
-console.log(TEST_SIGNED_HEADER)
 const signedHeaderHash = Web3Utils.sha3(TEST_SIGNED_HEADER);
 
 const TEST_UNSIGNED_HEADER = '0x' + rlp.encode(unsignedHeader).toString('hex');
-console.log(TEST_UNSIGNED_HEADER)
 const unsignedHeaderHash = Web3Utils.sha3(TEST_UNSIGNED_HEADER);
 
 const TESTRLPENCODING = "0xf9025ca03471555ab9a99528f02f9cdd8f0017fe2f56e01116acc4fe7f78aee900442f35a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a0f526f481ffb6c3c56956d596f2b23e1f7ff17c810ba59efb579d9334a1765444a007f36c7ad26564fa65daebda75a23dfa95d660199092510743f6c8527dd72586a0907121bec78b40e8256fac47867d955c560b321e93fc9f046f919ffb5e3823ffb90100224400000200000900000000000000000410000800000080000880000800000002000004000008000000000000004000000000000000000000100000080201020000000000000800000000088000000000000220000000040000000100000000000800000006204004401000102004000820000000000000800400100001000200200000000000000800800000010000000001000004004800000000020000000020000800180000081080001000000000000000000200000500100010040000000001020000400040000000000000000000000044000000000000000000000002080000000004000082000200000040224000000000040002008480000000000283288c8e837295a1832bffa2845b4f6b1db861d68301080d846765746886676f312e3130856c696e7578000000000000000000583a78dd245604e57368cb2688e42816ebc86eff73ee219dd96b8a56ea6392f75507e703203bc2cc624ce6820987cf9e8324dd1f9f67575502fe6060d723d0e100a00000000000000000000000000000000000000000000000000000000000000000880000000000000000"
@@ -151,9 +149,7 @@ const TRIG_FIRED_RINKEBY_TXHASH = "0xafc3ab60059ed38e71c7f6bea036822abe16b2c02fc
 const TRIG_FIRED_RINKEBY_BLOCKNO = 2657422
 const TRIG_CALLED_BY = "0x279884e133f9346f2fad9cc158222068221b613e";
 
-const VALIDATORS = ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d"];
 const GENESIS_HASH = TESTBLOCK.parentHash;
-// const GENESIS_HASH = "0xaf0d377824ecc16cfdd5946ad0cd0da904cbcfff8c6cd31628c9c9e5bed2c95b";
 
 
 contract('Ion.js', (accounts) => {
@@ -169,26 +165,25 @@ contract('Ion.js', (accounts) => {
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
         // Successfully add id of another chain
-        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
         let chain = await ion.chains(TESTCHAINID);
 
         assert.equal(chain, true);
 
         // Fail adding id of this chain
-        await ion.RegisterChain(DEPLOYEDCHAINID, validation.address).should.be.rejected;
+        await validation.RegisterChain(DEPLOYEDCHAINID, ion.address, VALIDATORS, GENESIS_HASH).should.be.rejected;
 
         // Fail adding id of chain already registered
-        await ion.RegisterChain(TESTCHAINID, validation.address).should.be.rejected;
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH).should.be.rejected;
     })
 
     it('Check Tx Proof', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        const val = await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
         let tx = await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH);
 
@@ -199,8 +194,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -218,8 +212,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -233,8 +226,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -252,8 +244,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -267,8 +258,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -302,8 +292,7 @@ contract('Ion.js', (accounts) => {
         const functionContract = await Function.new(ion.address, verifier.address);
 
         // Register chain and submit block to Ion
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -325,8 +314,7 @@ contract('Ion.js', (accounts) => {
         const functionContract = await Function.new(ion.address, verifier.address);
 
         // Register chain and submit block to Ion
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
         
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 

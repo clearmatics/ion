@@ -5,6 +5,7 @@ pragma solidity ^0.4.23;
 import "./libraries/ECVerify.sol";
 import "./libraries/RLP.sol";
 import "./libraries/SolidityUtils.sol";
+import "./Ion.sol";
 
 contract Validation {
     using RLP for RLP.RLPItem;
@@ -47,7 +48,7 @@ contract Validation {
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
     * and adds it to the list of known chains.
     */
-    function RegisterChain(bytes32 _id, address[] _validators, bytes32 _genesisHash) public {
+    function RegisterChain(bytes32 _id, address _ion, address[] _validators, bytes32 _genesisHash) public {
         require( _id != chainId, "Cannot add this chain id to chain register" );
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
@@ -57,8 +58,12 @@ contract Validation {
             m_validators[_id][_validators[i]] = true;
     	}
 
+        Ion ion = Ion(_ion);
+        require(ion.addChain(_id), "Chain not added to Ion successfully!");
+
 		m_blockheaders[_id][_genesisHash].blockHeight = 0;
 		m_blockhashes[_id][_genesisHash] = true;
+
     }
 
 	/*

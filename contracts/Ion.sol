@@ -95,57 +95,27 @@ contract Ion {
 */
 
     /*
-    * RegisterChain
+    * addChain
     * param: chainId        Unique id of another chain to interoperate with
     * param: validationAddr Address of the validation contract required to make modular validation
     * param: _validators    List of validators on the block chain
     * param: _genesisHash   Genesis blockhash of the interop block chain
     *
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
-    * and adds it to the list of known chains.
+    * and adds it to the list of known chains. Should be called by the validation contract upon 
+    * registration.
     */
-    function RegisterChain(bytes32 _id, address validationAddr) public {
+    function addChain(bytes32 _id) public returns (bool) {
         require( _id != chainId, "Cannot add this chain id to chain register" );
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
         registeredChains.push(_id);
 
         // Create mapping of registered _id to the validation address
-        m_validation[_id] = validationAddr;
+        m_validation[_id] = msg.sender;
+
+        return true;
     }
-
-    /*
-    * SubmitBlock
-    * param: _id (bytes32) Unique id of chain submitting block from
-    * param: _rlpBlockHeader (bytes) RLP-encoded byte array of the block header from other chain without the signature in extraData
-    * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain with the signature in extraData
-    *
-    * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
-    * and if valid the block is persisted as BlockHeader structs defined above.
-    */
-    // function SubmitBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) public onlyRegisteredChains(_id) {
-    //     RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
-    //     RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
-
-    //     // Instantiate validation
-    //     address validationAddr = validation_addr[_id];
-    //     Validation validation = Validation(validationAddr);
-    //     validation.ValidateBlock(_id, _rlpBlockHeader, _rlpSignedBlockHeader);
-
-    //     // Append the new block to the struct
-    //     bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
-    //     bytes32 _blockHash = keccak256(_rlpSignedBlockHeader);
-	// 	uint256 blockHeight = m_blockheaders[_id][_parentBlockHash].blockHeight + 1;
-
-    //     // Add the updates to the m_blockheaders
-	// 	m_blockheaders[_id][_blockHash].blockHeight = blockHeight;
-	// 	m_blockheaders[_id][_blockHash].prevBlockHash = _parentBlockHash;
-    //     m_blockheaders[_id][_blockHash].txRootHash = SolUtils.BytesToBytes32(header[4].toBytes(), 1);
-    //     m_blockheaders[_id][_blockHash].receiptRootHash = SolUtils.BytesToBytes32(header[5].toBytes(), 1);
-
-    //     addBlockHashToChain(_id, _blockHash);
-
-    // }
 
     /*
     * CheckTxProof
@@ -259,15 +229,6 @@ contract Ion {
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.ROOTS));
         return true;
-    }
-
-    /*
-    * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
-    * @param _chainId   unique identifier of the chain from which the block hails     
-    * @param _hash      root hash of the block being added
-    */
-    function addBlockHashToChain(bytes32 _chainId, bytes32 _hash) internal {
-        m_blockhashes[_chainId][_hash] = true;
     }
 
 
