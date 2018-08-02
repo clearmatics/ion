@@ -14,7 +14,7 @@ module.exports = async (deployer) => {
       .then(() => deployer.deploy(PatriciaTrie))
       .then(() => PatriciaTrie.deployed)
       .then(() => deployer.link(PatriciaTrie, Ion))
-      .then(() => deployer.deploy(Ion, "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"))
+      .then(() => deployer.deploy(Ion, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177"))
       .then(() => Ion.deployed)
       .then(() => deployer.deploy(EventVerifier))
       .then(() => EventVerifier.deployed)

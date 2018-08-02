@@ -11,7 +11,6 @@ contract Validation {
     using RLP for RLP.Iterator;
     using RLP for bytes;
 
-	address public owner;
     bytes32 public chainId;
 
     /*
@@ -37,7 +36,6 @@ contract Validation {
 	*	@param _id		genesis block of the blockchain where the contract is deployed
 	*/
 	constructor (bytes32 _id) public {
-		owner = msg.sender;
 		chainId = _id;
 	}
 
@@ -145,7 +143,6 @@ contract Validation {
     function getReceiptRootHash(bytes32 _id, bytes32 _hash) public returns(bytes32) {
         return(m_blockheaders[_id][_hash].receiptRootHash);
     }
-
 
     /*
     * onlyRegisteredChains

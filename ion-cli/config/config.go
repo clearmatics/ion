@@ -16,6 +16,8 @@ type Setup struct {
 	AddrFrom     string `json:"rpc-from"`
 	AccountFrom  string `json:"account-from"`
 	KeystoreFrom string `json:"keystore-from"`
+	Validation   string `json:"validation-addr"`
+	ChainId      string `json:"validation-chainid"`
 	Ion          string `json:"ion-addr"`
 }
 

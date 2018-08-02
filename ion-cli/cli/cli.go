@@ -10,16 +10,19 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/abiosoft/ishell"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/clearmatics/ion/ion-cli/config"
 	contract "github.com/clearmatics/ion/ion-cli/contracts"
+	"github.com/clearmatics/ion/ion-cli/utils"
 )
 
 // Launch - definition of commands and creates the iterface
-func Launch(setup config.Setup, clientFrom *ethclient.Client, Ion *contract.Ion) {
+func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contract.Validation, Ion *contract.Ion) {
 	// by default, new shell includes 'exit', 'help' and 'clear' commands.
 	shell := ishell.New()
 
@@ -69,48 +72,8 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Ion *contract.Ion)
 	})
 
 	shell.AddCmd(&ishell.Cmd{
-		Name: "ionChainId",
-		Help: "use: ionChainId \n\t\t\t\tdescription: Returns id of Ion chain",
-		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrTo)
-			if len(c.Args) == 0 {
-				result, err := Ion.ChainId(&bind.CallOpts{})
-				if err != nil {
-					c.Printf("Error: %s", err)
-					return
-				}
-				c.Printf("Result:\t%x\n", result)
-			} else if len(c.Args) > 0 {
-				c.Println("Only enter single argument")
-			}
-			c.Println("===============================================================")
-		},
-	})
-
-	shell.AddCmd(&ishell.Cmd{
-		Name: "ionRegisteredChains",
-		Help: "use: ionRegisteredChains \n\t\t\t\tdescription: Returns array of all registered chains",
-		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrTo)
-			if len(c.Args) == 0 {
-				result, err := Ion.RegisteredChains(&bind.CallOpts{}, big.NewInt(0))
-				if err != nil {
-					c.Printf("Error: %s", err)
-					return
-				}
-				c.Printf("Result:\t%s\n", result)
-			} else if len(c.Args) > 0 {
-				c.Println("Only enter single argument")
-			}
-			c.Println("===============================================================")
-		},
-	})
-
-	shell.AddCmd(&ishell.Cmd{
-		Name: "ionRegisterChain",
-		Help: "use: ionRegisterChain \n\t\t\t\tdescription: Register chain with Ion contract",
+		Name: "registerChainValidation",
+		Help: "use: registerChainValidation \n\t\t\t\tdescription: Register new chain with validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrTo)
@@ -118,31 +81,108 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Ion *contract.Ion)
 			defer c.ShowPrompt(true) // yes, revert after login.
 
 			// Get the chainId
-			c.Print("New ChainId: ")
-			chainId := c.ReadLine()
+			bytesChainId, err := utils.StringToBytes32(setup.ChainId)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
 
-			c.Printf("Running Command:\t%s\t%s", chainId)
+			// Get the validators array
+			c.Print("Enter Validators: ")
+			validatorString := c.ReadLine()
+			valArray := strings.Fields(validatorString)
+			var validators []common.Address
+			for _, val := range valArray {
+				validators = append(validators, common.HexToAddress(val))
+			}
+
+			// Get genesis hash
+			c.Print("Enter Genesis Hash: ")
+			genesis := c.ReadLine()
+			bytesGenesis, err := utils.StringToBytes32(genesis)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+
+			c.Printf("Running Command:\t%x\t%x\t%x\n", bytesChainId, validators, bytesGenesis)
+			tx, err := Validation.RegisterChain(auth, bytesChainId, validators, bytesGenesis)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+			c.Println(tx)
 			c.Println("===============================================================")
 		},
 	})
 
-	// shell.AddCmd(&ishell.Cmd{
-	// 	Name: "getValidators",
-	// 	Help: "use: getValidators \n\t\t\t\tdescription: Returns the whitelist of validators from validator contract",
-	// 	Func: func(c *ishell.Context) {
-	// 		c.Println("===============================================================")
-	// 		c.Println("Connecting to: " + setup.AddrFrom)
-	// 		result, err := Validation.GetValidators(&bind.CallOpts{})
-	// 		if err != nil {
-	// 			fmt.Printf("Error: %s", err)
-	// 			return
-	// 		}
-	// 		c.Println("Validators Whitelist:")
-	// 		c.Printf("%x\n", result)
+	shell.AddCmd(&ishell.Cmd{
+		Name: "checkBlockValidation",
+		Help: "use: checkBlockValidation [chainId] [blockHash]\n\t\t\t\tdescription: Returns true for validated blocks",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrTo)
+			c.ShowPrompt(false)
+			defer c.ShowPrompt(true) // yes, revert after login.
 
-	// 		c.Println("===============================================================")
-	// 	},
-	// })
+			// Get the chainId
+			bytesChainId, err := utils.StringToBytes32(setup.ChainId)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+
+			// Get the blockHash
+			c.Print("Enter BlockHash: ")
+			blockHash := c.ReadLine()
+			bytesBlockHash, err := utils.StringToBytes32(blockHash)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+
+			result, err := Validation.MBlockhashes(&bind.CallOpts{}, bytesChainId, bytesBlockHash)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+			c.Println("Checking for valid block:")
+			c.Printf("ChainId:\t%x\nBlockHash:\t%x\nValid:\t\t%v\n", bytesChainId, bytesBlockHash, result)
+
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "submitBlockValidation",
+		Help: "use: submitBlockValidation [chainId] [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			c.ShowPrompt(false)
+			defer c.ShowPrompt(true) // yes, revert after login.
+
+			// Get the chainId
+			bytesChainId, err := utils.StringToBytes32(setup.ChainId)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+
+			// Get the block number
+			c.Print("Enter Block Number: ")
+			blockNum := c.ReadLine()
+			c.Printf("RLP encode block:\nNumber:\t\t%s", blockNum)
+
+			signedBlock, unsignedBlock := calculateRlpEncoding(clientFrom, blockNum)
+			res, err := Validation.SubmitBlock(auth, bytesChainId, unsignedBlock, signedBlock)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+			c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
+			c.Println("===============================================================")
+		},
+	})
 
 	// shell.AddCmd(&ishell.Cmd{
 	// 	Name: "latestValidationBlock",

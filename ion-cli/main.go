@@ -22,12 +22,13 @@ func main() {
 		clientTo := config.InitClient(setup.AddrTo)
 		clientFrom := config.InitClient(setup.AddrFrom)
 
-		Ion := config.InitValidationContract(setup, clientTo)
+		Ion := config.InitIon(setup, clientTo)
+		Validation := config.InitValidation(setup, clientTo)
 
 		printInfo(setup)
 
 		// Launch the CLI
-		cli.Launch(setup, clientFrom, Ion)
+		cli.Launch(setup, clientFrom, Validation, Ion)
 	} else {
 		fmt.Print("Error: empty config!\n")
 		os.Exit(3)
@@ -40,11 +41,13 @@ func printInfo(setup config.Setup) {
 	fmt.Println("===============================================================")
 	fmt.Println("Ion Command Line Interface\n")
 	fmt.Println("RPC Client [to]:")
-	fmt.Println("Listening on: " + setup.AddrTo)
-	fmt.Println("user Account: " + setup.AccountTo)
-	fmt.Println("Ion Contract: " + setup.Ion)
-	fmt.Println("\nRPC Client [from]: ")
-	fmt.Println("Listening on: " + setup.AddrFrom)
-	fmt.Println("user Account: " + setup.AccountFrom)
+	fmt.Println("Listening on:\t\t" + setup.AddrTo)
+	fmt.Println("User Account:\t\t" + setup.AccountTo)
+	fmt.Println("Validation Contract:\t" + setup.Validation)
+	fmt.Println("Validation ChainId:\t" + setup.ChainId)
+	fmt.Println("Ion Contract:\t\t" + setup.Ion)
+	fmt.Println("\nRPC Client [from]:")
+	fmt.Println("Listening on:\t\t" + setup.AddrFrom)
+	fmt.Println("User Account:\t\t" + setup.AccountFrom)
 	fmt.Println("===============================================================")
 }
