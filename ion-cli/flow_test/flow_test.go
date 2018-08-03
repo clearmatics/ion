@@ -255,7 +255,6 @@ func TestVerifyTx(t *testing.T) {
 
 	// confirm the Executed event was emited by Consumer Function
 	eventSignatureHash := crypto.Keccak256Hash([]byte("Executed()")) // Ion argument
-	t.Logf("Event Signature Hash: %v\n", eventSignatureHash)
 
 	foundExecuted := false
 	for _, vlog := range verifyAndExecuteFunctionReceipt.Logs {
