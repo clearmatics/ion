@@ -24,11 +24,12 @@ func main() {
 
 		Ion := config.InitIon(setup, clientTo)
 		Validation := config.InitValidation(setup, clientTo)
+		Trigger := config.InitTrigger(setup, clientFrom)
 
 		printInfo(setup)
 
 		// Launch the CLI
-		cli.Launch(setup, clientFrom, Validation, Ion)
+		cli.Launch(setup, clientFrom, Validation, Ion, Trigger)
 	} else {
 		fmt.Print("Error: empty config!\n")
 		os.Exit(3)
@@ -49,5 +50,6 @@ func printInfo(setup config.Setup) {
 	fmt.Println("\nRPC Client [from]:")
 	fmt.Println("Listening on:\t\t" + setup.AddrFrom)
 	fmt.Println("User Account:\t\t" + setup.AccountFrom)
+	fmt.Println("Trigger Contract:\t" + setup.Trigger)
 	fmt.Println("===============================================================")
 }

@@ -19,6 +19,7 @@ matrix:
         - npm run test
         - cd ./ion-cli
         - go get -t ./...
+        - make build
         - make test
         - make integration-test
 

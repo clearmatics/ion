@@ -8,6 +8,8 @@ clean:
 	@rm contracts/validation.go
 	@rm contracts/ion.go
 	@rm contracts/patricia.go
+	@rm contracts/trigger.go
+	@rm contracts/function.go
 
 test:
 	@go test ./... -v -short
@@ -30,6 +32,8 @@ build:
 	@abigen --bin=../abi/Validation.bin --abi=../abi/Validation.abi --pkg=contract --type=validation --out=contracts/validation.go
 	@abigen --bin=../abi/Ion.bin --abi=../abi/Ion.abi --pkg=contract --type=ion --out=contracts/ion.go
 	@abigen --bin=../abi/PatriciaTrie.bin --abi=../abi/PatriciaTrie.abi --pkg=contract --type=patricia --out=contracts/patricia.go
+	@abigen --bin=../abi/Function.bin --abi=../abi/Function.abi --pkg=contract --type=function --out=contracts/function.go
+	@abigen --bin=../abi/Trigger.bin --abi=../abi/Trigger.abi --pkg=contract --type=trigger --out=contracts/trigger.go
 
 	# Now build project
 	@go get -t -v ./...

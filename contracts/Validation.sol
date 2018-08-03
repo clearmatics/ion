@@ -26,6 +26,7 @@ contract Validation {
 	}
 
     mapping (bytes32 => bool) public chains;
+    mapping (bytes32 => bytes32) public m_latestblock;
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
 	mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
 	mapping (bytes32 => mapping (address => bool)) public m_validators;
@@ -62,7 +63,9 @@ contract Validation {
         require(ion.addChain(_id), "Chain not added to Ion successfully!");
 
 		m_blockheaders[_id][_genesisHash].blockHeight = 0;
+		m_blockheaders[_id][_genesisHash].latestHash = _genesisHash;
 		m_blockhashes[_id][_genesisHash] = true;
+		m_latestblock[_id] = _genesisHash;
 
     }
 
@@ -99,14 +102,10 @@ contract Validation {
 
         recoverSignature(_id, signedHeader[12].toBytes(), _rlpBlockHeader);
 
-        // Append the new block to the struct
-		m_blockheaders[_id][_blockHash].blockHeight = header[8].toUint();
-		m_blockheaders[_id][_blockHash].latestHash = _blockHash;
-		m_blockheaders[_id][_blockHash].prevBlockHash = _parentBlockHash;
-        m_blockheaders[_id][_blockHash].txRootHash = SolUtils.BytesToBytes32(header[4].toBytes(), 1);
-        m_blockheaders[_id][_blockHash].receiptRootHash = SolUtils.BytesToBytes32(header[5].toBytes(), 1);
-
+        // Append the new block to the struct       
+        addBlockHeaderToChain(_id, _blockHash, _parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint());
         addBlockHashToChain(_id, _blockHash);
+        updateBlockHash(_id, _blockHash);
 
     }
 
@@ -127,8 +126,31 @@ contract Validation {
     * @param _id        unique identifier of the chain from which the block hails     
     * @param _hash      root hash of the block being added
     */
+    function addBlockHeaderToChain(bytes32 _id, bytes32 _hash, bytes32 _parentHash, bytes32 _txRootHash, bytes32 _receiptRootHash, uint256 _height) internal {
+        // Append the new block to the struct
+		m_blockheaders[_id][_hash].blockHeight = _height;
+		m_blockheaders[_id][_hash].latestHash = _hash;
+		m_blockheaders[_id][_hash].prevBlockHash = _parentHash;
+        m_blockheaders[_id][_hash].txRootHash = _txRootHash;
+        m_blockheaders[_id][_hash].receiptRootHash = _receiptRootHash;
+    }
+
+    /*
+    * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
+    * @param _id        unique identifier of the chain from which the block hails     
+    * @param _hash      root hash of the block being added
+    */
     function addBlockHashToChain(bytes32 _id, bytes32 _hash) internal {
         m_blockhashes[_id][_hash] = true;
+    }
+
+    /*
+    * @description      when a block is submitted the latest block is updated here
+    * @param _id        unique identifier of the chain from which the block hails     
+    * @param _hash      root hash of the block being added
+    */
+    function updateBlockHash(bytes32 _id, bytes32 _hash) internal {
+        m_latestblock[_id] = _hash;
     }
 
     /*

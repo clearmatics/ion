@@ -13,27 +13,14 @@ contract Ion {
     using RLP for RLP.Iterator;
     using RLP for bytes;
 
-    struct BlockHeader {
-        uint256 blockHeight;
-        bytes32 prevBlockHash;
-        bytes32 txRootHash;
-        bytes32 receiptRootHash;
-    }
-
-
-    // address[] public validators;
-    bytes32 public blockHash;
+    // bytes32 public blockHash;
     bytes32 public chainId;
     bytes32[] public registeredChains;
     uint256 public blockHeight;
 
     mapping (bytes32 => bool) public chains;
     mapping (bytes32 => address) public m_validation;
-    mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
-    mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
 
-    // input chainId to validators address returning bool
-    mapping (bytes32 => mapping (address => bool)) public m_validators;
 
 
     /*
@@ -102,8 +89,9 @@ contract Ion {
     * param: _genesisHash   Genesis blockhash of the interop block chain
     *
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
-    * and adds it to the list of known chains. Should be called by the validation contract upon 
-    * registration.
+    * and adds it to the list of known chains. 
+    *
+    *Should be called by the validation registerChain() function
     */
     function addChain(bytes32 _id) public returns (bool) {
         require( _id != chainId, "Cannot add this chain id to chain register" );
@@ -219,7 +207,6 @@ contract Ion {
         public
         returns (bool)
     {
-        // BlockHeader storage blockHeader = m_blockheaders[_id][_blockHash];
         Validation validation = Validation(m_validation[_id]);
         bytes32 txRootHash = validation.getTxRootHash(_id, _blockHash);        
         bytes32 receiptRootHash = validation.getReceiptRootHash(_id, _blockHash);

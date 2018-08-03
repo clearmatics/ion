@@ -22,7 +22,7 @@ import (
 )
 
 // Launch - definition of commands and creates the iterface
-func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contract.Validation, Ion *contract.Ion) {
+func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contract.Validation, Ion *contract.Ion, Trigger *contract.Trigger) {
 	// by default, new shell includes 'exit', 'help' and 'clear' commands.
 	shell := ishell.New()
 
@@ -34,13 +34,29 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 
 	// Create an authorized transactor and spend 1 unicorn
 	keyTo := config.ReadString(setup.KeystoreTo)
-	auth, err := bind.NewTransactor(strings.NewReader(keyTo), "password1")
+	authTo, err := bind.NewTransactor(strings.NewReader(keyTo), "password1")
 	if err != nil {
 		log.Fatalf("Failed to create authorized transactor: %v", err)
 	}
-	auth.Value = big.NewInt(0)     // in wei
-	auth.GasLimit = uint64(300000) // in units
-	auth.GasPrice = gasPrice
+	authTo.Value = big.NewInt(0) // in wei
+	authTo.From = common.HexToAddress(setup.AccountTo)
+	authTo.GasLimit = uint64(100000) // in units
+	authTo.GasPrice = gasPrice
+
+	// Create an authorized transactor and spend 1 unicorn
+	keyFrom := config.ReadString(setup.KeystoreFrom)
+	authFrom, err := bind.NewTransactor(strings.NewReader(keyFrom), "password1")
+	if err != nil {
+		log.Fatalf("Failed to create authorized transactor: %v", err)
+	}
+	authFrom.Value = big.NewInt(0)                         // in wei
+	authFrom.From = common.HexToAddress(setup.AccountFrom) // in wei
+	authFrom.GasLimit = uint64(100000)                     // in units
+	authFrom.GasPrice = gasPrice
+
+	//---------------------------------------------------------------------------------------------
+	// 	RPC Client Specific Commands
+	//---------------------------------------------------------------------------------------------
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "latestBlock",
@@ -49,7 +65,9 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrFrom)
 			c.Println("Get latest block number:")
-			latestBlock(clientFrom)
+			lastBlock := latestBlock(clientFrom)
+			c.Printf("latest block: %v\n", lastBlock.Number)
+
 			c.Println("===============================================================")
 		},
 	})
@@ -70,6 +88,10 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 			c.Println("===============================================================")
 		},
 	})
+
+	//---------------------------------------------------------------------------------------------
+	// 	Validation Specific Commands
+	//---------------------------------------------------------------------------------------------
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "registerChainValidation",
@@ -105,20 +127,20 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 				return
 			}
 
-			c.Printf("Running Command:\t%x\t%x\t%x\n", bytesChainId, validators, bytesGenesis)
-			tx, err := Validation.RegisterChain(auth, bytesChainId, validators, bytesGenesis)
+			ionAddress := common.HexToAddress(setup.Ion)
+			tx, err := Validation.RegisterChain(authTo, bytesChainId, ionAddress, validators, bytesGenesis)
 			if err != nil {
 				c.Printf("Error: %s", err)
 				return
 			}
-			c.Println(tx)
+			c.Printf("\nTransaction Result:\n%x\n", tx)
 			c.Println("===============================================================")
 		},
 	})
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "checkBlockValidation",
-		Help: "use: checkBlockValidation [chainId] [blockHash]\n\t\t\t\tdescription: Returns true for validated blocks",
+		Help: "use: checkBlockValidation [blockHash]\n\t\t\t\tdescription: Returns true for validated blocks",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrTo)
@@ -155,7 +177,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "submitBlockValidation",
-		Help: "use: submitBlockValidation [chainId] [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
+		Help: "use: submitBlockValidation [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
 		Func: func(c *ishell.Context) {
 			c.Println("===============================================================")
 			c.ShowPrompt(false)
@@ -174,7 +196,7 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 			c.Printf("RLP encode block:\nNumber:\t\t%s", blockNum)
 
 			signedBlock, unsignedBlock := calculateRlpEncoding(clientFrom, blockNum)
-			res, err := Validation.SubmitBlock(auth, bytesChainId, unsignedBlock, signedBlock)
+			res, err := Validation.SubmitBlock(authTo, bytesChainId, unsignedBlock, signedBlock)
 			if err != nil {
 				c.Printf("Error: %s", err)
 				return
@@ -184,111 +206,85 @@ func Launch(setup config.Setup, clientFrom *ethclient.Client, Validation *contra
 		},
 	})
 
-	// shell.AddCmd(&ishell.Cmd{
-	// 	Name: "latestValidationBlock",
-	// 	Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
-	// 	Func: func(c *ishell.Context) {
-	// 		c.Println("===============================================================")
-	// 		c.Println("Connecting to: " + setup.AddrTo)
-	// 		result, err := Validation.LatestBlock(&bind.CallOpts{})
-	// 		if err != nil {
-	// 			fmt.Printf("Error: %s", err)
-	// 			return
-	// 		}
-	// 		c.Println("Last Block Submitted:")
-	// 		c.Printf("0x%x\n", result)
+	shell.AddCmd(&ishell.Cmd{
+		Name: "latestValidationBlock",
+		Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrTo)
+			// Get the chainId
+			bytesChainId, err := utils.StringToBytes32(setup.ChainId)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
 
-	// 		c.Println("===============================================================")
-	// 	},
-	// })
+			result, err := Validation.MLatestblock(&bind.CallOpts{}, bytesChainId)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+			c.Printf("Latest Block Submitted:\nBlockHash:\t0x%x\nChainId:\t%s\n", result, setup.ChainId)
+			c.Println("===============================================================")
+		},
+	})
 
-	// shell.AddCmd(&ishell.Cmd{
-	// 	Name: "getValidationBlock",
-	// 	Help: "use: latestValidationBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
-	// 	Func: func(c *ishell.Context) {
-	// 		c.Println("===============================================================")
-	// 		c.Println("Connecting to: " + setup.AddrFrom)
-	// 		blockNum := new(big.Int)
-	// 		blockNum.SetString(c.Args[0], 10)
-	// 		result, err := Validation.GetBlock(&bind.CallOpts{}, blockNum)
-	// 		if err != nil {
-	// 			fmt.Printf("Error: %s", err)
-	// 			return
-	// 		}
-	// 		c.Println("Last Block Submitted:")
-	// 		c.Printf("Block:\n\t%x\n", result.BlockHeight)
-	// 		c.Printf("Hash:\n\t0x%x\n", result.BlockHash)
-	// 		c.Printf("Parent Hash:\n\t0x%x\n", result.PrevBlockHash)
+	//---------------------------------------------------------------------------------------------
+	// 	Trigger Specific Commands
+	//---------------------------------------------------------------------------------------------
+	shell.AddCmd(&ishell.Cmd{
+		Name: "triggerEvent",
+		Help: "use: triggerEvent \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrFrom)
+			lastBlock := latestBlock(clientFrom)
 
-	// 		c.Println("===============================================================")
-	// 	},
-	// })
+			result, err := Trigger.Fire(authFrom)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+			c.Printf("Triggered Event:\nResult:\t%+v\n", result.Hash)
+			block := lastBlock.Number
+			blockNumber, _ := strconv.ParseUint(block.String(), 0, 64)
+			// s := []uint32{}
+			ch := make(chan *contract.TriggerTriggered)
+			opts := &bind.WatchOpts{}
+			opts.Start = &blockNumber
+			_, err = Trigger.WatchTriggered(opts, ch)
+			if err != nil {
+				log.Fatalf("Failed WatchTriggered: %v", err)
+			}
+			var newEvent *contract.TriggerTriggered = <-ch
+			fmt.Println(newEvent.Caller)
 
-	// shell.AddCmd(&ishell.Cmd{
-	// 	Name: "submitValidationBlock",
-	// 	Help: "use: submitValidationBlock [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
-	// 	Func: func(c *ishell.Context) {
-	// 		c.Println("===============================================================")
-	// 		c.Println("Connecting to: " + setup.AddrTo)
-	// 		if len(c.Args) == 0 {
-	// 			c.Println("Select a block")
-	// 		} else if len(c.Args) > 1 {
-	// 			c.Println("Too many arguments entered.")
-	// 		} else {
-	// 			c.Println("RLP encode block: " + c.Args[0])
-	// 			encodedBlock, prefixBlock, prefixExtra := calculateRlpEncoding(clientFrom, c.Args[0])
-	// 			res, err := Validation.ValidateBlock(auth, encodedBlock, prefixBlock, prefixExtra)
-	// 			if err != nil {
-	// 				c.Printf("Error: %s", err)
-	// 				return
-	// 			}
-	// 			c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
-	// 		}
-	// 		c.Println("===============================================================")
-	// 	},
-	// })
+			c.Println("===============================================================")
+		},
+	})
 
-	// shell.AddCmd(&ishell.Cmd{
-	// 	Name: "generateTxProof",
-	// 	Help: "use: generateTxProof [Transaction Hash] [Block Number] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
-	// 	Func: func(c *ishell.Context) {
-	// 		c.Println("===============================================================")
-	// 		c.Println("Connecting to: " + setup.AddrTo)
-	// 		if len(c.Args) == 0 {
-	// 			c.Println("Select a block")
-	// 		} else if len(c.Args) > 2 {
-	// 			c.Println("Too many arguments entered.")
-	// 		} else {
-	// 			c.Println("RLP encode block: " + c.Args[0])
-	// 			rootHash, idx, leaf, proof := GenerateTxProof(clientFrom, c.Args[0], c.Args[1])
-	// 			c.Printf("\nRoot Hash:\n% 0x\nTransaction Index:\n% 0x\nTransaction Leaf:\n% 0x\nProof:\n% 0x\n", rootHash, idx, leaf, proof)
-	// 		}
-	// 		c.Println("===============================================================")
-	// 	},
-	// })
+	shell.AddCmd(&ishell.Cmd{
+		Name: "verifyAndExecute",
+		Help: "use: verifyAndExecute [Transaction Hash] [Block Number] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrTo)
+			if len(c.Args) == 0 {
+				c.Println("Select a block")
+			} else if len(c.Args) > 2 {
+				c.Println("Too many arguments entered.")
+			} else {
+				c.Println("RLP encode block: " + c.Args[0])
+				rootHash, idx, leaf, proof := GenerateTxProof(clientFrom, c.Args[0], c.Args[1])
+				c.Printf("\nRoot Hash:\n% 0x\nTransaction Index:\n% 0x\nTransaction Leaf:\n% 0x\nProof:\n% 0x\n", rootHash, idx, leaf, proof)
+			}
+			c.Println("===============================================================")
+		},
+	})
 
 	//---------------------------------------------------------------------------------------------
 	// 	Ion Specific Commands
-	//
 	//---------------------------------------------------------------------------------------------
-	// shell.AddCmd(&ishell.Cmd{
-	// 	Name: "ionRegisterChain",
-	// 	Help: "use: ionRegisterChain [Transaction Hash] [Block Number] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
-	// 	Func: func(c *ishell.Context) {
-	// 		c.Println("===============================================================")
-	// 		c.Println("Connecting to: " + setup.AddrTo)
-	// 		if len(c.Args) == 0 {
-	// 			c.Println("Select a block")
-	// 		} else if len(c.Args) > 2 {
-	// 			c.Println("Too many arguments entered.")
-	// 		} else {
-	// 			c.Println("RLP encode block: " + c.Args[0])
-	// 			rootHash, idx, leaf, proof := GenerateTxProof(clientFrom, c.Args[0], c.Args[1])
-	// 			c.Printf("\nRoot Hash:\n% 0x\nTransaction Index:\n% 0x\nTransaction Leaf:\n% 0x\nProof:\n% 0x\n", rootHash, idx, leaf, proof)
-	// 		}
-	// 		c.Println("===============================================================")
-	// 	},
-	// })
 
 	// run shell
 	shell.Run()

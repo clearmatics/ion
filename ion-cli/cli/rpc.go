@@ -34,15 +34,15 @@ type header struct {
 	Nonce       string `json:"nonce"`
 }
 
-func latestBlock(client *ethclient.Client) {
+func latestBlock(client *ethclient.Client) (lastBlock *types.Header) {
 	// var lastBlock Block
 	lastBlock, err := client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
 		fmt.Println("can't get latest block:", err)
-		return
+		return nil
 	}
-	// Print events from the subscription as they arrive.
-	fmt.Printf("latest block: %v\n", lastBlock.Number)
+
+	return
 }
 
 func getBlock(client *ethclient.Client, block string) {
@@ -63,6 +63,10 @@ func getBlock(client *ethclient.Client, block string) {
 	}
 	fmt.Println("Block:", block)
 	fmt.Println(string(b))
+}
+
+func generateProof() {
+
 }
 
 // func calculateRlpEncoding(client *ethclient.Client, block string) {

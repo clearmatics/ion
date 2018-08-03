@@ -340,39 +340,6 @@ contract('Ion.js', (accounts) => {
         await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_DEPLOYED_RINKEBY_ADDR).should.be.rejected;
     })
 
-//    it('Verify Nested Nodes Verification', async () => {
-//        const patricia = await PatriciaTrieTest.new();
-//
-//        path = "0x8461626364";
-//        value = "0x857465737434";
-//        nodes = "0xf8cbf839808080808080c8318685746573743180a0207947cf85c03bd3d9f9ff5119267616318dcef0e12de2f8ca02ff2cdc720a978080808080808080f8428080c58320616274cc842061626386857465737433a05d495bd9e35ab0dab60dec18b21acc860829508e7df1064fce1f0b8fa4c0e8b2808080808080808080808080e583161626a06b1a1127b4c489762c8259381ff9ecf51b7ef0c2879b89e72c993edc944f1ccce5808080ca8220648685746573743480ca822064868574657374358080808080808080808080"
-//        rootHash = "0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c";
-//
-//        verified = await patricia.verifyProof.call(value, nodes, path, rootHash);
-//        assert.ok(verified, "Patricia proof failed.");
-//    })
-//
-//    it('Fail Nested Nodes Verification', async () => {
-//        const patricia = await PatriciaTrieTest.new();
-//
-//        path = "0x8461626364";
-//        value = "0x857465737434";
-//        nodes = "0xf8cbf839808080808080c8318685746573743180a0207947cf85c03bd3d9f9ff5119267616318dcef0e12de2f8ca02ff2cdc720a978080808080808080f8428080c58320616274cc842061626386857465737433a05d495bd9e35ab0dab60dec18b21acc860829508e7df1064fce1f0b8fa4c0e8b2808080808080808080808080e583161626a06b1a1127b4c489762c8259381ff9ecf51b7ef0c2879b89e72c993edc944f1ccce5808080ca8220648685746573743480ca822064868574657374358080808080808080808080"
-//        rootHash = "0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c";
-//
-//        // Fail with incorrect node value
-//        await patricia.verifyProof.call(value.slice(0,-2) + "f", nodes, path, rootHash).should.be.rejected;
-//
-//        // Fail with incorrect RLP-encoded nodes
-//        await patricia.verifyProof.call(value, nodes.slice(0, -2) + "f", path, rootHash).should.be.rejected;
-//
-//        // Fail with incorrect path
-//        await patricia.verifyProof.call(value, nodes, path.slice(0, -2) + "f", rootHash).should.be.rejected;
-//
-//        // Fail with incorrect root node hash
-//        await patricia.verifyProof.call(value, nodes, path, rootHash.slice(0, -2) + "f").should.be.rejected;
-//    })
-
 })
 
 async function verifyReceipts(eP, txHash) {

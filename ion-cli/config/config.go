@@ -16,9 +16,10 @@ type Setup struct {
 	AddrFrom     string `json:"rpc-from"`
 	AccountFrom  string `json:"account-from"`
 	KeystoreFrom string `json:"keystore-from"`
-	Validation   string `json:"validation-addr"`
 	ChainId      string `json:"validation-chainid"`
+	Validation   string `json:"validation-addr"`
 	Ion          string `json:"ion-addr"`
+	Trigger      string `json:"trigger-addr"`
 }
 
 // Takes path to a JSON and returns a struct of the contents

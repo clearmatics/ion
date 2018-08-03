@@ -41,3 +41,14 @@ func InitValidation(setup Setup, client *ethclient.Client) (Validation *contract
 
 	return
 }
+
+func InitTrigger(setup Setup, client *ethclient.Client) (Trigger *contract.Trigger) {
+	// Initialise the contract
+	address := common.HexToAddress(setup.Trigger)
+	Trigger, err := contract.NewTrigger(address, client)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return
+}
