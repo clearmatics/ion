@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -330,8 +331,8 @@ func TestVerifyTx(t *testing.T) {
 	receiptTriggerProofArr := Proof(receiptTrie, txTriggerPath[:])
 
 	// get tx sender TODO!!!
-
-	triggerCalledBy := userAddr
+	signer := types.HomesteadSigner{} // blockchain simulater signer is this one
+	triggerCalledBy, _ := types.Sender(signer, txTrigger)
 
 	txVerifyAndExecuteFunction := TransactionContract(
 		ctx,
@@ -353,19 +354,15 @@ func TestVerifyTx(t *testing.T) {
 		triggerCalledBy,        // TRIG_CALLED_BY,
 	)
 
-	t.Logf("%0x\n", txTriggerPath)
-	t.Logf("%0x\n", txTriggerRLP)
-	t.Logf("%0x\n", txTriggerProofArr)
-	t.Logf("%0x\n", receiptTrigger)
-	t.Logf("%0x\n", receiptTriggerProofArr)
-	t.Logf("%0x\n", triggerCalledBy)
-
 	blockchain.Commit()
 	verifyAndExecuteFunctionReceipt, err := bind.WaitMined(ctx, blockchain, txVerifyAndExecuteFunction)
 	if err != nil || verifyAndExecuteFunctionReceipt.Status == 0 {
 		t.Logf("\n\n%#v\n\n%#v\n", txTrigger, verifyAndExecuteFunctionReceipt)
 		t.Fatal("ERROR while waiting for contract deployment", err)
 	}
+
+	// TODO check logs to confirm executed
+	//t.Logf("verifyAndExecuteFunctionReceipt: %#v\n", verifyAndExecuteFunctionReceipt.Logs)
 
 	//blockchain.Commit()
 	//<-contractChan // PatriciaTrie libraryContractInstance
