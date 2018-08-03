@@ -156,7 +156,7 @@ func TestVerifyTx(t *testing.T) {
 	clientRPC := ClientRPC(urlEventChain)
 	defer clientRPC.Close()
 
-	blockNumberStr, _, err := BlockNumberByTransactionHash(ctx, clientRPC, txHashWithEvent)
+	blockNumberStr, txTrigger, err := BlockNumberByTransactionHash(ctx, clientRPC, txHashWithEvent)
 	if err != nil {
 		t.Fatal("ERROR couldn't find block by tx hash: ", err)
 	}
@@ -304,9 +304,73 @@ func TestVerifyTx(t *testing.T) {
 		t.Fatal("ERROR while waiting for contract deployment", err)
 	}
 
+	// ---------------------------------------------
+	// COMPILE AND DEPLOY TRIGGER VERIFIER AND CONSUMER FUNCTION
+	// ---------------------------------------------
+	contractChan = CompileAndDeployTriggerVerifierAndConsumerFunction(
+		ctx,
+		blockchain,
+		userKey,
+		ionContractInstance.Address,
+	)
+	blockchain.Commit()
+	<-contractChan // triggerEventVerifierContractInstance := <-contractChan
+	blockchain.Commit()
+	consumerFunctionContractInstance := <-contractChan
+
+	// ---------------------------------------------
+	// FIXME
+	// VERIFY FUNCTION EXECUITION
+	// let tx = await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY);
+	// ---------------------------------------------
+	txTriggerPath := []byte{0x13} // SHOULD SOMEHOW BE DYNAMIC!
+	txTriggerRLP, _ := rlp.EncodeToBytes(txTrigger)
+	txTriggerProofArr := Proof(txTrie, txTriggerPath[:])
+	receiptTrigger, _ := rlp.EncodeToBytes(blockReceipts[0x13])
+	receiptTriggerProofArr := Proof(receiptTrie, txTriggerPath[:])
+
+	// get tx sender TODO!!!
+
+	triggerCalledBy := userAddr
+
+	txVerifyAndExecuteFunction := TransactionContract(
+		ctx,
+		blockchain,
+		userKey,
+		consumerFunctionContractInstance.Contract,
+		consumerFunctionContractInstance.Address,
+		nil,
+		uint64(3000000),
+		"verifyAndExecute",
+		testChainID,
+		blockHash,
+		txTrigger.To(),         // TRIG_DEPLOYED_RINKEBY_ADDR,
+		txTriggerPath,          // TEST_PATH,
+		txTriggerRLP,           // TEST_TX_VALUE,
+		txTriggerProofArr,      // TEST_TX_NODES,
+		receiptTrigger,         // TEST_RECEIPT_VALUE,
+		receiptTriggerProofArr, // TEST_RECEIPT_NODES,
+		triggerCalledBy,        // TRIG_CALLED_BY,
+	)
+
+	t.Logf("%0x\n", txTriggerPath)
+	t.Logf("%0x\n", txTriggerRLP)
+	t.Logf("%0x\n", txTriggerProofArr)
+	t.Logf("%0x\n", receiptTrigger)
+	t.Logf("%0x\n", receiptTriggerProofArr)
+	t.Logf("%0x\n", triggerCalledBy)
+
+	blockchain.Commit()
+	verifyAndExecuteFunctionReceipt, err := bind.WaitMined(ctx, blockchain, txVerifyAndExecuteFunction)
+	if err != nil || verifyAndExecuteFunctionReceipt.Status == 0 {
+		t.Logf("\n\n%#v\n\n%#v\n", txTrigger, verifyAndExecuteFunctionReceipt)
+		t.Fatal("ERROR while waiting for contract deployment", err)
+	}
+
+	//blockchain.Commit()
+	//<-contractChan // PatriciaTrie libraryContractInstance
+
 	// ====================================================================================================
 	// TODO
-	// let tx = await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH);
-	// let tx = await ion.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, "0x"+nodes.toString('hex'), TEST_PATH);
 	// let tx = await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY);
 }

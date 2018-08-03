@@ -333,3 +333,83 @@ func CompileAndDeployValidation(
 
 	return resChan
 }
+
+// CompileAndDeployTriggerVerifierAndConsumerFunction method
+func CompileAndDeployTriggerVerifierAndConsumerFunction(
+	ctx context.Context,
+	client bind.ContractTransactor,
+	userKey *ecdsa.PrivateKey,
+	ionContractAddress common.Address,
+) <-chan ContractInstance {
+	// ---------------------------------------------
+	// COMPILE VALIDATION AND DEPENDENCIES
+	// ---------------------------------------------
+	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
+	triggerEventVerifierContractPath := basePath + "TriggerEventVerifier.sol"
+	consumerFunctionContractPath := basePath + "Function.sol"
+
+	contracts, err := compiler.CompileSolidity("", consumerFunctionContractPath, triggerEventVerifierContractPath)
+	if err != nil {
+		log.Fatal("ERROR failed to compile Ion.sol:", err)
+	}
+
+	triggerEventVerifierContract := contracts[triggerEventVerifierContractPath+":TriggerEventVerifier"]
+	triggerEventVerifierBinStr, triggerEventVerifierABIStr := getContractBytecodeAndABI(triggerEventVerifierContract)
+	consumerFunctionContract := contracts[consumerFunctionContractPath+":Function"]
+	consumerFunctionBinStr, consumerFunctionABIStr := getContractBytecodeAndABI(consumerFunctionContract)
+
+	// ---------------------------------------------
+	// DEPLOY TRIGGER EVENT CONTRACT
+	// ---------------------------------------------
+	triggerEventSignedTx := compileAndDeployContract(
+		ctx,
+		client,
+		userKey,
+		triggerEventVerifierBinStr,
+		triggerEventVerifierABIStr,
+		nil,
+		uint64(3000000),
+	)
+
+	resChan := make(chan ContractInstance)
+
+	// Go-Routine that waits for PatriciaTrie Library and Ion Contract to be deployed
+	// Ion depends on PatriciaTrie library
+	go func() {
+		defer close(resChan)
+		deployBackend := client.(bind.DeployBackend)
+
+		// wait for trigger event contract to be deployed
+		triggerEventAddr, err := bind.WaitDeployed(ctx, deployBackend, triggerEventSignedTx)
+		if err != nil {
+			log.Fatal("ERROR while waiting for contract deployment")
+		}
+
+		// ---------------------------------------------
+		// DEPLOY CONSUMER FUNCTION CONTRACT
+		// ---------------------------------------------
+		consumerFunctionSignedTx := compileAndDeployContract(
+			ctx,
+			client,
+			userKey,
+			consumerFunctionBinStr,
+			consumerFunctionABIStr,
+			nil,
+			uint64(3000000),
+			ionContractAddress,
+			triggerEventAddr,
+		)
+
+		resChan <- ContractInstance{triggerEventVerifierContract, triggerEventAddr}
+
+		// wait for consumer function contract to be deployed
+		consumerFunctionAddr, err := bind.WaitDeployed(ctx, deployBackend, consumerFunctionSignedTx)
+		if err != nil {
+			log.Fatal("ERROR while waiting for contract deployment")
+		}
+
+		resChan <- ContractInstance{consumerFunctionContract, consumerFunctionAddr}
+	}()
+
+	return resChan
+}
