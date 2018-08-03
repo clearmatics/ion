@@ -3,7 +3,6 @@ package ionflow
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"log"
 	"math/big"
 	"testing"
@@ -198,7 +197,7 @@ func TestVerifyTx(t *testing.T) {
 	// ---------------------------------------------
 	// REGISTER CHAIN ON ION
 	// ---------------------------------------------
-	var validationContractAddr [32]byte
+	var validationContractAddr [20]byte
 	copy(validationContractAddr[:], validationContractInstance.Address.Bytes())
 	txRegisterChainIon := TransactionContract(
 		ctx,
@@ -272,9 +271,7 @@ func TestVerifyTx(t *testing.T) {
 	}
 
 	// ---------------------------------------------
-	// FIXME
 	// CHECK ROOTS PROOF ON ION
-	// let tx = await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES);
 	// ---------------------------------------------
 	blockHash := block.Hash()
 	txTrie := TxTrie(block.Transactions())
@@ -303,15 +300,6 @@ func TestVerifyTx(t *testing.T) {
 
 	blockchain.Commit()
 	chackRootsProofIonReceipt, err := bind.WaitMined(ctx, blockchain, checkRootsProofIon)
-
-	t.Logf("Block Hash: % 0x\n", blockHash)
-	t.Logf("Block Transactions RLP: %0x\n", txProofArr)
-	t.Logf("Block Receipts RLP: %0x\n", receiptProofArr)
-	reJSON, _ := json.Marshal(chackRootsProofIonReceipt)
-	t.Logf("%#v\n", chackRootsProofIonReceipt)
-	t.Logf("Receipt JSON: %s\n", reJSON)
-	t.Logf("Gas Used: %d\n", chackRootsProofIonReceipt.GasUsed)
-
 	if err != nil || chackRootsProofIonReceipt.Status == 0 {
 		t.Fatal("ERROR while waiting for contract deployment", err)
 	}
