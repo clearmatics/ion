@@ -10,15 +10,15 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-func InitClient(addr string) (clientTo *ethclient.Client) {
-	// Connect to the RPC Client
-	clientTo, err := ethclient.Dial(addr)
-	if err != nil {
-		log.Fatalf("could not create RPC client: %v", err)
-	}
+// func InitClient(addr string) (clientTo *ethclient.Client) {
+// 	// Connect to the RPC Client
+// 	clientTo, err := ethclient.Dial(addr)
+// 	if err != nil {
+// 		log.Fatalf("could not create RPC client: %v", err)
+// 	}
 
-	return
-}
+// 	return
+// }
 
 func InitIon(setup Setup, client *ethclient.Client) (Ion *contract.Ion) {
 	// Initialise the contract

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/clearmatics/ion/ion-cli/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,7 +21,7 @@ import (
 // avoid having to get data from Rinkeby, make it deploy a trigger function into a PoA chain
 
 // TestVerifyTx test for the full flow of Ion
-func TestVerifyTx(t *testing.T) {
+func Test_VerifyTx(t *testing.T) {
 	ctx := context.Background()
 
 	// ---------------------------------------------
@@ -51,10 +52,10 @@ func TestVerifyTx(t *testing.T) {
 	// GET BLOCK WITH EVENT FROM RINKEBY CHAIN
 	// ---------------------------------------------
 
-	clientRPC := ClientRPC(urlEventChain)
+	clientRPC := utils.ClientRPC(urlEventChain)
 	defer clientRPC.Close()
 
-	blockNumberStr, txTrigger, err := BlockNumberByTransactionHash(ctx, clientRPC, txHashWithEvent)
+	blockNumberStr, txTrigger, err := utils.BlockNumberByTransactionHash(ctx, clientRPC, txHashWithEvent)
 	if err != nil {
 		t.Fatal("ERROR couldn't find block by tx hash: ", err)
 	}
@@ -152,14 +153,14 @@ func TestVerifyTx(t *testing.T) {
 	// CHECK ROOTS PROOF ON ION
 	// ---------------------------------------------
 	blockHash := block.Hash()
-	txTrie := TxTrie(block.Transactions())
-	blockReceipts := GetBlockTxReceipts(client, block)
-	receiptTrie := ReceiptTrie(blockReceipts)
+	txTrie := utils.TxTrie(block.Transactions())
+	blockReceipts := utils.GetBlockTxReceipts(client, block)
+	receiptTrie := utils.ReceiptTrie(blockReceipts)
 
 	txKey := []byte{0x01}
-	txProofArr := Proof(txTrie, txKey)
+	txProofArr := utils.Proof(txTrie, txKey)
 	receiptKey := []byte{0x01}
-	receiptProofArr := Proof(receiptTrie, receiptKey)
+	receiptProofArr := utils.Proof(receiptTrie, receiptKey)
 
 	checkRootsProofIon := TransactionContract(
 		ctx,
@@ -201,9 +202,9 @@ func TestVerifyTx(t *testing.T) {
 	// ---------------------------------------------
 	txTriggerPath := []byte{0x13} // SHOULD SOMEHOW BE DYNAMIC!
 	txTriggerRLP, _ := rlp.EncodeToBytes(txTrigger)
-	txTriggerProofArr := Proof(txTrie, txTriggerPath[:])
+	txTriggerProofArr := utils.Proof(txTrie, txTriggerPath[:])
 	receiptTrigger, _ := rlp.EncodeToBytes(blockReceipts[0x13])
-	receiptTriggerProofArr := Proof(receiptTrie, txTriggerPath[:])
+	receiptTriggerProofArr := utils.Proof(receiptTrie, txTriggerPath[:])
 	triggerCalledBy, _ := types.Sender(signer, txTrigger)
 
 	txVerifyAndExecuteFunction := TransactionContract(

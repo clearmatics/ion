@@ -280,6 +280,21 @@ func CompileAndDeployIon(
 	return resChan
 }
 
+func CompileContract(contract string) (contracts map[string]*compiler.Contract) {
+	// ---------------------------------------------
+	// COMPILE VALIDATION AND DEPENDENCIES
+	// ---------------------------------------------
+	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
+	contractPath := basePath + contract
+
+	contracts, err := compiler.CompileSolidity("", contractPath)
+	if err != nil {
+		log.Fatal("ERROR failed to compile contract:", err)
+	}
+
+	return
+}
+
 // CompileAndDeployValidation method
 func CompileAndDeployValidation(
 	ctx context.Context,

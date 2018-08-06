@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/clearmatics/ion/ion-cli/ionflow"
 	"github.com/clearmatics/ion/ion-cli/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +24,7 @@ func Test_GenerateProof(t *testing.T) {
 	TXHASH, _ := utils.StringToBytes32("afc3ab60059ed38e71c7f6bea036822abe16b2c02fcf770a4f4b5fffcbfe6e7e")
 
 	// Connect to the RPC Client
-	client := ionflow.ClientRPC("https://rinkeby.infura.io")
+	client := utils.ClientRPC("https://rinkeby.infura.io")
 	defer client.Close()
 
 	PATH, TX_VALUE, TX_NODES, RECEIPT_VALUE, RECEIPT_NODES := utils.GenerateProof(ctx, client, TXHASH)

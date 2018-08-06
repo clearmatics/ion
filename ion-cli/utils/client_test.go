@@ -1,9 +1,11 @@
-package ionflow
+package utils_test
 
 import (
 	"context"
 	"math/big"
 	"testing"
+
+	"github.com/clearmatics/ion/ion-cli/utils"
 )
 
 const URL = "https://mainnet.infura.io"
@@ -11,14 +13,14 @@ const URL = "https://mainnet.infura.io"
 // NOTE: This tests depend on an external network (not really good)
 
 func TestClient(t *testing.T) {
-	client := Client(URL)
+	client := utils.Client(URL)
 	client.Close()
 }
 
 func TestGetReceipts(t *testing.T) {
 	expectedTotalReceipts := 92
 
-	client := Client(URL)
+	client := utils.Client(URL)
 	defer client.Close()
 
 	blockNumber := big.NewInt(6021002)
@@ -27,7 +29,7 @@ func TestGetReceipts(t *testing.T) {
 		t.Error(err)
 	}
 
-	receiptArr := GetBlockTxReceipts(client, block)
+	receiptArr := utils.GetBlockTxReceipts(client, block)
 
 	if len(receiptArr) != expectedTotalReceipts {
 		t.Errorf("Got %d receipts and expected %d receipts!\n", len(receiptArr), expectedTotalReceipts)
@@ -35,7 +37,7 @@ func TestGetReceipts(t *testing.T) {
 }
 
 func TestBlockNumberByTransactionHash(t *testing.T) {
-	client := Client(URL)
+	client := utils.Client(URL)
 	defer client.Close()
 
 	blockNumber := big.NewInt(6021002)
@@ -48,10 +50,10 @@ func TestBlockNumberByTransactionHash(t *testing.T) {
 	txHash := tx.Hash()
 
 	// needs to use the ClientRPC because we make the request directly to the RPC in order to get the blocknumber
-	clientRPC := ClientRPC(URL)
+	clientRPC := utils.ClientRPC(URL)
 	defer clientRPC.Close()
 
-	bNumber, _, err := BlockNumberByTransactionHash(context.Background(), clientRPC, txHash)
+	bNumber, _, err := utils.BlockNumberByTransactionHash(context.Background(), clientRPC, txHash)
 	if err != nil {
 		t.Fatal(err)
 	}
