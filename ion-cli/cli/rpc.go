@@ -65,10 +65,6 @@ func getBlock(client *ethclient.Client, block string) {
 	fmt.Println(string(b))
 }
 
-func generateProof() {
-
-}
-
 // func calculateRlpEncoding(client *ethclient.Client, block string) {
 func calculateRlpEncoding(client *ethclient.Client, block string) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
 	// var blockHeader header

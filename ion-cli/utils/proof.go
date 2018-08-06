@@ -1,4 +1,4 @@
-package cli
+package utils
 
 import (
 	"bytes"
@@ -8,12 +8,31 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/maxrobot/go-ethereum/crypto"
 )
+
+type rpcTransaction struct {
+	tx *types.Transaction
+	txExtraInfo
+}
+
+type txExtraInfo struct {
+	BlockNumber *string         `json:"blockNumber,omitempty"`
+	BlockHash   *common.Hash    `json:"blockHash,omitempty"`
+	From        *common.Address `json:"from,omitempty"`
+}
+
+func GenerateProof(client *ethclient.Client, txHash common.Hash) {
+	// blockNumberStr, _, err := BlockNumberByTransactionHash(context.Background(), client, txHash)
+	tx, block, _ := client.TransactionByHash(context.Background(), txHash)
+	fmt.Printf("%x\t%x\n", tx, block)
+
+}
 
 // GenerateTxProof takes a transaction and block, returns the trie root, tx index and proof path
 func GenerateTxProof(client *ethclient.Client, transaction string, blockNum string) (root common.Hash, txIdx []byte, leaf []byte, proof *ethdb.MemDatabase) {
