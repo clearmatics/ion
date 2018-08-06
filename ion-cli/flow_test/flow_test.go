@@ -172,7 +172,8 @@ func TestVerifyTx(t *testing.T) {
 	// CHECK ROOTS PROOF ON ION
 	// ---------------------------------------------
 	blockHash := block.Hash()
-	txTrie := TxTrie(block.Transactions())
+	blockTransactions := block.Transactions()
+	txTrie := TxTrie(blockTransactions)
 	blockReceipts := GetBlockTxReceipts(client, block)
 	receiptTrie := ReceiptTrie(blockReceipts)
 
@@ -219,10 +220,17 @@ func TestVerifyTx(t *testing.T) {
 	// ---------------------------------------------
 	// VERIFY FUNCTION EXECUITION
 	// ---------------------------------------------
-	txTriggerPath := []byte{0x13} // SHOULD SOMEHOW BE DYNAMIC!
+	var txTriggerIdx uint8
+	for idx, tx := range blockTransactions {
+		if txHashWithEvent == tx.Hash() {
+			txTriggerIdx = uint8(idx)
+			break
+		}
+	}
+	txTriggerPath := []byte{txTriggerIdx}
 	txTriggerRLP, _ := rlp.EncodeToBytes(txTrigger)
 	txTriggerProofArr := Proof(txTrie, txTriggerPath[:])
-	receiptTrigger, _ := rlp.EncodeToBytes(blockReceipts[0x13])
+	receiptTrigger, _ := rlp.EncodeToBytes(blockReceipts[txTriggerIdx])
 	receiptTriggerProofArr := Proof(receiptTrie, txTriggerPath[:])
 	triggerCalledBy, _ := types.Sender(signer, txTrigger)
 
