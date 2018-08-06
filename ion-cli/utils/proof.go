@@ -1,19 +1,16 @@
 package utils
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 
+	"github.com/clearmatics/ion/ion-cli/ionflow"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/maxrobot/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 type rpcTransaction struct {
@@ -27,127 +24,41 @@ type txExtraInfo struct {
 	From        *common.Address `json:"from,omitempty"`
 }
 
-func GenerateProof(client *ethclient.Client, txHash common.Hash) {
-	// blockNumberStr, _, err := BlockNumberByTransactionHash(context.Background(), client, txHash)
-	tx, block, _ := client.TransactionByHash(context.Background(), txHash)
-	fmt.Printf("%x\t%x\n", tx, block)
-
-}
-
-// GenerateTxProof takes a transaction and block, returns the trie root, tx index and proof path
-func GenerateTxProof(client *ethclient.Client, transaction string, blockNum string) (root common.Hash, txIdx []byte, leaf []byte, proof *ethdb.MemDatabase) {
-	// Select a specific block
-	blockNumber := new(big.Int)
-	blockNumber.SetString(blockNum, 10)
-
-	// Fetch header of block num
-	header, err := client.HeaderByNumber(context.Background(), blockNumber)
+func GenerateProof(ctx context.Context, client *rpc.Client, txHash common.Hash) (txTriggerPath []byte, txTriggerRLP []byte, txTriggerProofArr []byte, receiptTrigger []byte, receiptTriggerProofArr []byte) {
+	blockNumberStr, txTrigger, err := ionflow.BlockNumberByTransactionHash(ctx, client, txHash)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error: couldn't find block by tx hash: %s\n", err)
 	}
 
-	// Fetch block of block num
-	block, err := client.BlockByNumber(context.Background(), header.Number)
+	// Convert returned blocknumber
+	var blockNumber big.Int
+	blockNumber.SetString((*blockNumberStr)[2:], 16)
+
+	clientETH := ethclient.NewClient(client)
+	eventTxBlockNumber := blockNumber
+	block, err := clientETH.BlockByNumber(ctx, &eventTxBlockNumber)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error: retrieving block: %s\n", err)
 	}
 
-	// Select a transaction, index should be 49
-	transx := block.Transaction(common.HexToHash(transaction))
+	var idx byte
+	tx := block.Transactions()
+	txTrie := ionflow.TxTrie(tx)
+	blockReceipts := ionflow.GetBlockTxReceipts(clientETH, block)
+	receiptTrie := ionflow.ReceiptTrie(blockReceipts)
 
-	// Generate the trie
-	trieObj := new(trie.Trie)
-	for idx, tx := range block.Transactions() {
-		rlpIdx, _ := rlp.EncodeToBytes(uint(idx))  // rlp encode index of transaction
-		rlpTransaction, _ := rlp.EncodeToBytes(tx) // rlp encode transaction
-
-		trieObj.Update(rlpIdx, rlpTransaction)
-
-		// Get the information about the transaction I care about...
-		if transx == tx {
-			txIdx = rlpIdx
-			leaf = rlpTransaction
+	// Calculate transaction index)
+	for i := 0; i < len(tx); i++ {
+		if txHash == tx[i].Hash() {
+			idx = byte(i)
 		}
-
 	}
 
-	root = trieObj.Hash()
-
-	// Generate a merkle proof for a key
-	proof = ethdb.NewMemDatabase()
-	trieObj.Prove(txIdx, 0, proof)
-	if proof == nil {
-		fmt.Printf("prover: nil proof")
-	}
+	txTriggerPath = append(txTriggerPath, idx)
+	txTriggerRLP, _ = rlp.EncodeToBytes(txTrigger)
+	txTriggerProofArr = ionflow.Proof(txTrie, txTriggerPath[:])
+	receiptTrigger, _ = rlp.EncodeToBytes(blockReceipts[txTriggerPath[0]])
+	receiptTriggerProofArr = ionflow.Proof(receiptTrie, txTriggerPath[:])
 
 	return
-}
-
-// VerifyTxProof takes a transaction and block, returns the trie root, tx index and proof path
-func VerifyTxProof(client *ethclient.Client, transaction string, blockNum string) {
-	// Select a specific block
-	blockNumber := new(big.Int)
-	blockNumber.SetString(blockNum, 10)
-
-	// Fetch header of block num
-	header, err := client.HeaderByNumber(context.Background(), blockNumber)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// assert.Equal(t, expectedBlockHash, header.Hash())
-
-	// Fetch block of block num
-	block, err := client.BlockByNumber(context.Background(), header.Number)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// assert.Equal(t, expectedBlockHash, block.Hash())
-
-	// Select a transaction, index should be 49
-	transx := block.Transaction(common.HexToHash(transaction))
-	var txIdx []byte
-	var leaf []byte
-	// fmt.Printf("\nTransaction:\n% 0x", transx.Hash().Bytes())
-
-	// Generate the trie
-	trieObj := new(trie.Trie)
-	for idx, tx := range block.Transactions() {
-		rlpIdx, _ := rlp.EncodeToBytes(uint(idx))  // rlp encode index of transaction
-		rlpTransaction, _ := rlp.EncodeToBytes(tx) // rlp encode transaction
-
-		trieObj.Update(rlpIdx, rlpTransaction)
-
-		txRlpHash := crypto.Keccak256Hash(rlpTransaction)
-
-		fmt.Printf("TxHash[%d]: \t% 0x\n\tHash(RLP(Tx)): \t% 0x\n",
-			idx, tx.Hash().Bytes(), txRlpHash.Bytes())
-
-		// Get the information about the transaction I care about...
-		if transx == tx {
-			txIdx = rlpIdx
-			leaf = rlpTransaction
-		}
-
-	}
-	root := trieObj.Hash()
-	expectedRoot := block.TxHash()
-
-	fmt.Printf("\nExpected Root:\t%x\nRecovered Root:\t%x\n", expectedRoot, root)
-
-	// Generate a merkle proof for a key
-	proof := ethdb.NewMemDatabase()
-	trieObj.Prove(txIdx, 0, proof)
-	if proof == nil {
-		fmt.Printf("prover: nil proof")
-	}
-
-	// Verify the proof
-	val, _, err := trie.VerifyProof(root, txIdx, proof)
-	if err != nil {
-		fmt.Printf("prover: failed to verify proof: %v\nraw proof: %x", err, proof)
-	}
-	if !bytes.Equal(val, leaf) {
-		fmt.Printf("prover: verified value mismatch: have %x, want 'k'", val)
-	}
-	fmt.Printf("\nVerified Value:\t%x\nExpected Leaf:\t%x\n", val, leaf)
 }

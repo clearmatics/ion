@@ -17,7 +17,7 @@ import (
 )
 
 // TODO
-// avoid having to get data from RInkeby, make it deploy a triger function into a PoA chain
+// avoid having to get data from Rinkeby, make it deploy a trigger function into a PoA chain
 
 // TestVerifyTx test for the full flow of Ion
 func TestVerifyTx(t *testing.T) {
@@ -66,7 +66,7 @@ func TestVerifyTx(t *testing.T) {
 	eventTxBlockNumber := blockNumber
 	block, err := client.BlockByNumber(ctx, &eventTxBlockNumber)
 	if err != nil {
-		t.Fatal("ERROR retriving block: ", err)
+		t.Fatal("ERROR retrieving block: ", err)
 	}
 
 	// ---------------------------------------------
@@ -76,7 +76,7 @@ func TestVerifyTx(t *testing.T) {
 	alloc[userAddr] = core.GenesisAccount{Balance: userIntialBalance}
 	blockchain := backends.NewSimulatedBackend(alloc)
 
-	// ---------------------------------------------
+	// ----txTrigger-----------------------------------------
 	// COMPILE AND DEPLOY ION
 	// ---------------------------------------------
 	contractChan := CompileAndDeployIon(ctx, blockchain, userKey, deployedChainID)
