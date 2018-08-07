@@ -136,19 +136,6 @@ func Test_VerifyTx(t *testing.T) {
 		unsignedBlockHeaderRLP,
 		signedBlockHeaderRLP,
 	)
-	// txSubmitBlockValidation := TransactionContract(
-	// 	ctx,
-	// 	blockchain,
-	// 	userKey,
-	// 	validationContractInstance.Contract,
-	// 	validationContractInstance.Address,
-	// 	nil,
-	// 	uint64(3000000),
-	// 	"SubmitBlock",
-	// 	testChainID,
-	// 	unsignedBlockHeaderRLP,
-	// 	signedBlockHeaderRLP,
-	// )
 
 	blockchain.Commit()
 	submitBlockValidationReceipt, err := bind.WaitMined(ctx, blockchain, txSubmitBlockValidation)
