@@ -1,4 +1,4 @@
-package ionflow
+package contract
 
 import (
 	"bytes"
@@ -61,7 +61,7 @@ func Test_RegisterChain(t *testing.T) {
 	// ---------------------------------------------
 	// HARD CODED DATA
 	// ---------------------------------------------
-	testValidators := [7]common.Hash{
+	testValidators := []common.Hash{
 		common.HexToHash("0x42eb768f2244c8811c63729a21a3569731535f06"),
 		common.HexToHash("0x6635f83421bf059cd8111f180f0727128685bae4"),
 		common.HexToHash("0x7ffc57839b00206d1ad20c69a1981b489f772031"),
@@ -100,20 +100,31 @@ func Test_RegisterChain(t *testing.T) {
 	copy(validationAddress[:], validationContractInstance.Address.Bytes())
 	copy(chainIDA[:], crypto.Keccak256Hash([]byte("TESTCHAINID")).Bytes())
 	deployedChainID := common.HexToHash("0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075")
-	txRegisterChain := TransactionContract(
+	txRegisterChain := RegisterChain(
 		ctx,
 		blockchain,
 		userAKey,
 		validationContractInstance.Contract,
 		validationContractInstance.Address,
-		nil,
-		uint64(3000000),
-		"RegisterChain",
 		chainIDA,
 		ionAddress,
 		testValidators,
 		deployedChainID,
 	)
+	// txRegisterChain := TransactionContract(
+	// 	ctx,
+	// 	blockchain,
+	// 	userAKey,
+	// 	validationContractInstance.Contract,
+	// 	validationContractInstance.Address,
+	// 	nil,
+	// 	uint64(3000000),
+	// 	"RegisterChain",
+	// 	chainIDA,
+	// 	ionAddress,
+	// 	testValidators,
+	// 	deployedChainID,
+	// )
 	blockchain.Commit()
 
 	registerChainReceipt, err := bind.WaitMined(ctx, blockchain, txRegisterChain)

@@ -1,4 +1,4 @@
-package ionflow
+package contract
 
 import (
 	"context"

@@ -9,7 +9,7 @@ import (
 
 	"github.com/clearmatics/ion/ion-cli/cli"
 	"github.com/clearmatics/ion/ion-cli/config"
-	"github.com/clearmatics/ion/ion-cli/ionflow"
+	contract "github.com/clearmatics/ion/ion-cli/contracts"
 	"github.com/clearmatics/ion/ion-cli/utils"
 )
 
@@ -21,17 +21,17 @@ func main() {
 	if *configFile != "" {
 		setup := config.ReadSetup(*configFile)
 
-		clientTo := utils.Client(setup.AddrTo)
-		clientFrom := utils.Client(setup.AddrFrom)
+		clientTo := utils.ClientRPC(setup.AddrTo)
+		clientFrom := utils.ClientRPC(setup.AddrFrom)
 
 		// Ion := ionflow.CompileContract("Ion.Sol")
-		Validation := ionflow.CompileContract("Validation.Sol")
+		Validation := contract.CompileContract("Validation.sol")
 		// Trigger := ionflow.CompileContract("Trigger.Sol")
 
 		printInfo(setup)
 
 		// Launch the CLI
-		cli.Launch(setup, clientFrom, Validation)
+		cli.Launch(setup, clientTo, clientFrom, Validation)
 	} else {
 		fmt.Print("Error: empty config!\n")
 		os.Exit(3)

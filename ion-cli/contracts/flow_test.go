@@ -1,4 +1,4 @@
-package ionflow
+package contract
 
 import (
 	"bytes"
@@ -27,7 +27,7 @@ func Test_VerifyTx(t *testing.T) {
 	// ---------------------------------------------
 	// HARD CODED DATA
 	// ---------------------------------------------
-	testValidators := [7]common.Hash{
+	testValidators := []common.Hash{
 		common.HexToHash("0x42eb768f2244c8811c63729a21a3569731535f06"),
 		common.HexToHash("0x6635f83421bf059cd8111f180f0727128685bae4"),
 		common.HexToHash("0x7ffc57839b00206d1ad20c69a1981b489f772031"),
@@ -100,15 +100,12 @@ func Test_VerifyTx(t *testing.T) {
 	copy(ionContractAddr[:], ionContractInstance.Address.Bytes())
 	var genesisHash [32]byte
 	copy(genesisHash[:], block.ParentHash().Bytes())
-	txRegisterChainValidation := TransactionContract(
+	txRegisterChainValidation := RegisterChain(
 		ctx,
 		blockchain,
 		userKey,
 		validationContractInstance.Contract,
 		validationContractInstance.Address,
-		nil,
-		uint64(3000000),
-		"RegisterChain",
 		testChainID,
 		ionContractAddr,
 		testValidators,

@@ -7,51 +7,45 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"net/rpc"
 	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/compiler"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/abiosoft/ishell"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/clearmatics/ion/ion-cli/config"
-	contract "github.com/clearmatics/ion/ion-cli/contracts"
 	"github.com/clearmatics/ion/ion-cli/utils"
 )
 
 // Launch - definition of commands and creates the iterface
-func Launch(setup config.Setup, clientFrom *rpc.Client, Validation *contract.Validation, Ion *contract.Ion, Trigger *contract.Trigger) {
+func Launch(setup config.Setup, clientTo *rpc.Client, clientFrom *rpc.Client, Validation map[string]*compiler.Contract) {
 	// by default, new shell includes 'exit', 'help' and 'clear' commands.
 	shell := ishell.New()
 
+	_ = ethclient.NewClient(clientTo)
+	// ethclientTo := ethclient.NewClient(clientTo)
+	ethclientFrom := ethclient.NewClient(clientFrom)
+
 	// Get a suggested gas price
-	gasPrice, err := clientFrom.SuggestGasPrice(context.Background())
+	gasPrice, err := ethclientFrom.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Create an authorized transactor and spend 1 unicorn
-	keyTo := config.ReadString(setup.KeystoreTo)
-	authTo, err := bind.NewTransactor(strings.NewReader(keyTo), "password1")
-	if err != nil {
-		log.Fatalf("Failed to create authorized transactor: %v", err)
-	}
-	authTo.Value = big.NewInt(0) // in wei
-	authTo.From = common.HexToAddress(setup.AccountTo)
+	// Create an authorized transactor and corrsponding privateKey
+	authTo, _ := config.InitUser(setup.KeystoreTo, "password1")
+	authTo.Value = big.NewInt(0)     // in wei
 	authTo.GasLimit = uint64(100000) // in units
 	authTo.GasPrice = gasPrice
 
 	// Create an authorized transactor and spend 1 unicorn
-	keyFrom := config.ReadString(setup.KeystoreFrom)
-	authFrom, err := bind.NewTransactor(strings.NewReader(keyFrom), "password1")
-	if err != nil {
-		log.Fatalf("Failed to create authorized transactor: %v", err)
-	}
-	authFrom.Value = big.NewInt(0)                         // in wei
-	authFrom.From = common.HexToAddress(setup.AccountFrom) // in wei
-	authFrom.GasLimit = uint64(100000)                     // in units
+	authFrom, _ := config.InitUser(setup.KeystoreFrom, "password1")
+	authFrom.Value = big.NewInt(0)     // in wei
+	authFrom.GasLimit = uint64(100000) // in units
 	authFrom.GasPrice = gasPrice
 
 	//---------------------------------------------------------------------------------------------
@@ -65,7 +59,7 @@ func Launch(setup config.Setup, clientFrom *rpc.Client, Validation *contract.Val
 			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrFrom)
 			c.Println("Get latest block number:")
-			lastBlock := latestBlock(clientFrom)
+			lastBlock := latestBlock(ethclientFrom)
 			c.Printf("latest block: %v\n", lastBlock.Number)
 
 			c.Println("===============================================================")
@@ -83,7 +77,7 @@ func Launch(setup config.Setup, clientFrom *rpc.Client, Validation *contract.Val
 			} else if len(c.Args) > 1 {
 				c.Println("Only enter single argument")
 			} else {
-				getBlock(clientFrom, c.Args[0])
+				getBlock(ethclientFrom, c.Args[0])
 			}
 			c.Println("===============================================================")
 		},
@@ -92,7 +86,6 @@ func Launch(setup config.Setup, clientFrom *rpc.Client, Validation *contract.Val
 	//---------------------------------------------------------------------------------------------
 	// 	Validation Specific Commands
 	//---------------------------------------------------------------------------------------------
-
 	shell.AddCmd(&ishell.Cmd{
 		Name: "registerChainValidation",
 		Help: "use: registerChainValidation \n\t\t\t\tdescription: Register new chain with validation contract",
@@ -128,7 +121,7 @@ func Launch(setup config.Setup, clientFrom *rpc.Client, Validation *contract.Val
 			}
 
 			ionAddress := common.HexToAddress(setup.Ion)
-			tx, err := Validation.RegisterChain(authTo, bytesChainId, ionAddress, validators, bytesGenesis)
+			tx, err := contract.RegisterChain(authTo, keyTo, bytesChainId, ionAddress, validators, bytesGenesis)
 			if err != nil {
 				c.Printf("Error: %s", err)
 				return
