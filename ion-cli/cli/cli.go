@@ -40,13 +40,13 @@ func Launch(setup config.Setup, clientTo *rpc.Client, clientFrom *rpc.Client, Va
 	}
 
 	// Create an authorized transactor and corrsponding privateKey
-	authTo, keyTo := config.InitUser(setup.KeystoreTo, "password1")
+	authTo, keyTo := config.InitUser(setup.KeystoreTo, setup.PasswordTo)
 	authTo.Value = big.NewInt(0)     // in wei
 	authTo.GasLimit = uint64(100000) // in units
 	authTo.GasPrice = gasPrice
 
 	// Create an authorized transactor and spend 1 unicorn
-	authFrom, _ := config.InitUser(setup.KeystoreFrom, "password1")
+	authFrom, _ := config.InitUser(setup.KeystoreFrom, setup.PasswordFrom)
 	authFrom.Value = big.NewInt(0)     // in wei
 	authFrom.GasLimit = uint64(100000) // in units
 	authFrom.GasPrice = gasPrice
@@ -143,6 +143,46 @@ func Launch(setup config.Setup, clientTo *rpc.Client, clientFrom *rpc.Client, Va
 		},
 	})
 
+	shell.AddCmd(&ishell.Cmd{
+		Name: "submitBlockValidation",
+		Help: "use: submitBlockValidation [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
+		Func: func(c *ishell.Context) {
+			c.Println("===============================================================")
+			c.ShowPrompt(false)
+			defer c.ShowPrompt(true) // yes, revert after login.
+
+			// Get the chainId
+			bytesChainId, err := utils.StringToBytes32(setup.ChainId)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+
+			// Get the block number
+			c.Print("Enter Block Number: ")
+			blockNum := c.ReadLine()
+			c.Printf("RLP encode block:\nNumber:\t\t%s", blockNum)
+
+			signedBlock, unsignedBlock := calculateRlpEncoding(ethclientFrom, blockNum)
+			tx := contract.SubmitBlock(
+				ctx,
+				ethclientTo,
+				keyTo.PrivateKey,
+				Validation,
+				common.HexToAddress(setup.Validation),
+				bytesChainId,
+				unsignedBlock,
+				signedBlock,
+			)
+			if err != nil {
+				c.Printf("Error: %s", err)
+				return
+			}
+			c.Printf("\nTransaction Result:\n%x\n", tx)
+			c.Println("===============================================================")
+		},
+	})
+
 	// shell.AddCmd(&ishell.Cmd{
 	// 	Name: "checkBlockValidation",
 	// 	Help: "use: checkBlockValidation [blockHash]\n\t\t\t\tdescription: Returns true for validated blocks",
@@ -176,37 +216,6 @@ func Launch(setup config.Setup, clientTo *rpc.Client, clientFrom *rpc.Client, Va
 	// 		c.Println("Checking for valid block:")
 	// 		c.Printf("ChainId:\t%x\nBlockHash:\t%x\nValid:\t\t%v\n", bytesChainId, bytesBlockHash, result)
 
-	// 		c.Println("===============================================================")
-	// 	},
-	// })
-
-	// shell.AddCmd(&ishell.Cmd{
-	// 	Name: "submitBlockValidation",
-	// 	Help: "use: submitBlockValidation [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
-	// 	Func: func(c *ishell.Context) {
-	// 		c.Println("===============================================================")
-	// 		c.ShowPrompt(false)
-	// 		defer c.ShowPrompt(true) // yes, revert after login.
-
-	// 		// Get the chainId
-	// 		bytesChainId, err := utils.StringToBytes32(setup.ChainId)
-	// 		if err != nil {
-	// 			c.Printf("Error: %s", err)
-	// 			return
-	// 		}
-
-	// 		// Get the block number
-	// 		c.Print("Enter Block Number: ")
-	// 		blockNum := c.ReadLine()
-	// 		c.Printf("RLP encode block:\nNumber:\t\t%s", blockNum)
-
-	// 		signedBlock, unsignedBlock := calculateRlpEncoding(clientFrom, blockNum)
-	// 		res, err := Validation.SubmitBlock(authTo, bytesChainId, unsignedBlock, signedBlock)
-	// 		if err != nil {
-	// 			c.Printf("Error: %s", err)
-	// 			return
-	// 		}
-	// 		c.Printf("\nTransaction Hash:\n0x%x\n", res.Hash())
 	// 		c.Println("===============================================================")
 	// 	},
 	// })

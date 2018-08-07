@@ -17,9 +17,11 @@ import (
 type Setup struct {
 	AddrTo       string `json:"rpc-to"`
 	AccountTo    string `json:"account-to"`
+	PasswordTo   string `json:"password-to"`
 	KeystoreTo   string `json:"keystore-to"`
 	AddrFrom     string `json:"rpc-from"`
 	AccountFrom  string `json:"account-from"`
+	PasswordFrom string `json:"password-from"`
 	KeystoreFrom string `json:"keystore-from"`
 	ChainId      string `json:"validation-chainid"`
 	Validation   string `json:"validation-addr"`

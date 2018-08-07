@@ -6,7 +6,7 @@ const Web3Utils = require('web3-utils');
 const merkle = require('./helpers/merkle.js')
 
 contract('Merkle.js', () => {
-  it('test JS Merkle', () => {
+  it('Merkle Proof', () => {
 
     const testData = ["1","2","3","4","5","6","7"]
 

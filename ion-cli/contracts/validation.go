@@ -10,13 +10,23 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-func RegisterChain(ctx context.Context, backend bind.ContractBackend, userKey *ecdsa.PrivateKey, contract *compiler.Contract, to common.Address, chainId common.Hash, ionAddr common.Address, validators []common.Address, registerHash common.Hash) (tx *types.Transaction) {
+func RegisterChain(
+	ctx context.Context,
+	backend bind.ContractBackend,
+	userKey *ecdsa.PrivateKey,
+	contract *compiler.Contract,
+	toAddr common.Address,
+	chainId common.Hash,
+	ionAddr common.Address,
+	validators []common.Address,
+	registerHash common.Hash,
+) (tx *types.Transaction) {
 	tx = TransactionContract(
 		ctx,
 		backend,
 		userKey,
 		contract,
-		to,
+		toAddr,
 		nil,
 		uint64(3000000),
 		"RegisterChain",
@@ -26,5 +36,31 @@ func RegisterChain(ctx context.Context, backend bind.ContractBackend, userKey *e
 		registerHash,
 	)
 
+	return
+}
+
+func SubmitBlock(
+	ctx context.Context,
+	backend bind.ContractBackend,
+	userKey *ecdsa.PrivateKey,
+	contract *compiler.Contract,
+	toAddr common.Address,
+	chainId common.Hash,
+	unsignedBlockHeaderRLP []byte,
+	signedBlockHeaderRLP []byte,
+) (tx *types.Transaction) {
+	tx = TransactionContract(
+		ctx,
+		backend,
+		userKey,
+		contract,
+		toAddr,
+		nil,
+		uint64(3000000),
+		"SubmitBlock",
+		chainId,
+		unsignedBlockHeaderRLP,
+		signedBlockHeaderRLP,
+	)
 	return
 }
