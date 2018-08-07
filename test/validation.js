@@ -54,19 +54,20 @@ contract('Validation.js', (accounts) => {
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
 
-  it('Test: Deploy Contract', async () => {
+  it('Deploy Contract', async () => {
     const validation = await Validation.new(DEPLOYEDCHAINID);
     let chainId = await validation.chainId();
 
     assert.equal(chainId, DEPLOYEDCHAINID);
   })
 
-  it('Test: Register Chain', async () => {
+  it('Register Chain', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
     // Successfully add id of another chain
-    await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
+    let tx = await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
+    console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
     let chain = await validation.chains(TESTCHAINID);
 
     assert.equal(chain, true);
@@ -78,7 +79,7 @@ contract('Validation.js', (accounts) => {
     await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH).should.be.rejected;
   })
 
-  it('Test: Register Chain - Check Validators', async () => {
+  it('Register Chain - Check Validators', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
@@ -90,7 +91,7 @@ contract('Validation.js', (accounts) => {
   })
 
 
-  it('Test: Register Chain - Check Genesis Hash', async () => {
+  it('Register Chain - Check Genesis Hash', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
@@ -104,7 +105,7 @@ contract('Validation.js', (accounts) => {
 ;
 })
 
-  it('Test: Authentic Submission Happy Path - SubmitBlock()', async () => {
+  it('Authentic Submission Happy Path - SubmitBlock()', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
@@ -166,6 +167,7 @@ contract('Validation.js', (accounts) => {
     const validationReceipt = await validation.SubmitBlock(TESTCHAINID, encodedUnsignedHeader, encodedSignedHeader);
     const recoveredBlockHash = await validationReceipt.logs[0].args['blockHash'];
     assert.equal(signedHeaderHash, recoveredBlockHash);
+    console.log("\tGas used to submit block = " + validationReceipt.receipt.gasUsed.toString() + " gas");
 
     let blockHash = await validation.m_blockhashes(TESTCHAINID, block.hash);
     assert.equal(blockHash, true);
@@ -180,7 +182,7 @@ contract('Validation.js', (accounts) => {
   })
 
   // Here the block header is signed off chain but by a whitelisted validator
-  it('Test: Authentic Submission Off-Chain Signature - SubmitBlock()', async () => {
+  it('Authentic Submission Off-Chain Signature - SubmitBlock()', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
@@ -291,7 +293,7 @@ contract('Validation.js', (accounts) => {
   })
 
   // Here the block header is signed off chain but by a whitelisted validator who alters the block
-  it('Test: Inauthentic Block Submission - SubmitBlock()', async () => {
+  it('Inauthentic Block Submission - SubmitBlock()', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
@@ -413,7 +415,7 @@ contract('Validation.js', (accounts) => {
   })
 
   // Here the block header is signed off chain but by a a non-whitelisted validator
-  it('Test: Fail Submit Block unkown validator - SubmitBlock()', async () => {
+  it('Fail Submit Block unkown validator - SubmitBlock()', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
@@ -510,7 +512,7 @@ contract('Validation.js', (accounts) => {
 
   })
 
-  it('Test: Fail Submit Block from unknown chain - SubmitBlock()', async () => {
+  it('Fail Submit Block from unknown chain - SubmitBlock()', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 
@@ -573,7 +575,7 @@ contract('Validation.js', (accounts) => {
     
   })
 
-  it('Test: Fail Submit Block with wrong unsigned header - SubmitBlock()', async () => {
+  it('Fail Submit Block with wrong unsigned header - SubmitBlock()', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
     const validation = await Validation.new(DEPLOYEDCHAINID);
 

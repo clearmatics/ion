@@ -21,7 +21,6 @@ matrix:
         - go get -t ./...
         - make build
         - make test
-        - make integration-test
 
 notifications:
   slack:

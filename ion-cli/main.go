@@ -24,9 +24,9 @@ func main() {
 		clientTo := utils.ClientRPC(setup.AddrTo)
 		clientFrom := utils.ClientRPC(setup.AddrFrom)
 
-		// Ion := ionflow.CompileContract("Ion.Sol")
-		Validation := contract.CompileContract("Validation.sol")
-		// Trigger := ionflow.CompileContract("Trigger.Sol")
+		// Ion := ionflow.CompileContract("Ion.sol")
+		Validation := contract.CompileContract("Validation")
+		// Trigger := ionflow.CompileContract("Trigger.sol")
 
 		printInfo(setup)
 

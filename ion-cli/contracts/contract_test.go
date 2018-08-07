@@ -61,14 +61,14 @@ func Test_RegisterChain(t *testing.T) {
 	// ---------------------------------------------
 	// HARD CODED DATA
 	// ---------------------------------------------
-	testValidators := []common.Hash{
-		common.HexToHash("0x42eb768f2244c8811c63729a21a3569731535f06"),
-		common.HexToHash("0x6635f83421bf059cd8111f180f0727128685bae4"),
-		common.HexToHash("0x7ffc57839b00206d1ad20c69a1981b489f772031"),
-		common.HexToHash("0xb279182d99e65703f0076e4812653aab85fca0f0"),
-		common.HexToHash("0xd6ae8250b8348c94847280928c79fb3b63ca453e"),
-		common.HexToHash("0xda35dee8eddeaa556e4c26268463e26fb91ff74f"),
-		common.HexToHash("0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"),
+	testValidators := []common.Address{
+		common.HexToAddress("0x42eb768f2244c8811c63729a21a3569731535f06"),
+		common.HexToAddress("0x6635f83421bf059cd8111f180f0727128685bae4"),
+		common.HexToAddress("0x7ffc57839b00206d1ad20c69a1981b489f772031"),
+		common.HexToAddress("0xb279182d99e65703f0076e4812653aab85fca0f0"),
+		common.HexToAddress("0xd6ae8250b8348c94847280928c79fb3b63ca453e"),
+		common.HexToAddress("0xda35dee8eddeaa556e4c26268463e26fb91ff74f"),
+		common.HexToAddress("0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"),
 	}
 
 	// check comments on TestCompileAndDeploy()
@@ -111,20 +111,6 @@ func Test_RegisterChain(t *testing.T) {
 		testValidators,
 		deployedChainID,
 	)
-	// txRegisterChain := TransactionContract(
-	// 	ctx,
-	// 	blockchain,
-	// 	userAKey,
-	// 	validationContractInstance.Contract,
-	// 	validationContractInstance.Address,
-	// 	nil,
-	// 	uint64(3000000),
-	// 	"RegisterChain",
-	// 	chainIDA,
-	// 	ionAddress,
-	// 	testValidators,
-	// 	deployedChainID,
-	// )
 	blockchain.Commit()
 
 	registerChainReceipt, err := bind.WaitMined(ctx, blockchain, txRegisterChain)

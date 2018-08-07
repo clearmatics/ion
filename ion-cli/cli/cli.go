@@ -18,26 +18,29 @@ import (
 	"github.com/abiosoft/ishell"
 
 	"github.com/clearmatics/ion/ion-cli/config"
+	contract "github.com/clearmatics/ion/ion-cli/contracts"
 	"github.com/clearmatics/ion/ion-cli/utils"
 )
 
 // Launch - definition of commands and creates the iterface
-func Launch(setup config.Setup, clientTo *rpc.Client, clientFrom *rpc.Client, Validation map[string]*compiler.Contract) {
+func Launch(setup config.Setup, clientTo *rpc.Client, clientFrom *rpc.Client, Validation *compiler.Contract) {
 	// by default, new shell includes 'exit', 'help' and 'clear' commands.
 	shell := ishell.New()
 
-	_ = ethclient.NewClient(clientTo)
-	// ethclientTo := ethclient.NewClient(clientTo)
+	// Create new context
+	ctx := context.Background()
+
+	ethclientTo := ethclient.NewClient(clientTo)
 	ethclientFrom := ethclient.NewClient(clientFrom)
 
 	// Get a suggested gas price
-	gasPrice, err := ethclientFrom.SuggestGasPrice(context.Background())
+	gasPrice, err := ethclientFrom.SuggestGasPrice(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create an authorized transactor and corrsponding privateKey
-	authTo, _ := config.InitUser(setup.KeystoreTo, "password1")
+	authTo, keyTo := config.InitUser(setup.KeystoreTo, "password1")
 	authTo.Value = big.NewInt(0)     // in wei
 	authTo.GasLimit = uint64(100000) // in units
 	authTo.GasPrice = gasPrice
@@ -120,8 +123,17 @@ func Launch(setup config.Setup, clientTo *rpc.Client, clientFrom *rpc.Client, Va
 				return
 			}
 
-			ionAddress := common.HexToAddress(setup.Ion)
-			tx, err := contract.RegisterChain(authTo, keyTo, bytesChainId, ionAddress, validators, bytesGenesis)
+			tx := contract.RegisterChain(
+				ctx,
+				ethclientTo,
+				keyTo.PrivateKey,
+				Validation,
+				common.HexToAddress(setup.Validation),
+				bytesChainId,
+				common.HexToAddress(setup.Ion),
+				validators,
+				bytesGenesis,
+			)
 			if err != nil {
 				c.Printf("Error: %s", err)
 				return

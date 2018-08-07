@@ -58,18 +58,18 @@ func generateContractPayload(contractBinStr string, contractABIStr string, const
 
 func newTx(
 	ctx context.Context,
-	client bind.ContractTransactor,
+	backend bind.ContractBackend,
 	from, to *common.Address,
 	amount *big.Int,
 	gasLimit uint64,
 	payloadBytecode []byte,
 ) *types.Transaction {
 
-	nonce, err := client.PendingNonceAt(ctx, *from) // uint64(0)
+	nonce, err := backend.PendingNonceAt(ctx, *from) // uint64(0)
 	if err != nil {
 		log.Fatal("Error getting pending nonce ", err)
 	}
-	gasPrice, err := client.SuggestGasPrice(ctx) //new(big.Int)
+	gasPrice, err := backend.SuggestGasPrice(ctx) //new(big.Int)
 	if err != nil {
 		log.Fatal("Error suggesting gas price ", err)
 	}
@@ -97,7 +97,7 @@ func signTx(tx *types.Transaction, userKey *ecdsa.PrivateKey) *types.Transaction
 
 func compileAndDeployContract(
 	ctx context.Context,
-	client bind.ContractTransactor,
+	backend bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
 	binStr string,
 	abiStr string,
@@ -107,10 +107,10 @@ func compileAndDeployContract(
 ) *types.Transaction {
 	payload := generateContractPayload(binStr, abiStr, constructorArgs...)
 	userAddr := crypto.PubkeyToAddress(userKey.PublicKey)
-	tx := newTx(ctx, client, &userAddr, nil, amount, gasLimit, payload)
+	tx := newTx(ctx, backend, &userAddr, nil, amount, gasLimit, payload)
 	signedTx := signTx(tx, userKey)
 
-	err := client.SendTransaction(ctx, signedTx)
+	err := backend.SendTransaction(ctx, signedTx)
 	if err != nil {
 		log.Fatal("ERROR sending contract deployment transaction")
 	}
@@ -155,7 +155,7 @@ func CallContract(
 // TransactionContract execute function in contract
 func TransactionContract(
 	ctx context.Context,
-	client bind.ContractTransactor,
+	backend bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
 	contract *compiler.Contract,
 	to common.Address,
@@ -180,10 +180,10 @@ func TransactionContract(
 	}
 
 	from := crypto.PubkeyToAddress(userKey.PublicKey)
-	tx := newTx(ctx, client, &from, &to, amount, gasLimit, payload)
+	tx := newTx(ctx, backend, &from, &to, amount, gasLimit, payload)
 	signedTx := signTx(tx, userKey)
 
-	err = client.SendTransaction(ctx, signedTx)
+	err = backend.SendTransaction(ctx, signedTx)
 	if err != nil {
 		log.Fatal("ERROR sending contract deployment transaction")
 	}
@@ -199,7 +199,7 @@ func TransactionContract(
 // CompileAndDeployIon specific compile and deploy ion contract
 func CompileAndDeployIon(
 	ctx context.Context,
-	client bind.ContractTransactor,
+	client bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
 	chainID interface{},
 ) <-chan ContractInstance {
@@ -280,17 +280,20 @@ func CompileAndDeployIon(
 	return resChan
 }
 
-func CompileContract(contract string) (contracts map[string]*compiler.Contract) {
+func CompileContract(contract string) (compiledContract *compiler.Contract) {
 	// ---------------------------------------------
 	// COMPILE VALIDATION AND DEPENDENCIES
 	// ---------------------------------------------
 	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
-	contractPath := basePath + contract
+	contractPath := basePath + contract + ".sol"
 
 	contracts, err := compiler.CompileSolidity("", contractPath)
 	if err != nil {
 		log.Fatal("ERROR failed to compile contract:", err)
 	}
+
+	//
+	compiledContract = contracts[basePath+contract+".sol:"+contract]
 
 	return
 }
@@ -298,7 +301,7 @@ func CompileContract(contract string) (contracts map[string]*compiler.Contract) 
 // CompileAndDeployValidation method
 func CompileAndDeployValidation(
 	ctx context.Context,
-	client bind.ContractTransactor,
+	client bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
 	chainID interface{},
 ) <-chan ContractInstance {
@@ -352,7 +355,7 @@ func CompileAndDeployValidation(
 // CompileAndDeployTriggerVerifierAndConsumerFunction method
 func CompileAndDeployTriggerVerifierAndConsumerFunction(
 	ctx context.Context,
-	client bind.ContractTransactor,
+	client bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
 	ionContractAddress common.Address,
 ) <-chan ContractInstance {
