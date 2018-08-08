@@ -4,6 +4,9 @@ services:
   - docker
 
 before_install:
+  - sudo add-apt-repository ppa:ethereum/ethereum
+  - sudo apt-get update
+  - sudo apt-get install solc
   - docker build . -t node
   - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
   - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
