@@ -9,6 +9,8 @@ import (
 
 	"github.com/clearmatics/ion/ion-cli/cli"
 	"github.com/clearmatics/ion/ion-cli/config"
+	contract "github.com/clearmatics/ion/ion-cli/contracts"
+	"github.com/clearmatics/ion/ion-cli/utils"
 )
 
 var configFile = flag.String("config", "setup.json", "Description:\n path to the configuration file")
@@ -19,15 +21,26 @@ func main() {
 	if *configFile != "" {
 		setup := config.ReadSetup(*configFile)
 
-		clientTo := config.InitClient(setup.AddrTo)
-		clientFrom := config.InitClient(setup.AddrFrom)
+		clientTo := utils.ClientRPC(setup.AddrTo)
+		clientFrom := utils.ClientRPC(setup.AddrFrom)
 
-		Ion := config.InitValidationContract(setup, clientTo)
+		// Compile contracts to use in sending transactions
+		Validation := contract.CompileContract("Validation")
+		Function := contract.CompileContract("Function")
+		Trigger := contract.CompileContract("Trigger")
 
 		printInfo(setup)
 
 		// Launch the CLI
-		cli.Launch(setup, clientFrom, Ion)
+		cli.Launch(
+			setup,
+			clientTo,
+			clientFrom,
+			Validation,
+			Trigger,
+			Function,
+		)
+
 	} else {
 		fmt.Print("Error: empty config!\n")
 		os.Exit(3)
@@ -40,11 +53,14 @@ func printInfo(setup config.Setup) {
 	fmt.Println("===============================================================")
 	fmt.Println("Ion Command Line Interface\n")
 	fmt.Println("RPC Client [to]:")
-	fmt.Println("Listening on: " + setup.AddrTo)
-	fmt.Println("user Account: " + setup.AccountTo)
-	fmt.Println("Ion Contract: " + setup.Ion)
-	fmt.Println("\nRPC Client [from]: ")
-	fmt.Println("Listening on: " + setup.AddrFrom)
-	fmt.Println("user Account: " + setup.AccountFrom)
+	fmt.Println("Listening on:\t\t" + setup.AddrTo)
+	fmt.Println("User Account:\t\t" + setup.AccountTo)
+	fmt.Println("Validation Contract:\t" + setup.Validation)
+	fmt.Println("Validation ChainId:\t" + setup.ChainId)
+	fmt.Println("Ion Contract:\t\t" + setup.Ion)
+	fmt.Println("\nRPC Client [from]:")
+	fmt.Println("Listening on:\t\t" + setup.AddrFrom)
+	fmt.Println("User Account:\t\t" + setup.AccountFrom)
+	fmt.Println("Trigger Contract:\t" + setup.Trigger)
 	fmt.Println("===============================================================")
 }

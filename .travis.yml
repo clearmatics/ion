@@ -4,6 +4,9 @@ services:
   - docker
 
 before_install:
+  - sudo add-apt-repository ppa:ethereum/ethereum -y
+  - sudo apt-get update
+  - sudo apt-get install solc -y
   - docker build . -t node
   - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
   - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
@@ -19,8 +22,8 @@ matrix:
         - npm run test
         - cd ./ion-cli
         - go get -t ./...
+        - make build
         - make test
-        - make integration-test
 
 notifications:
   slack:

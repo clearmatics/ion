@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -33,15 +34,15 @@ type header struct {
 	Nonce       string `json:"nonce"`
 }
 
-func latestBlock(client *ethclient.Client) {
+func latestBlock(client *ethclient.Client) (lastBlock *types.Header) {
 	// var lastBlock Block
 	lastBlock, err := client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
 		fmt.Println("can't get latest block:", err)
-		return
+		return nil
 	}
-	// Print events from the subscription as they arrive.
-	fmt.Printf("latest block: %v\n", lastBlock.Number)
+
+	return
 }
 
 func getBlock(client *ethclient.Client, block string) {
@@ -65,8 +66,8 @@ func getBlock(client *ethclient.Client, block string) {
 }
 
 // func calculateRlpEncoding(client *ethclient.Client, block string) {
-func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []byte, prefixBlock []byte, prefixExtra []byte) {
-	var blockHeader header
+func calculateRlpEncoding(client *ethclient.Client, block string) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
+	// var blockHeader header
 	blockNum := new(big.Int)
 	blockNum.SetString(block, 10)
 
@@ -77,61 +78,45 @@ func calculateRlpEncoding(client *ethclient.Client, block string) (rlpBlock []by
 	}
 
 	// Encode the orginal block header
-	rlpBlock, err = rlp.EncodeToBytes(&lastBlock)
+	_, err = rlp.EncodeToBytes(&lastBlock)
 	if err != nil {
 		fmt.Println("can't RLP encode requested block:", err)
 		return
 	}
-	fmt.Printf("\nEncoded Block Header:\n%+x\n", rlpBlock)
-
-	// Marshal block into a JSON to allow manipulation of specific fields
-	b, err := json.MarshalIndent(lastBlock, "", " ")
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-		return
-	}
-	fmt.Printf("\n%+x\n", b)
-	err = json.Unmarshal([]byte(b), &blockHeader)
-	if err != nil {
-		latestBlock(client)
-		fmt.Printf("Error: %s", err)
-		return
-	}
-	fmt.Printf("\n%v\n", blockHeader)
 
 	// Generate an interface to encode the blockheader without the signature in the extraData
-	prefixBlock = encodeBlock(blockHeader)
-	fmt.Printf("\nSigned Block Header Prefix:\n%+x\n", prefixBlock)
+	rlpSignedBlock = encodeSignedBlock(lastBlock)
+	fmt.Printf("\nSigned Block Header Prefix:\n%+x\n", rlpSignedBlock)
+	rlpUnsignedBlock = encodeUnsignedBlock(lastBlock)
+	fmt.Printf("\nUnsigned Block Header Prefix:\n%+x\n", rlpUnsignedBlock)
 
-	// Generate an interface to encode the blockheader without the signature in the extraData
-	prefixExtra = encodeExtraData(blockHeader)
-	fmt.Printf("\nExtraData Field Prefix:\n%+x\n", prefixExtra)
-
-	return rlpBlock, prefixBlock, prefixExtra
+	return rlpSignedBlock, rlpUnsignedBlock
 
 }
 
 // EncodePrefix calculate prefix of the entire signed block
-func encodePrefix(blockHeader header) (prefix []byte) {
-	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
-	blockInterface := GenerateInterface(blockHeader)
-	encodedPrefixBlock := encodeBlock(blockInterface)
+func encodeUnsignedBlock(lastBlock *types.Header) (encodedBlock []byte) {
+	lastBlock.Extra = lastBlock.Extra[:len(lastBlock.Extra)-65]
 
-	return encodedPrefixBlock[1:3]
-}
-
-// EncodeExtraData calculate prefix of the extraData with the signature
-func encodeExtraData(blockHeader header) (prefix []byte) {
-	blockHeader.Extra = blockHeader.Extra[:len(blockHeader.Extra)-130]
-	encExtra, err := hex.DecodeString(blockHeader.Extra[2:])
+	encodedBlock, err := rlp.EncodeToBytes(&lastBlock)
 	if err != nil {
-		fmt.Printf("Error: %s", err)
+		fmt.Println("can't RLP encode requested block:", err)
 		return
 	}
 
-	encodedExtraData := encodeBlock(encExtra)
+	return encodedBlock
 
-	return encodedExtraData[0:1]
+}
+
+// EncodePrefix calculate prefix of the entire signed block
+func encodeSignedBlock(lastBlock *types.Header) (encodedBlock []byte) {
+	encodedBlock, err := rlp.EncodeToBytes(&lastBlock)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+
+	return encodedBlock
 }
 
 // GenerateInterface Creates an interface for a block

@@ -1,4 +1,4 @@
-package ionflow
+package contract
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/clearmatics/ion/ion-cli/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,23 +18,23 @@ import (
 )
 
 // TODO
-// avoid having to get data from RInkeby, make it deploy a triger function into a PoA chain
+// avoid having to get data from Rinkeby, make it deploy a trigger function into a PoA chain
 
 // TestVerifyTx test for the full flow of Ion
-func TestVerifyTx(t *testing.T) {
+func Test_VerifyTx(t *testing.T) {
 	ctx := context.Background()
 
 	// ---------------------------------------------
 	// HARD CODED DATA
 	// ---------------------------------------------
-	testValidators := [7]common.Hash{
-		common.HexToHash("0x42eb768f2244c8811c63729a21a3569731535f06"),
-		common.HexToHash("0x6635f83421bf059cd8111f180f0727128685bae4"),
-		common.HexToHash("0x7ffc57839b00206d1ad20c69a1981b489f772031"),
-		common.HexToHash("0xb279182d99e65703f0076e4812653aab85fca0f0"),
-		common.HexToHash("0xd6ae8250b8348c94847280928c79fb3b63ca453e"),
-		common.HexToHash("0xda35dee8eddeaa556e4c26268463e26fb91ff74f"),
-		common.HexToHash("0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"),
+	testValidators := []common.Address{
+		common.HexToAddress("0x42eb768f2244c8811c63729a21a3569731535f06"),
+		common.HexToAddress("0x6635f83421bf059cd8111f180f0727128685bae4"),
+		common.HexToAddress("0x7ffc57839b00206d1ad20c69a1981b489f772031"),
+		common.HexToAddress("0xb279182d99e65703f0076e4812653aab85fca0f0"),
+		common.HexToAddress("0xd6ae8250b8348c94847280928c79fb3b63ca453e"),
+		common.HexToAddress("0xda35dee8eddeaa556e4c26268463e26fb91ff74f"),
+		common.HexToAddress("0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"),
 	}
 
 	deployedChainID := common.HexToHash("0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075")
@@ -51,10 +52,10 @@ func TestVerifyTx(t *testing.T) {
 	// GET BLOCK WITH EVENT FROM RINKEBY CHAIN
 	// ---------------------------------------------
 
-	clientRPC := ClientRPC(urlEventChain)
+	clientRPC := utils.ClientRPC(urlEventChain)
 	defer clientRPC.Close()
 
-	blockNumberStr, txTrigger, err := BlockNumberByTransactionHash(ctx, clientRPC, txHashWithEvent)
+	blockNumberStr, txTrigger, err := utils.BlockNumberByTransactionHash(ctx, clientRPC, txHashWithEvent)
 	if err != nil {
 		t.Fatal("ERROR couldn't find block by tx hash: ", err)
 	}
@@ -66,7 +67,7 @@ func TestVerifyTx(t *testing.T) {
 	eventTxBlockNumber := blockNumber
 	block, err := client.BlockByNumber(ctx, &eventTxBlockNumber)
 	if err != nil {
-		t.Fatal("ERROR retriving block: ", err)
+		t.Fatal("ERROR retrieving block: ", err)
 	}
 
 	// ---------------------------------------------
@@ -76,7 +77,7 @@ func TestVerifyTx(t *testing.T) {
 	alloc[userAddr] = core.GenesisAccount{Balance: userIntialBalance}
 	blockchain := backends.NewSimulatedBackend(alloc)
 
-	// ---------------------------------------------
+	// ----txTrigger-----------------------------------------
 	// COMPILE AND DEPLOY ION
 	// ---------------------------------------------
 	contractChan := CompileAndDeployIon(ctx, blockchain, userKey, deployedChainID)
@@ -93,43 +94,20 @@ func TestVerifyTx(t *testing.T) {
 	validationContractInstance := <-contractChan
 
 	// ---------------------------------------------
-	// REGISTER CHAIN ON ION
-	// ---------------------------------------------
-	var validationContractAddr [20]byte
-	copy(validationContractAddr[:], validationContractInstance.Address.Bytes())
-	txRegisterChainIon := TransactionContract(
-		ctx,
-		blockchain,
-		userKey,
-		ionContractInstance.Contract,
-		ionContractInstance.Address,
-		nil,
-		uint64(3000000),
-		"RegisterChain",
-		testChainID,
-		validationContractAddr,
-	)
-	blockchain.Commit()
-	registerChainIonReceipt, err := bind.WaitMined(ctx, blockchain, txRegisterChainIon)
-	if err != nil || registerChainIonReceipt.Status == 0 {
-		t.Fatal("ERROR while waiting for contract deployment")
-	}
-
-	// ---------------------------------------------
 	// REGISTER CHAIN ON VALIDATION
 	// ---------------------------------------------
+	var ionContractAddr [20]byte
+	copy(ionContractAddr[:], ionContractInstance.Address.Bytes())
 	var genesisHash [32]byte
 	copy(genesisHash[:], block.ParentHash().Bytes())
-	txRegisterChainValidation := TransactionContract(
+	txRegisterChainValidation := RegisterChain(
 		ctx,
 		blockchain,
 		userKey,
 		validationContractInstance.Contract,
 		validationContractInstance.Address,
-		nil,
-		uint64(3000000),
-		"RegisterChain",
 		testChainID,
+		ionContractAddr,
 		testValidators,
 		genesisHash,
 	)
@@ -148,15 +126,12 @@ func TestVerifyTx(t *testing.T) {
 	signedBlockHeaderRLP, _ := rlp.EncodeToBytes(blockHeader)
 	blockHeader.Extra = unsignedExtraData
 	unsignedBlockHeaderRLP, _ := rlp.EncodeToBytes(blockHeader)
-	txSubmitBlockValidation := TransactionContract(
+	txSubmitBlockValidation := SubmitBlock(
 		ctx,
 		blockchain,
 		userKey,
 		validationContractInstance.Contract,
 		validationContractInstance.Address,
-		nil,
-		uint64(3000000),
-		"SubmitBlock",
 		testChainID,
 		unsignedBlockHeaderRLP,
 		signedBlockHeaderRLP,
@@ -178,9 +153,9 @@ func TestVerifyTx(t *testing.T) {
 	receiptTrie := ReceiptTrie(blockReceipts)
 
 	txKey := []byte{0x01}
-	txProofArr := Proof(txTrie, txKey)
+	txProofArr := utils.Proof(txTrie, txKey)
 	receiptKey := []byte{0x01}
-	receiptProofArr := Proof(receiptTrie, receiptKey)
+	receiptProofArr := utils.Proof(receiptTrie, receiptKey)
 
 	checkRootsProofIon := TransactionContract(
 		ctx,
@@ -234,18 +209,15 @@ func TestVerifyTx(t *testing.T) {
 	receiptTriggerProofArr := Proof(receiptTrie, txTriggerPath[:])
 	triggerCalledBy, _ := types.Sender(signer, txTrigger)
 
-	txVerifyAndExecuteFunction := TransactionContract(
+	txVerifyAndExecuteFunction := VerifyExecute(
 		ctx,
 		blockchain,
 		userKey,
 		consumerFunctionContractInstance.Contract,
 		consumerFunctionContractInstance.Address,
-		nil,
-		uint64(3000000),
-		"verifyAndExecute",
 		testChainID,
 		blockHash,
-		txTrigger.To(),         // TRIG_DEPLOYED_RINKEBY_ADDR,
+		*txTrigger.To(),        // TRIG_DEPLOYED_RINKEBY_ADDR,
 		txTriggerPath,          // TEST_PATH,
 		txTriggerRLP,           // TEST_TX_VALUE,
 		txTriggerProofArr,      // TEST_TX_NODES,

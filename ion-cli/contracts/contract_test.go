@@ -1,4 +1,4 @@
-package ionflow
+package contract
 
 import (
 	"bytes"
@@ -9,11 +9,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func TestCompileAndDeployIon(t *testing.T) {
+func Test_CompileAndDeployIon(t *testing.T) {
 	// ---------------------------------------------
 	// START BLOCKCHAIN SIMULATOR
 	// ---------------------------------------------
@@ -22,11 +23,11 @@ func TestCompileAndDeployIon(t *testing.T) {
 	initialBalance := big.NewInt(1000000000)
 
 	userAKey, _ := crypto.GenerateKey()
-	userAAddr := crypto.PubkeyToAddress(userAKey.PublicKey)
+	userAddr := crypto.PubkeyToAddress(userAKey.PublicKey)
 
 	// start simulated blockchain
 	alloc := make(core.GenesisAlloc)
-	alloc[userAAddr] = core.GenesisAccount{
+	alloc[userAddr] = core.GenesisAccount{
 		Balance: initialBalance,
 	}
 	blockchain := backends.NewSimulatedBackend(alloc)
@@ -49,21 +50,34 @@ func TestCompileAndDeployIon(t *testing.T) {
 	// call contract variable
 	methodName := "chainId"
 	out := new([32]byte)
-	CallContract(ctx, blockchain, ionContractInstance.Contract, userAAddr, ionContractInstance.Address, methodName, out)
+	CallContract(ctx, blockchain, ionContractInstance.Contract, userAddr, ionContractInstance.Address, methodName, out)
 
 	if !bytes.Equal((*out)[:], chainID.Bytes()) {
 		t.Fatal("ERROR chainID result from contract call, and sent to contract constructor differ")
 	}
 }
 
-func TestRegisterChain(t *testing.T) {
+func Test_RegisterChain(t *testing.T) {
+	// ---------------------------------------------
+	// HARD CODED DATA
+	// ---------------------------------------------
+	testValidators := []common.Address{
+		common.HexToAddress("0x42eb768f2244c8811c63729a21a3569731535f06"),
+		common.HexToAddress("0x6635f83421bf059cd8111f180f0727128685bae4"),
+		common.HexToAddress("0x7ffc57839b00206d1ad20c69a1981b489f772031"),
+		common.HexToAddress("0xb279182d99e65703f0076e4812653aab85fca0f0"),
+		common.HexToAddress("0xd6ae8250b8348c94847280928c79fb3b63ca453e"),
+		common.HexToAddress("0xda35dee8eddeaa556e4c26268463e26fb91ff74f"),
+		common.HexToAddress("0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"),
+	}
+
 	// check comments on TestCompileAndDeploy()
 	ctx := context.Background()
 	initialBalance := big.NewInt(1000000000)
 	userAKey, _ := crypto.GenerateKey()
-	userAAddr := crypto.PubkeyToAddress(userAKey.PublicKey)
+	userAddr := crypto.PubkeyToAddress(userAKey.PublicKey)
 	alloc := make(core.GenesisAlloc)
-	alloc[userAAddr] = core.GenesisAccount{
+	alloc[userAddr] = core.GenesisAccount{
 		Balance: initialBalance,
 	}
 	blockchain := backends.NewSimulatedBackend(alloc)
@@ -80,20 +94,22 @@ func TestRegisterChain(t *testing.T) {
 	blockchain.Commit()
 	validationContractInstance := <-contractChan
 
-	var chainIDA, addressArray [32]byte
-	copy(addressArray[:], validationContractInstance.Address.Bytes())
+	var chainIDA [32]byte
+	var ionAddress, validationAddress [20]byte
+	copy(ionAddress[:], ionContractInstance.Address.Bytes())
+	copy(validationAddress[:], validationContractInstance.Address.Bytes())
 	copy(chainIDA[:], crypto.Keccak256Hash([]byte("TESTCHAINID")).Bytes())
-	txRegisterChain := TransactionContract(
+	deployedChainID := common.HexToHash("0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075")
+	txRegisterChain := RegisterChain(
 		ctx,
 		blockchain,
 		userAKey,
-		ionContractInstance.Contract,
-		ionContractInstance.Address,
-		nil,
-		uint64(3000000),
-		"RegisterChain",
+		validationContractInstance.Contract,
+		validationContractInstance.Address,
 		chainIDA,
-		addressArray,
+		ionAddress,
+		testValidators,
+		deployedChainID,
 	)
 	blockchain.Commit()
 
@@ -110,12 +126,12 @@ func TestRegisterChain(t *testing.T) {
 	CallContract(
 		ctx,
 		blockchain,
-		ionContractInstance.Contract,
-		userAAddr,
-		ionContractInstance.Address,
+		validationContractInstance.Contract,
+		userAddr,
+		validationContractInstance.Address,
 		methodName,
 		&isChainRegistered,
-		chainIDA,
+		chainID,
 	)
 
 	if !isChainRegistered {

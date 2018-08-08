@@ -85,7 +85,7 @@ const TESTBLOCK = {
     uncles: []
 }
 
-const TEST_VALIDATORS = ["0x42eb768f2244c8811c63729a21a3569731535f06", "0x6635f83421bf059cd8111f180f0727128685bae4", "0x7ffc57839b00206d1ad20c69a1981b489f772031", "0xb279182d99e65703f0076e4812653aab85fca0f0", "0xd6ae8250b8348c94847280928c79fb3b63ca453e", "0xda35dee8eddeaa556e4c26268463e26fb91ff74f", "0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"]
+const VALIDATORS = ["0x42eb768f2244c8811c63729a21a3569731535f06", "0x6635f83421bf059cd8111f180f0727128685bae4", "0x7ffc57839b00206d1ad20c69a1981b489f772031", "0xb279182d99e65703f0076e4812653aab85fca0f0", "0xd6ae8250b8348c94847280928c79fb3b63ca453e", "0xda35dee8eddeaa556e4c26268463e26fb91ff74f", "0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"]
 
 const signedHeader = [
     TESTBLOCK.parentHash,
@@ -104,7 +104,6 @@ const signedHeader = [
     TESTBLOCK.mixHash,
     TESTBLOCK.nonce
     ];
-
 
 // Remove last 65 Bytes of extraData
 const extraBytes = utils.hexToBytes(TESTBLOCK.extraData);
@@ -132,7 +131,6 @@ const unsignedHeader = [
 
 const TEST_SIGNED_HEADER = '0x' + rlp.encode(signedHeader).toString('hex');
 const signedHeaderHash = Web3Utils.sha3(TEST_SIGNED_HEADER);
-// assert.equal(TESTBLOCK.hash, signedHeaderHash);
 
 const TEST_UNSIGNED_HEADER = '0x' + rlp.encode(unsignedHeader).toString('hex');
 const unsignedHeaderHash = Web3Utils.sha3(TEST_UNSIGNED_HEADER);
@@ -151,9 +149,7 @@ const TRIG_FIRED_RINKEBY_TXHASH = "0xafc3ab60059ed38e71c7f6bea036822abe16b2c02fc
 const TRIG_FIRED_RINKEBY_BLOCKNO = 2657422
 const TRIG_CALLED_BY = "0x279884e133f9346f2fad9cc158222068221b613e";
 
-const VALIDATORS = ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d"];
 const GENESIS_HASH = TESTBLOCK.parentHash;
-// const GENESIS_HASH = "0xaf0d377824ecc16cfdd5946ad0cd0da904cbcfff8c6cd31628c9c9e5bed2c95b";
 
 
 contract('Ion.js', (accounts) => {
@@ -169,26 +165,25 @@ contract('Ion.js', (accounts) => {
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
         // Successfully add id of another chain
-        await ion.RegisterChain(TESTCHAINID, validation.address);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
         let chain = await ion.chains(TESTCHAINID);
 
         assert.equal(chain, true);
 
         // Fail adding id of this chain
-        await ion.RegisterChain(DEPLOYEDCHAINID, validation.address).should.be.rejected;
+        await validation.RegisterChain(DEPLOYEDCHAINID, ion.address, VALIDATORS, GENESIS_HASH).should.be.rejected;
 
         // Fail adding id of chain already registered
-        await ion.RegisterChain(TESTCHAINID, validation.address).should.be.rejected;
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH).should.be.rejected;
     })
 
     it('Check Tx Proof', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        const val = await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
         let tx = await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH);
 
@@ -199,8 +194,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -218,8 +212,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -233,8 +226,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -252,8 +244,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -267,8 +258,7 @@ contract('Ion.js', (accounts) => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -302,8 +292,7 @@ contract('Ion.js', (accounts) => {
         const functionContract = await Function.new(ion.address, verifier.address);
 
         // Register chain and submit block to Ion
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
 
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -325,8 +314,7 @@ contract('Ion.js', (accounts) => {
         const functionContract = await Function.new(ion.address, verifier.address);
 
         // Register chain and submit block to Ion
-        await ion.RegisterChain(TESTCHAINID, validation.address);
-        await validation.RegisterChain(TESTCHAINID, TEST_VALIDATORS, GENESIS_HASH);
+        await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
         
         await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
 
@@ -351,39 +339,6 @@ contract('Ion.js', (accounts) => {
         // Fail with wrong expected value
         await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_DEPLOYED_RINKEBY_ADDR).should.be.rejected;
     })
-
-//    it('Verify Nested Nodes Verification', async () => {
-//        const patricia = await PatriciaTrieTest.new();
-//
-//        path = "0x8461626364";
-//        value = "0x857465737434";
-//        nodes = "0xf8cbf839808080808080c8318685746573743180a0207947cf85c03bd3d9f9ff5119267616318dcef0e12de2f8ca02ff2cdc720a978080808080808080f8428080c58320616274cc842061626386857465737433a05d495bd9e35ab0dab60dec18b21acc860829508e7df1064fce1f0b8fa4c0e8b2808080808080808080808080e583161626a06b1a1127b4c489762c8259381ff9ecf51b7ef0c2879b89e72c993edc944f1ccce5808080ca8220648685746573743480ca822064868574657374358080808080808080808080"
-//        rootHash = "0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c";
-//
-//        verified = await patricia.verifyProof.call(value, nodes, path, rootHash);
-//        assert.ok(verified, "Patricia proof failed.");
-//    })
-//
-//    it('Fail Nested Nodes Verification', async () => {
-//        const patricia = await PatriciaTrieTest.new();
-//
-//        path = "0x8461626364";
-//        value = "0x857465737434";
-//        nodes = "0xf8cbf839808080808080c8318685746573743180a0207947cf85c03bd3d9f9ff5119267616318dcef0e12de2f8ca02ff2cdc720a978080808080808080f8428080c58320616274cc842061626386857465737433a05d495bd9e35ab0dab60dec18b21acc860829508e7df1064fce1f0b8fa4c0e8b2808080808080808080808080e583161626a06b1a1127b4c489762c8259381ff9ecf51b7ef0c2879b89e72c993edc944f1ccce5808080ca8220648685746573743480ca822064868574657374358080808080808080808080"
-//        rootHash = "0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c";
-//
-//        // Fail with incorrect node value
-//        await patricia.verifyProof.call(value.slice(0,-2) + "f", nodes, path, rootHash).should.be.rejected;
-//
-//        // Fail with incorrect RLP-encoded nodes
-//        await patricia.verifyProof.call(value, nodes.slice(0, -2) + "f", path, rootHash).should.be.rejected;
-//
-//        // Fail with incorrect path
-//        await patricia.verifyProof.call(value, nodes, path.slice(0, -2) + "f", rootHash).should.be.rejected;
-//
-//        // Fail with incorrect root node hash
-//        await patricia.verifyProof.call(value, nodes, path, rootHash.slice(0, -2) + "f").should.be.rejected;
-//    })
 
 })
 

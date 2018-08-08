@@ -5,9 +5,6 @@ SHELL=/bin/bash
 
 clean:
 	@rm -f ion-cli
-	@rm contracts/validation.go
-	@rm contracts/ion.go
-	@rm contracts/patricia.go
 
 test:
 	@go test ./... -v -short
@@ -26,12 +23,7 @@ coverage:
 	go tool cover -html=coverage-all.out
 
 build:
-	# Auto generate the smart contracts
-	@abigen --bin=../abi/Validation.bin --abi=../abi/Validation.abi --pkg=contract --type=validation --out=contracts/validation.go
-	@abigen --bin=../abi/Ion.bin --abi=../abi/Ion.abi --pkg=contract --type=ion --out=contracts/ion.go
-	@abigen --bin=../abi/PatriciaTrie.bin --abi=../abi/PatriciaTrie.abi --pkg=contract --type=patricia --out=contracts/patricia.go
-
-	# Now build project
+	# Build project
 	@go get -t -v ./...
 	@go build -o ion-cli .
 
