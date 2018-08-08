@@ -4,6 +4,7 @@
   "password-to":"password1",
   "keystore-to":"./keystore/UTC--2018-06-05T09-31-57.109288703Z--2be5ab0e43b6dc2908d5321cf318f35b80d0c10d",
   "ion-addr":"0x6aa4444974f60bf3a0bf074d3c194f88ae4d4613",
+  "function-addr":"0x49e71afdcaf62d7384f0b801c9e3c6e18d4a2597",
   "validation-addr":"0xb9fd43a71c076f02d1dbbf473c389f0eacec559f",
   "validation-chainid":"0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075",
   "rpc-from":"https://rinkeby.infura.io",

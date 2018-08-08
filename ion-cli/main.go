@@ -24,14 +24,23 @@ func main() {
 		clientTo := utils.ClientRPC(setup.AddrTo)
 		clientFrom := utils.ClientRPC(setup.AddrFrom)
 
-		// Ion := ionflow.CompileContract("Ion.sol")
+		// Compile contracts to use in sending transactions
 		Validation := contract.CompileContract("Validation")
-		// Trigger := ionflow.CompileContract("Trigger.sol")
+		Function := contract.CompileContract("Function")
+		Trigger := contract.CompileContract("Trigger")
 
 		printInfo(setup)
 
 		// Launch the CLI
-		cli.Launch(setup, clientTo, clientFrom, Validation)
+		cli.Launch(
+			setup,
+			clientTo,
+			clientFrom,
+			Validation,
+			Trigger,
+			Function,
+		)
+
 	} else {
 		fmt.Print("Error: empty config!\n")
 		os.Exit(3)

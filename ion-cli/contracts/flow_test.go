@@ -201,18 +201,15 @@ func Test_VerifyTx(t *testing.T) {
 	receiptTriggerProofArr := utils.Proof(receiptTrie, txTriggerPath[:])
 	triggerCalledBy, _ := types.Sender(signer, txTrigger)
 
-	txVerifyAndExecuteFunction := TransactionContract(
+	txVerifyAndExecuteFunction := VerifyExecute(
 		ctx,
 		blockchain,
 		userKey,
 		consumerFunctionContractInstance.Contract,
 		consumerFunctionContractInstance.Address,
-		nil,
-		uint64(3000000),
-		"verifyAndExecute",
 		testChainID,
 		blockHash,
-		txTrigger.To(),         // TRIG_DEPLOYED_RINKEBY_ADDR,
+		*txTrigger.To(),        // TRIG_DEPLOYED_RINKEBY_ADDR,
 		txTriggerPath,          // TEST_PATH,
 		txTriggerRLP,           // TEST_TX_VALUE,
 		txTriggerProofArr,      // TEST_TX_NODES,

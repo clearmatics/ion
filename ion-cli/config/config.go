@@ -27,6 +27,7 @@ type Setup struct {
 	Validation   string `json:"validation-addr"`
 	Ion          string `json:"ion-addr"`
 	Trigger      string `json:"trigger-addr"`
+	Function     string `json:"function-addr"`
 }
 
 // Takes path to a JSON and returns a struct of the contents
