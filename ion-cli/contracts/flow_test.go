@@ -148,9 +148,9 @@ func Test_VerifyTx(t *testing.T) {
 	// ---------------------------------------------
 	blockHash := block.Hash()
 	blockTransactions := block.Transactions()
-	txTrie := TxTrie(blockTransactions)
-	blockReceipts := GetBlockTxReceipts(client, block)
-	receiptTrie := ReceiptTrie(blockReceipts)
+	txTrie := utils.TxTrie(blockTransactions)
+	blockReceipts := utils.GetBlockTxReceipts(client, block)
+	receiptTrie := utils.ReceiptTrie(blockReceipts)
 
 	txKey := []byte{0x01}
 	txProofArr := utils.Proof(txTrie, txKey)
@@ -204,9 +204,9 @@ func Test_VerifyTx(t *testing.T) {
 	}
 	txTriggerPath := []byte{txTriggerIdx}
 	txTriggerRLP, _ := rlp.EncodeToBytes(txTrigger)
-	txTriggerProofArr := Proof(txTrie, txTriggerPath[:])
+	txTriggerProofArr := utils.Proof(txTrie, txTriggerPath[:])
 	receiptTrigger, _ := rlp.EncodeToBytes(blockReceipts[txTriggerIdx])
-	receiptTriggerProofArr := Proof(receiptTrie, txTriggerPath[:])
+	receiptTriggerProofArr := utils.Proof(receiptTrie, txTriggerPath[:])
 	triggerCalledBy, _ := types.Sender(signer, txTrigger)
 
 	txVerifyAndExecuteFunction := VerifyExecute(
