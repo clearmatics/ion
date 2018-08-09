@@ -6,19 +6,26 @@ import "./libraries/ECVerify.sol";
 import "./libraries/RLP.sol";
 import "./libraries/PatriciaTrie.sol";
 import "./libraries/SolidityUtils.sol";
-import "./Validation.sol";
 
 contract Ion {
     using RLP for RLP.RLPItem;
     using RLP for RLP.Iterator;
     using RLP for bytes;
 
-    // bytes32 public blockHash;
     bytes32 public chainId;
     bytes32[] public registeredChains;
-    uint256 public blockHeight;
+
+    /*
+    *   @description    persists the last submitted block of a chain being validated
+    */
+	struct BlockHeader {
+        bytes32 txRootHash;
+        bytes32 receiptRootHash;
+	}
 
     mapping (bytes32 => bool) public chains;
+    mapping (bytes32 => bool) public m_blockhashes;
+	mapping (bytes32 => BlockHeader) public m_blockheaders;
     mapping (bytes32 => address) public m_validation;
 
 
@@ -68,8 +75,7 @@ contract Ion {
     * Modifier that checks if the provided block hash has been verified by the validation contract
     */
     modifier onlyExistingBlocks(bytes32 _id, bytes32 _hash) {
-        Validation validation = Validation(m_validation[_id]);
-        require(validation.m_blockhashes(_id, _hash), "Block does not exist for chain");
+        require(m_blockhashes[_hash], "Block does not exist for chain");
         _;
     }
 
@@ -134,11 +140,7 @@ contract Ion {
         public
         returns (bool)
     {
-        // Connect to validation contract
-        Validation validation = Validation(m_validation[_id]);
-        bytes32 txRootHash = validation.getTxRootHash(_id, _blockHash);
-        //assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, txRootHash) );
-        verifyProof(_value, _parentNodes, _path, txRootHash);
+        verifyProof(_value, _parentNodes, _path, m_blockheaders[_blockHash].txRootHash);
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.TX));
         return true;
@@ -173,10 +175,7 @@ contract Ion {
     public
     returns (bool)
     {
-        Validation validation = Validation(m_validation[_id]);
-        bytes32 receiptRootHash = validation.getReceiptRootHash(_id, _blockHash);
-        // assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, receiptRootHash) );
-        verifyProof(_value, _parentNodes, _path, receiptRootHash);
+        verifyProof(_value, _parentNodes, _path, m_blockheaders[_blockHash].receiptRootHash);
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.RECEIPT));
         return true;
@@ -217,15 +216,30 @@ contract Ion {
         public
         returns (bool)
     {
-        Validation validation = Validation(m_validation[_id]);
-        bytes32 txRootHash = validation.getTxRootHash(_id, _blockHash);        
-        bytes32 receiptRootHash = validation.getReceiptRootHash(_id, _blockHash);
-
-        assert( txRootHash == getRootNodeHash(_txNodes) );
-        assert( receiptRootHash == getRootNodeHash(_receiptNodes) );
+        assert( m_blockheaders[_blockHash].txRootHash == getRootNodeHash(_txNodes) );
+        assert( m_blockheaders[_blockHash].receiptRootHash == getRootNodeHash(_receiptNodes) );
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.ROOTS));
         return true;
+    }
+
+    /*
+    * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
+    * @param _hash      root hash of the block being added
+    */
+    function addBlockHash(bytes32 _hash) public {
+        m_blockhashes[_hash] = true;
+    }
+
+/*
+    * @description              when a block is submitted the header must be added to a mapping of chains to blockheaders
+    * @param _hash              root hash of the block being added
+    * @param _txRootHash        transaction root hash of the block being added
+    * @param _receiptRootHash   receipt root hash of the block being added
+    */
+    function addBlockHeader(bytes32 _hash, bytes32 _txRootHash, bytes32 _receiptRootHash) public {
+        m_blockheaders[_hash].txRootHash = _txRootHash;
+        m_blockheaders[_hash].receiptRootHash = _receiptRootHash;
     }
 
 

@@ -12,6 +12,7 @@ contract Validation {
     using RLP for RLP.Iterator;
     using RLP for bytes;
 
+    address registeredIon;
     bytes32 public chainId;
 
     /*
@@ -61,6 +62,7 @@ contract Validation {
 
         Ion ion = Ion(_ion);
         require(ion.addChain(_id), "Chain not added to Ion successfully!");
+        registeredIon = _ion;
 
 		m_blockheaders[_id][_genesisHash].blockHeight = 0;
 		m_blockheaders[_id][_genesisHash].latestHash = _genesisHash;
@@ -133,6 +135,12 @@ contract Validation {
 		m_blockheaders[_id][_hash].prevBlockHash = _parentHash;
         m_blockheaders[_id][_hash].txRootHash = _txRootHash;
         m_blockheaders[_id][_hash].receiptRootHash = _receiptRootHash;
+
+        // Add block to Ion
+        Ion ion = Ion(registeredIon);
+        ion.addBlockHeader(_hash, _txRootHash, _receiptRootHash);
+        ion.addBlockHash(_hash);
+
     }
 
     /*
