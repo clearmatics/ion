@@ -64,30 +64,37 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "latestBlock",
-		Help: "use: latestBlock  \n\t\t\t\tdescription: Returns number of latest block mined/sealed",
+		Help: "use: \tlatestBlock [TO/FROM] \n\t\t\t\tdescription: Returns number of latest block mined/sealed from chain [TO/FROM]",
 		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrFrom)
-			c.Println("Get latest block number:")
-			lastBlock := latestBlock(ethclientFrom)
-			c.Printf("latest block: %v\n", lastBlock.Number)
-
+			if c.Args[0] == "TO" {
+				c.Println("Connecting to: " + setup.AddrTo)
+				c.Println("Get latest block number:")
+				lastBlock := latestBlock(ethclientTo)
+				c.Printf("latest block: %v\n", lastBlock.Number)
+			} else if c.Args[0] == "FROM" {
+				c.Println("Connecting to: " + setup.AddrFrom)
+				c.Println("Get latest block number:")
+				lastBlock := latestBlock(ethclientFrom)
+				c.Printf("latest block: %v\n", lastBlock.Number)
+			} else {
+				c.Println("Please choose enter TO or FROM only!")
+			}
 			c.Println("===============================================================")
 		},
 	})
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getBlock",
-		Help: "use: getBlock [integer] \n\t\t\t\tdescription: Returns block header specified",
+		Help: "use: \tgetBlock [TO/FROM] [integer] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
 		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrFrom)
-			if len(c.Args) == 0 {
-				c.Println("Input argument required, e.g.: getBlock 10")
-			} else if len(c.Args) > 1 {
-				c.Println("Only enter single argument")
-			} else {
-				getBlock(ethclientFrom, c.Args[0])
+			if len(c.Args) != 2 {
+				c.Println("Error: Incorrect Arguments!")
+			} else if c.Args[0] == "TO" {
+				c.Println("Connecting to: " + setup.AddrTo)
+				getBlock(ethclientTo, c.Args[1])
+			} else if c.Args[0] == "FROM" {
+				c.Println("Connecting to: " + setup.AddrFrom)
+				getBlock(ethclientFrom, c.Args[1])
 			}
 			c.Println("===============================================================")
 		},
@@ -98,19 +105,14 @@ func Launch(
 	//---------------------------------------------------------------------------------------------
 	shell.AddCmd(&ishell.Cmd{
 		Name: "registerChainValidation",
-		Help: "use: registerChainValidation \n\t\t\t\tdescription: Register new chain with validation contract",
+		Help: "use: \tregisterChainValidation\n \t\t\t\t\tEnter Validators: [ADDRESS ADDRESS]\n \t\t\t\t\tEnter Genesis Hash: [HASH] \n\t\t\t\tdescription: Register new chain with validation contract",
 		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrTo)
 			c.ShowPrompt(false)
-			defer c.ShowPrompt(true) // yes, revert after login.
+			defer c.ShowPrompt(true)
 
 			// Get the chainId
-			bytesChainId, err := utils.StringToBytes32(setup.ChainId)
-			if err != nil {
-				c.Printf("Error: %s", err)
-				return
-			}
+			bytesChainId := common.HexToHash(setup.ChainId)
 
 			// Get the validators array
 			c.Print("Enter Validators: ")
@@ -124,11 +126,7 @@ func Launch(
 			// Get genesis hash
 			c.Print("Enter Genesis Hash: ")
 			genesis := c.ReadLine()
-			bytesGenesis, err := utils.StringToBytes32(genesis)
-			if err != nil {
-				c.Printf("Error: %s", err)
-				return
-			}
+			bytesGenesis := common.HexToHash(genesis)
 
 			tx := contract.RegisterChain(
 				ctx,
@@ -142,16 +140,16 @@ func Launch(
 				bytesGenesis,
 			)
 
-			c.Printf("\nTransaction Result:\n%x\n", tx)
+			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
 			c.Println("===============================================================")
 		},
 	})
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "submitBlockValidation",
-		Help: "use: submitBlockValidation [integer] \n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
+		Help: "use: \tsubmitBlockValidation\n \t\t\t\t\tEnter Block Number: [INTEGER]\n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
 		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
+			c.Println("Connecting to: " + setup.AddrTo)
 			c.ShowPrompt(false)
 			defer c.ShowPrompt(true) // yes, revert after login.
 
@@ -179,16 +177,15 @@ func Launch(
 				signedBlock,
 			)
 
-			c.Printf("\nTransaction Result:\n%x\n", tx)
+			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
 			c.Println("===============================================================")
 		},
 	})
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "checkBlockValidation",
-		Help: "use: checkBlockValidation [blockHash]\n\t\t\t\tdescription: Returns true for validated blocks",
+		Help: "use: \tcheckBlockValidation\n \t\t\t\t\tEnter Blockhash: [HASH]\n\t\t\t\tdescription: Returns true for validated blocks",
 		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrTo)
 			c.ShowPrompt(false)
 			defer c.ShowPrompt(true) // yes, revert after login.
@@ -221,23 +218,17 @@ func Launch(
 
 			c.Println("Checking for valid block:")
 			c.Printf("ChainId:\t%x\nBlockHash:\t%x\nValid:\t\t%v\n", bytesChainId, bytesBlockHash, result)
-
 			c.Println("===============================================================")
 		},
 	})
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "latestValidatedBlock",
-		Help: "use: latestValidatedBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
+		Help: "use: \tlatestValidatedBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
 		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrTo)
 			// Get the chainId
-			bytesChainId, err := utils.StringToBytes32(setup.ChainId)
-			if err != nil {
-				c.Printf("Error: %s", err)
-				return
-			}
+			bytesChainId := common.HexToHash(setup.ChainId)
 
 			result := contract.LatestValidBlock(
 				ctx,
@@ -259,12 +250,11 @@ func Launch(
 	//---------------------------------------------------------------------------------------------
 	shell.AddCmd(&ishell.Cmd{
 		Name: "triggerEvent",
-		Help: "use: triggerEvent \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
+		Help: "use: \ttriggerEvent \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
 		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
 			c.Println("Connecting to: " + setup.AddrFrom)
 
-			result := contract.Fire(
+			tx := contract.Fire(
 				ctx,
 				ethclientFrom,
 				keyFrom.PrivateKey,
@@ -272,7 +262,7 @@ func Launch(
 				common.HexToAddress(setup.Trigger),
 			)
 
-			c.Printf("Triggered Event:\nResult:\t%+v\n", result)
+			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
 			c.Println("===============================================================")
 		},
 	})
@@ -282,51 +272,53 @@ func Launch(
 	//---------------------------------------------------------------------------------------------
 	shell.AddCmd(&ishell.Cmd{
 		Name: "verifyAndExecute",
-		Help: "use: verifyAndExecute [Transaction Hash] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
+		Help: "use: \tverifyAndExecute [Transaction Hash] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
 		Func: func(c *ishell.Context) {
-			c.Println("===============================================================")
-			c.Println("Connecting to: " + setup.AddrTo)
-			if len(c.Args) == 0 {
-				c.Println("Enter transaction hash!")
-			} else if len(c.Args) > 1 {
-				c.Println("Too many arguments entered.")
-			} else {
-				c.Println("RLP encode block: " + c.Args[0])
-				// Get the chainId
-				bytesChainId, err := utils.StringToBytes32(setup.ChainId)
-				if err != nil {
-					c.Printf("Error: %s", err)
-					return
-				}
+			c.Println("Connecting to: " + setup.AddrTo + " and " + setup.AddrFrom)
+			c.ShowPrompt(false)
+			defer c.ShowPrompt(true) // yes, revert after login.
 
-				bytesBlockHash := common.HexToHash(c.Args[0])
+			// Get the chainId
+			bytesChainId := common.HexToHash(setup.ChainId)
 
-				// Generate the proof
-				txPath, txValue, txNodes, receiptValue, receiptNodes := utils.GenerateProof(
-					context.Background(),
-					clientFrom,
-					bytesBlockHash,
-				)
+			// Get the transaction hash
+			c.Print("Enter Transaction Hash: ")
+			txHash := c.ReadLine()
+			bytesTxHash := common.HexToHash(txHash)
 
-				// Execute
-				result := contract.VerifyExecute(
-					ctx,
-					ethclientTo,
-					keyTo.PrivateKey,
-					Function,
-					common.HexToAddress(setup.Function),
-					bytesChainId,
-					bytesBlockHash,
-					common.HexToAddress(setup.Trigger), // TRIG_DEPLOYED_RINKEBY_ADDR,
-					txPath,                              // TEST_PATH,
-					txValue,                             // TEST_TX_VALUE,
-					txNodes,                             // TEST_TX_NODES,
-					receiptValue,                        // TEST_RECEIPT_VALUE,
-					receiptNodes,                        // TEST_RECEIPT_NODES,
-					common.HexToAddress(setup.AddrFrom), // TRIG_CALLED_BY,
-				)
-				c.Printf("Verify and Executed Event:\nResult:\t%+v\n", result)
-			}
+			// Get the blockHash
+			c.Print("Enter Block Hash: ")
+			blockHash := c.ReadLine()
+			bytesBlockHash := common.HexToHash(blockHash)
+
+			// Generate the proof
+			txPath, txValue, txNodes, receiptValue, receiptNodes := utils.GenerateProof(
+				ctx,
+				clientFrom,
+				bytesTxHash,
+			)
+
+			amount := big.NewInt(10000000)
+
+			// Execute
+			tx := contract.VerifyExecute(
+				ctx,
+				ethclientTo,
+				keyTo.PrivateKey,
+				Function,
+				common.HexToAddress(setup.Function),
+				bytesChainId,
+				bytesBlockHash,
+				common.HexToAddress(setup.Trigger), // TRIG_DEPLOYED_RINKEBY_ADDR,
+				txPath,                              // TEST_PATH,
+				txValue,                             // TEST_TX_VALUE,
+				txNodes,                             // TEST_TX_NODES,
+				receiptValue,                        // TEST_RECEIPT_VALUE,
+				receiptNodes,                        // TEST_RECEIPT_NODES,
+				common.HexToAddress(setup.AddrFrom), // TRIG_CALLED_BY,
+				amount,
+			)
+			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
 			c.Println("===============================================================")
 		},
 	})

@@ -28,7 +28,6 @@ func main() {
 		Validation := contract.CompileContract("Validation")
 		Function := contract.CompileContract("Function")
 		Trigger := contract.CompileContract("Trigger")
-
 		printInfo(setup)
 
 		// Launch the CLI
@@ -52,15 +51,16 @@ func printInfo(setup config.Setup) {
 	// display welcome info.
 	fmt.Println("===============================================================")
 	fmt.Println("Ion Command Line Interface\n")
-	fmt.Println("RPC Client [to]:")
-	fmt.Println("Listening on:\t\t" + setup.AddrTo)
-	fmt.Println("User Account:\t\t" + setup.AccountTo)
-	fmt.Println("Validation Contract:\t" + setup.Validation)
-	fmt.Println("Validation ChainId:\t" + setup.ChainId)
-	fmt.Println("Ion Contract:\t\t" + setup.Ion)
-	fmt.Println("\nRPC Client [from]:")
-	fmt.Println("Listening on:\t\t" + setup.AddrFrom)
-	fmt.Println("User Account:\t\t" + setup.AccountFrom)
-	fmt.Println("Trigger Contract:\t" + setup.Trigger)
+	fmt.Println("RPC Client [TO]:")
+	fmt.Println("\tListening on:\t\t" + setup.AddrTo)
+	fmt.Println("\tUser Account:\t\t" + setup.AccountTo)
+	fmt.Println("\tRPC ChainId:\t\t" + setup.ChainId)
+	fmt.Println("\tValidation Contract:\t" + setup.Validation)
+	fmt.Println("\tIon Contract:\t\t" + setup.Ion)
+	fmt.Println("\tFunction Contract:\t" + setup.Function)
+	fmt.Println("\nRPC Client [FROM]:")
+	fmt.Println("\tListening on:\t\t" + setup.AddrFrom)
+	fmt.Println("\tUser Account:\t\t" + setup.AccountFrom)
+	fmt.Println("\tTrigger Contract:\t" + setup.Trigger)
 	fmt.Println("===============================================================")
 }

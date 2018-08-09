@@ -27,7 +27,7 @@ func CompileAndDeployValidation(
 
 	contracts, err := compiler.CompileSolidity("", validationContractPath)
 	if err != nil {
-		log.Fatal("ERROR failed to compile Ion.sol:", err)
+		log.Fatal("ERROR failed to compile Validation.sol:", err)
 	}
 
 	validationContract := contracts[basePath+"Validation.sol:Validation"]
@@ -156,7 +156,7 @@ func LatestValidBlock(
 	userAddr common.Address,
 	toAddr common.Address,
 	chainId common.Hash,
-) (isBlockValid bool) {
+) (latestBlock common.Hash) {
 	methodName := "m_latestblock"
 	CallContract(
 		ctx,
@@ -165,7 +165,7 @@ func LatestValidBlock(
 		userAddr,
 		toAddr,
 		methodName,
-		&isBlockValid,
+		&latestBlock,
 		chainId,
 	)
 	return

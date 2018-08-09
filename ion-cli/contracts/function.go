@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"log"
+	"math/big"
 	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -28,7 +29,7 @@ func CompileAndDeployTriggerVerifierAndConsumerFunction(
 
 	contracts, err := compiler.CompileSolidity("", consumerFunctionContractPath, triggerEventVerifierContractPath)
 	if err != nil {
-		log.Fatal("ERROR failed to compile Ion.sol:", err)
+		log.Fatal("ERROR failed to compile TriggerEventVerifier.sol:", err)
 	}
 
 	triggerEventVerifierContract := contracts[triggerEventVerifierContractPath+":TriggerEventVerifier"]
@@ -107,6 +108,7 @@ func VerifyExecute(
 	receiptTrigger []byte,
 	receiptTriggerProofArr []byte,
 	triggerCalledBy common.Address,
+	amount *big.Int,
 
 ) (tx *types.Transaction) {
 	tx = TransactionContract(
@@ -115,7 +117,7 @@ func VerifyExecute(
 		userKey,
 		contract,
 		toAddr,
-		nil,
+		amount,
 		uint64(3000000),
 		"verifyAndExecute",
 		chainId,

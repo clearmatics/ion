@@ -194,12 +194,14 @@ func Test_VerifyTx(t *testing.T) {
 	// ---------------------------------------------
 	// VERIFY FUNCTION EXECUITION
 	// ---------------------------------------------
-	txTriggerPath := []byte{0x13} // SHOULD SOMEHOW BE DYNAMIC!
-	txTriggerRLP, _ := rlp.EncodeToBytes(txTrigger)
-	txTriggerProofArr := utils.Proof(txTrie, txTriggerPath[:])
-	receiptTrigger, _ := rlp.EncodeToBytes(blockReceipts[0x13])
-	receiptTriggerProofArr := utils.Proof(receiptTrie, txTriggerPath[:])
 	triggerCalledBy, _ := types.Sender(signer, txTrigger)
+
+	// Generate the proof
+	txPath, txValue, txNodes, receiptValue, receiptNodes := utils.GenerateProof(
+		ctx,
+		clientRPC,
+		txHashWithEvent,
+	)
 
 	txVerifyAndExecuteFunction := VerifyExecute(
 		ctx,
@@ -209,13 +211,14 @@ func Test_VerifyTx(t *testing.T) {
 		consumerFunctionContractInstance.Address,
 		testChainID,
 		blockHash,
-		*txTrigger.To(),        // TRIG_DEPLOYED_RINKEBY_ADDR,
-		txTriggerPath,          // TEST_PATH,
-		txTriggerRLP,           // TEST_TX_VALUE,
-		txTriggerProofArr,      // TEST_TX_NODES,
-		receiptTrigger,         // TEST_RECEIPT_VALUE,
-		receiptTriggerProofArr, // TEST_RECEIPT_NODES,
-		triggerCalledBy,        // TRIG_CALLED_BY,
+		*txTrigger.To(), // TRIG_DEPLOYED_RINKEBY_ADDR,
+		txPath,          // TEST_PATH,
+		txValue,         // TEST_TX_VALUE,
+		txNodes,         // TEST_TX_NODES,
+		receiptValue,    // TEST_RECEIPT_VALUE,
+		receiptNodes,    // TEST_RECEIPT_NODES,
+		triggerCalledBy, // TRIG_CALLED_BY,
+		nil,
 	)
 
 	blockchain.Commit()

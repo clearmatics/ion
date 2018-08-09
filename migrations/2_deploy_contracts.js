@@ -1,5 +1,4 @@
 const Ion = artifacts.require("Ion");
-const Recover = artifacts.require("Recover");
 const Validation = artifacts.require("Validation");
 const PatriciaTrie = artifacts.require("PatriciaTrie");
 const EventFunction = artifacts.require("Function");
@@ -7,9 +6,7 @@ const EventVerifier = artifacts.require("EventVerifier");
 
 module.exports = async (deployer) => {
   try {
-    deployer.deploy(Recover)
-      .then(() => Recover.deployed)
-      .then(() => deployer.deploy(Validation, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177"))
+    deployer.deploy(Validation, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
       .then(() => Validation.deployed)
       .then(() => deployer.deploy(PatriciaTrie))
       .then(() => PatriciaTrie.deployed)

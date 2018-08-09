@@ -180,15 +180,12 @@ func TransactionContract(
 
 	err = backend.SendTransaction(ctx, signedTx)
 	if err != nil {
-		log.Fatal("ERROR sending contract deployment transaction")
+		log.Fatal("ERROR sending transaction", err)
 	}
 	return signedTx
 }
 
 func CompileContract(contract string) (compiledContract *compiler.Contract) {
-	// ---------------------------------------------
-	// COMPILE VALIDATION AND DEPENDENCIES
-	// ---------------------------------------------
 	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
 	contractPath := basePath + contract + ".sol"
 
@@ -197,7 +194,6 @@ func CompileContract(contract string) (compiledContract *compiler.Contract) {
 		log.Fatal("ERROR failed to compile contract:", err)
 	}
 
-	//
 	compiledContract = contracts[basePath+contract+".sol:"+contract]
 
 	return

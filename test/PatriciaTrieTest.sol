@@ -45,7 +45,7 @@ contract PatriciaTrieTest {
         Assert.isTrue( PatriciaTrie.verifyProof(value, nodes, path, rootHash), "PatriciaTrie verify failed" );
     }
 
-    function testFailVerifyNestedNodes() returns (bool) {
+    function FailVerifyNestedNodes() returns (bool) {
         bytes32 rootHash = 0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c;
 
         bytes memory path = hex"62";
