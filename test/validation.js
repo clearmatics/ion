@@ -11,7 +11,6 @@ const rlp = require('rlp');
 
 const Validation = artifacts.require("Validation");
 const Ion = artifacts.require("Ion");
-const Recover = artifacts.require("Recover");
 
 const web3 = new Web3();
 

@@ -147,7 +147,8 @@ func Test_VerifyTx(t *testing.T) {
 	// CHECK ROOTS PROOF ON ION
 	// ---------------------------------------------
 	blockHash := block.Hash()
-	txTrie := utils.TxTrie(block.Transactions())
+	blockTransactions := block.Transactions()
+	txTrie := utils.TxTrie(blockTransactions)
 	blockReceipts := utils.GetBlockTxReceipts(client, block)
 	receiptTrie := utils.ReceiptTrie(blockReceipts)
 

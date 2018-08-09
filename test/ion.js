@@ -18,10 +18,8 @@ web3.setProvider(new web3.providers.HttpProvider('http://localhost:8501'));
 
 const Ion = artifacts.require("Ion");
 const Validation = artifacts.require("Validation");
-const PatriciaTrie = artifacts.require("PatriciaTrie");
-const PatriciaTrieTest = artifacts.require("PatriciaTrieTest");
 const TriggerEventVerifier = artifacts.require("TriggerEventVerifier");
-const Function = artifacts.require("Function");
+const FunctionEvent = artifacts.require("Function");
 
 require('chai')
  .use(require('chai-as-promised'))
@@ -152,7 +150,7 @@ const TRIG_CALLED_BY = "0x279884e133f9346f2fad9cc158222068221b613e";
 const GENESIS_HASH = TESTBLOCK.parentHash;
 
 
-contract('Ion.js', (accounts) => {
+contract.only('Ion.js', (accounts) => {
     it('Deploy Ion', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         let chainId = await ion.chainId();
