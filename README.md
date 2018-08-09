@@ -1,13 +1,27 @@
 # Ion Interoperability Protocol
+The Ion Interoperability Protocol provides a framework to perform interoperability across multiple turing-complete blockchains. Using the generalised framework specific use cases, such as atomic swaps, can be developed.
 
-The Ion Interoperability Protocol provides mechanisms to perform atomic swaps and currency transfers across multiple turing-complete blockchains.
+In order to perform cross-chain interop the Ion framework verifies specific transactions executed on one blockchain A on another blockchain B. Being able to verify these transactions cross-chain requires submission of valid block headers, to the blockchain where a transaction is to be proven, and then performing a number of Patricia trie proofs of the transaction, receipts and logs. Smart contracts can then be built to execute only if the proof is verified, this is known as continuous execution.
 
-## Ion State Verification Scheme
+To facilitate this Ion has three main components:
+  * Ion Hub Contract
+  * Block Validation Scheme
+  * Ion Framework Contracts
 
-## Block Validation Scheme
-Block validation scheme is a set of smart contracts which ensures that block headers submitted to the contract are mined/sealed by an approved partie(s). The motivation behind this is to update the state of a blockchain onto another blockchain. To do this we first need to know which blocks are valid - dependent on the definition of a valid by the underlying consensus algorithm. As deterministic finality is a requirement we seek Clique PoA and Istanbul PBFT consensus is to be used on the chain from which the state is being taken.
+The Ion hub contract is the core component of the framework, the contract persists key data of all valid blocks submitted to the validation contracts.  To prove a transaction has occurred on an external blockchain the Ion framework contract require:
 
-For a full description and roadmap of the project please refer to the Clearmatics [Ion-Stage-2 Wiki](https://github.com/clearmatics/ion/wiki/Ion-Stage-2---Proposal#validation).
+* Block Header (RLP encoding of the following array of items):
+  * Previous block hash
+  * State root hash
+  * Tx root hash
+  * TxReceipt root hash
+* Block Hash
+
+For each block submitted to the validation contracts this information is appended to the Ion hub contract, thus creating a generic interface for Ion framework contracts to receive valid block data. Ion provides a generalised interoperability framework and thus block validation is designed to be modular, in order to allow for interop between chains with any consensus mechanism.
+
+When external blockchains are registered with a specific validation contract, having its own consensus specific validation mechanism, the validation contract adds the chain to the Ion hub. Subsequently all blocks successfully submitted to the validation contract are added to the Ion hub.
+
+More details can be found in the [Ion Wiki](https://github.com/clearmatics/ion/wiki).
 
 ## Running the Project
 A Clique PoA chain is launched and then the block headers are taken and updated to the validation contract which is deployed on a ganache chain. However in the javascript tests the contract is deployed on the PoA chain itself for sake of simplicity, this has no bearing on the functionality of the project.
@@ -19,7 +33,7 @@ Running the project requires initialisation of the following components:
 
 In order to use the smart contracts and run the tests it is necessary to first initialise the test networks.
 
-***Note:*** that as the contract searches for specific parts of the block header that only exist in Clique and IBFT, Ganache or Ethash chains cannot be used for the _root_ blockchain from which headers are extracted.
+**Note:** that as the contract searches for specific parts of the block header that only exist in Clique and IBFT, Ganache or Ethash chains cannot be used for the _root_ blockchain from which headers are extracted.
 
 ### Requirements
 * golang version: 1.9.x
@@ -39,7 +53,6 @@ $ tree -L 1
 Which hopefully returns this:
 ```
 .
-├── abi
 ├── CODE_OF_CONDUCT.md
 ├── contracts
 ├── CONTRIBUTING.md

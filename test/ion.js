@@ -150,7 +150,7 @@ const TRIG_CALLED_BY = "0x279884e133f9346f2fad9cc158222068221b613e";
 const GENESIS_HASH = TESTBLOCK.parentHash;
 
 
-contract.only('Ion.js', (accounts) => {
+contract('Ion.js', (accounts) => {
     it('Deploy Ion', async () => {
         const ion = await Ion.new(DEPLOYEDCHAINID);
         let chainId = await ion.chainId();
@@ -279,7 +279,7 @@ contract.only('Ion.js', (accounts) => {
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
         const verifier = await TriggerEventVerifier.new();
-        const functionContract = await Function.new(ion.address, verifier.address);
+        const functionContract = await FunctionEvent.new(ion.address, verifier.address);
     })
 
     it('Verify Function Execution', async () => {
@@ -287,7 +287,7 @@ contract.only('Ion.js', (accounts) => {
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
         const verifier = await TriggerEventVerifier.new();
-        const functionContract = await Function.new(ion.address, verifier.address);
+        const functionContract = await FunctionEvent.new(ion.address, verifier.address);
 
         // Register chain and submit block to Ion
         await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
@@ -309,7 +309,7 @@ contract.only('Ion.js', (accounts) => {
         const validation = await Validation.new(DEPLOYEDCHAINID);
 
         const verifier = await TriggerEventVerifier.new();
-        const functionContract = await Function.new(ion.address, verifier.address);
+        const functionContract = await FunctionEvent.new(ion.address, verifier.address);
 
         // Register chain and submit block to Ion
         await validation.RegisterChain(TESTCHAINID, ion.address, VALIDATORS, GENESIS_HASH);
