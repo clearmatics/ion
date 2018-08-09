@@ -1,11 +1,11 @@
-# Ion Interoperability Protocol
-The Ion Interoperability Protocol provides a framework to perform interoperability across multiple turing-complete blockchains. Using the generalised framework specific use cases, such as atomic swaps, can be developed.
+# Ion Interoperability Framework
+The Ion Interoperability Framework provides a interface to perform interoperability across multiple turing-complete blockchains. Using the generalised framework specific use cases, such as atomic swaps, can be developed.
 
 In order to perform cross-chain interop the Ion framework verifies specific transactions executed on one blockchain A on another blockchain B. Being able to verify these transactions cross-chain requires submission of valid block headers, to the blockchain where a transaction is to be proven, and then performing a number of Patricia trie proofs of the transaction, receipts and logs. Smart contracts can then be built to execute only if the proof is verified, this is known as continuous execution.
 
 To facilitate this Ion has three main components:
   * Ion Hub Contract
-  * Block Validation Scheme
+  * Modular Validation Scheme
   * Ion Framework Contracts
 
 The Ion hub contract is the core component of the framework, the contract persists key data of all valid blocks submitted to the validation contracts.  To prove a transaction has occurred on an external blockchain the Ion framework contract require:
