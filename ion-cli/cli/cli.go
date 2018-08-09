@@ -1,5 +1,4 @@
 // Copyright (c) 2018 Clearmatics Technologies Ltd
-
 package cli
 
 import (
