@@ -1,12 +1,22 @@
-const Recover = artifacts.require("Recover");
+const Ion = artifacts.require("Ion");
 const Validation = artifacts.require("Validation");
+const PatriciaTrie = artifacts.require("PatriciaTrie");
+const EventFunction = artifacts.require("Function");
+const EventVerifier = artifacts.require("EventVerifier");
 
 module.exports = async (deployer) => {
   try {
-    deployer.deploy(Recover)
-      .then(() => Recover.deployed)
-      .then(() => deployer.deploy(Validation, ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d", "0x8671e5e08d74f338ee1c462340842346d797afd3"], "0xc3bac257bbd04893316a76d41b6ff70de5f65c9f24db128864a6322d8e0e2f28"))
+    deployer.deploy(Validation, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
       .then(() => Validation.deployed)
+      .then(() => deployer.deploy(PatriciaTrie))
+      .then(() => PatriciaTrie.deployed)
+      .then(() => deployer.link(PatriciaTrie, Ion))
+      .then(() => deployer.deploy(Ion, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177"))
+      .then(() => Ion.deployed)
+      .then(() => deployer.deploy(EventVerifier))
+      .then(() => EventVerifier.deployed)
+      .then(() => deployer.deploy(EventFunction, Ion.address, EventVerifier.address))
+      .then(() => EventFunction.deployed)
   } catch(err) {
     console.log('ERROR on deploy:',err);
   }

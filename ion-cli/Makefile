@@ -5,9 +5,11 @@ SHELL=/bin/bash
 
 clean:
 	@rm -f ion-cli
-	@rm *.out
 
 test:
+	@go test ./... -v -short
+
+integration-test:
 	@go test ./... -v
 
 format:
@@ -21,6 +23,7 @@ coverage:
 	go tool cover -html=coverage-all.out
 
 build:
+	# Build project
 	@go get -t -v ./...
 	@go build -o ion-cli .
 

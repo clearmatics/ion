@@ -2,146 +2,193 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.23;
 
-import "./ECVerify.sol";
-import "./SolidityUtils.sol";
+import "./libraries/ECVerify.sol";
+import "./libraries/RLP.sol";
+import "./libraries/SolidityUtils.sol";
+import "./Ion.sol";
 
 contract Validation {
-	address Owner;
-	address[] validators;
+    using RLP for RLP.RLPItem;
+    using RLP for RLP.Iterator;
+    using RLP for bytes;
 
-	uint256 blockHeight;
-	bytes32 blockHash;
+    address registeredIon;
+    bytes32 public chainId;
 
+    /*
+    *   @description    persists the last submitted block of a chain being validated
+    */
 	struct BlockHeader {
-		bytes32 blockHash; 
+        uint256 blockHeight;
+		bytes32 latestHash; 
 		bytes32 prevBlockHash;
+        bytes32 txRootHash;
+        bytes32 receiptRootHash;
 	}
 
-	mapping (uint256 => BlockHeader) public m_blockheaders;
-	mapping (address => bool) m_validators;
+    mapping (bytes32 => bool) public chains;
+    mapping (bytes32 => bytes32) public m_latestblock;
+    mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
+	mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
+	mapping (bytes32 => mapping (address => bool)) public m_validators;
 
-	event broadcastSig(address owner);
-	event broadcastHashData(bytes header, bytes parentHash, bytes rootHash);
+	event broadcastSignature(address signer);
 	event broadcastHash(bytes32 blockHash);
-	event broadcastHash2(bytes blockHash);
 
 	/*
-	*	@param _validators		list of validators at block 0
-	*	@param _genesisHash		genesis block hash
+	*	@param _id		genesis block of the blockchain where the contract is deployed
 	*/
-	constructor (address[] _validators, bytes32 genesisHash) public {
-		Owner = msg.sender;
-		for (uint i = 0; i < _validators.length; i++) {
-			validators.push(_validators[i]);
-			m_validators[_validators[i]] = true;
+	constructor (bytes32 _id) public {
+		chainId = _id;
+	}
+
+
+    /*
+    * RegisterChain
+    * param: chainId (bytes32) Unique id of another chain to interoperate with
+    *
+    * Supplied with an id of another chain, checks if this id already exists in the known set of ids
+    * and adds it to the list of known chains.
+    */
+    function RegisterChain(bytes32 _id, address _ion, address[] _validators, bytes32 _genesisHash) public {
+        require( _id != chainId, "Cannot add this chain id to chain register" );
+        require(!chains[_id], "Chain already exists" );
+        chains[_id] = true;
+
+        // Append validators
+        for (uint256 i = 0; i < _validators.length; i++) {
+            m_validators[_id][_validators[i]] = true;
     	}
 
-		blockHash = genesisHash;
-		m_blockheaders[0].blockHash = genesisHash;
+        Ion ion = Ion(_ion);
+        require(ion.addChain(_id), "Chain not added to Ion successfully!");
+        registeredIon = _ion;
 
-	}
+		m_blockheaders[_id][_genesisHash].blockHeight = 0;
+		m_blockheaders[_id][_genesisHash].latestHash = _genesisHash;
+		m_blockhashes[_id][_genesisHash] = true;
+		m_latestblock[_id] = _genesisHash;
 
-	/*
-	* Returns the validators array
-	*/
-	function GetValidators() public view returns (address[] _validators) {
-		return validators;
-	}
-	
-	/*
-	* Returns the latest block submitted
-	*/
-	function LatestBlock() public view returns (bytes32 _latestBlock) {
-		return blockHash;
-	}
+    }
 
 	/*
-	* Returns the latest block submitted
-	*/
-	function GetBlock(uint256 blockNumber) public view returns (bytes32 _blockHash, bytes32 _prevBlockHash, uint256 _blockHeight) {
-		_blockHash = m_blockheaders[blockNumber].blockHash;
-		_prevBlockHash = m_blockheaders[blockNumber].prevBlockHash;
-		_blockHeight = blockHeight;
-	}
+    * ValidateBlock
+    * param: _id (bytes32) Unique id of chain submitting block from
+    * param: _rlpBlockHeader (bytes) RLP-encoded byte array of the block header from other chain without the signature in extraData
+    * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain with the signature in extraData
+    *
+    * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
+    * and if valid the block is persisted as BlockHeader structs defined above.
+    */
+    function SubmitBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) onlyRegisteredChains(_id) public {
+        RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
+        RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
 
-	/*
-	* @param header  			header rlp encoded, with extraData signatures removed
-	* @param prefixHeader		the new prefix for the signed hash header
-	* @param prefixExtraData	the new prefix for the extraData field
-	*/
-	function ValidateBlock(bytes header, bytes prefixHeader, bytes prefixExtraData) public {
-		// Check the parent hash is the same as the previous block submitted
-		bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header, 4);
-		require(_parentBlockHash==blockHash, "Not child of previous block!");
+        // Check header and signedHeader contain the same data
+        for (uint256 i=0; i<signedHeader.length; i++) {
+            // Skip extra data field
+            if (i==12) {
+                continue;
+            } else{
+                require(keccak256(header[i].toBytes())==keccak256(signedHeader[i].toBytes()), "Header data doesn't match!");
+            }
+        }
 
-		uint256 length = header.length;
-		bytes32 _blockHash = keccak256(header);
+        // Check the parent hash is the same as the previous block submitted
+		bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
+		require(m_blockhashes[_id][_parentBlockHash], "Not child of previous block!");
 
-		emit broadcastHash(_blockHash);
+        // Check the blockhash
+        bytes32 _blockHash = keccak256(_rlpSignedBlockHeader);
+        emit broadcastHash(_blockHash);
 
-		bytes memory headerStart 	= new bytes(length - 141);
-		bytes memory extraData 		= new bytes(31);
-		bytes memory extraDataSig	= new bytes(65);
-		bytes memory headerEnd 		= new bytes(42);
+        recoverSignature(_id, signedHeader[12].toBytes(), _rlpBlockHeader);
 
-		// Extract the start of the header and replace the length
-		SolUtils.BytesToBytes(headerStart, header, 0);
-		assembly {
-           let ret := staticcall(3000, 4, add(prefixHeader, 32), 2, add(headerStart, 33), 2)
-	    }
+        // Append the new block to the struct       
+        addBlockHeaderToChain(_id, _blockHash, _parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint());
+        addBlockHashToChain(_id, _blockHash);
+        updateBlockHash(_id, _blockHash);
 
-		// Extract the real extra data and create the signed hash
-		SolUtils.BytesToBytes(extraData, header, length-140);
-		assembly {
-			let ret := staticcall(3000, 4, add(prefixExtraData, 32), 1, add(extraData, 32), 1)
-		}
+    }
 
-		// Extract the end of the header
-		SolUtils.BytesToBytes(headerEnd, header, length-42);
-		bytes memory newHeader = mergeHash(headerStart, extraData, headerEnd);
+    function recoverSignature(bytes32 _id, bytes signedHeader, bytes _rlpBlockHeader) internal {
+        bytes memory extraDataSig = new bytes(65);
+        uint256 length = signedHeader.length;
+        SolUtils.BytesToBytes(extraDataSig, signedHeader, length-65);
 
-		bytes32 hashData = keccak256(newHeader);
+        // Recover the signature of 
+        address sigAddr = ECVerify.ecrecovery(keccak256(_rlpBlockHeader), extraDataSig);
+		require(m_validators[_id][sigAddr], "Signer not a validator!");
 
-		// Extract the signature of the hash create above
-		SolUtils.BytesToBytes(extraDataSig, header, length-107);
+        emit broadcastSignature(sigAddr);
+    }
 
-		address sig_addr = ECVerify.ecrecovery(hashData, extraDataSig);
-		require(m_validators[sig_addr]==true, "Signer not a validator!");
+    /*
+    * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
+    * @param _id        unique identifier of the chain from which the block hails     
+    * @param _hash      root hash of the block being added
+    */
+    function addBlockHeaderToChain(bytes32 _id, bytes32 _hash, bytes32 _parentHash, bytes32 _txRootHash, bytes32 _receiptRootHash, uint256 _height) internal {
+        // Append the new block to the struct
+		m_blockheaders[_id][_hash].blockHeight = _height;
+		m_blockheaders[_id][_hash].latestHash = _hash;
+		m_blockheaders[_id][_hash].prevBlockHash = _parentHash;
+        m_blockheaders[_id][_hash].txRootHash = _txRootHash;
+        m_blockheaders[_id][_hash].receiptRootHash = _receiptRootHash;
 
-		// Append the new block to the struct
-		blockHash = _blockHash;
-		blockHeight++;
-		m_blockheaders[blockHeight].blockHash = _blockHash;
-		m_blockheaders[blockHeight].prevBlockHash = _parentBlockHash;
+        // Add block to Ion
+        Ion ion = Ion(registeredIon);
+        ion.addBlockHeader(_hash, _txRootHash, _receiptRootHash);
+        ion.addBlockHash(_hash);
 
-		emit broadcastSig(sig_addr);
+    }
 
-	}
+    /*
+    * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
+    * @param _id        unique identifier of the chain from which the block hails     
+    * @param _hash      root hash of the block being added
+    */
+    function addBlockHashToChain(bytes32 _id, bytes32 _hash) internal {
+        m_blockhashes[_id][_hash] = true;
+    }
 
+    /*
+    * @description      when a block is submitted the latest block is updated here
+    * @param _id        unique identifier of the chain from which the block hails     
+    * @param _hash      root hash of the block being added
+    */
+    function updateBlockHash(bytes32 _id, bytes32 _hash) internal {
+        m_latestblock[_id] = _hash;
+    }
 
-	function mergeHash(bytes headerStart, bytes extraData, bytes headerEnd) internal view returns (bytes output) {
-		// Get the lengths sorted because they're needed later...
-		uint256 headerStartLength = headerStart.length;
-		uint256 extraDataLength = extraData.length;
-		uint256 extraDataStart = headerStartLength + 32;
-		uint256 headerEndLength = headerEnd.length;
-		uint256 headerEndStart = extraDataLength + headerStartLength + 32 + 2;
-		uint256 newLength = headerStartLength + extraDataLength + headerEndLength + 2; // extra two is for the prefix
-		bytes memory header = new bytes(newLength);
+    /*
+    * @description  returns the transaction root hash of a specific block
+    * @param _id    unique identifier of the chain from which the block hails     
+    * @param _hash  root hash of the block being queried
+    */
+    function getTxRootHash(bytes32 _id, bytes32 _hash) public returns(bytes32) {
+        return(m_blockheaders[_id][_hash].txRootHash);
+    }
 
+    /*
+    * @description  returns the receipt root hash of a specific block
+    * @param _id    unique identifier of the chain from which the block hails     
+    * @param _hash  root hash of the block being queried
+    */
+    function getReceiptRootHash(bytes32 _id, bytes32 _hash) public returns(bytes32) {
+        return(m_blockheaders[_id][_hash].receiptRootHash);
+    }
 
-		// Add in the first part of the header
-		assembly {
-			let ret := staticcall(3000, 4, add(headerStart, 32), headerStartLength, add(header, 32), headerStartLength)
-		}
-		assembly {
-			let ret := staticcall(3000, 4, add(extraData, 32), extraDataLength, add(header, extraDataStart), extraDataLength)
-		}
-		assembly {
-			let ret := staticcall(3000, 4, add(headerEnd, 32), headerEndLength, add(header, headerEndStart), headerEndLength)
-		}
+    /*
+    * onlyRegisteredChains
+    * param: _id (bytes32) Unique id of chain supplied to function
+    *
+    * Modifier that checks if the provided chain id has been registered to this contract
+    */
+    modifier onlyRegisteredChains(bytes32 _id) {
+        require(chains[_id], "Chain is not registered");
+        _;
+    }
 
-		output = header;
-	}
 
 }

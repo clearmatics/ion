@@ -8,19 +8,25 @@
   "license": "LGPL-3.0+",
   "dependencies": {
     "babel-preset-node6": "^11.0.0",
-    "crypto-js": "^3.1.9-1",
-    "elliptic": "^6.4.0",
-    "ethereumjs-util": "^5.2.0",
-    "ethjs-util": "^0.1.6",
+    "eth-proof": "git+https://github.com/Shirikatsu/eth-proof.git#log-encoding",
+    "ethereumjs-block": "^2.0.0",
+    "ethereumjs-tx": "^1.3.5",
+    "merkle-patricia-tree": "^2.3.1",
     "rlp": "^2.0.0",
     "solc": "^0.4.23",
     "solhint": "^1.1.10",
     "solidity-coverage": "^0.5.0 ",
-    "web3": "github:ethereum/web3.js",
-    "web3-eth": "^1.0.0-beta.34",
     "web3-eth-accounts": "^1.0.0-beta.34"
   },
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-register": "^6.26.0",
+    "bluebird": "^3.5.1",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^2.0.2",
     "ganache-cli": "^6.0.0",
     "json-bigint-string": "^1.0.0",
     "solidity-coverage": "^0.4.0",
@@ -29,16 +35,14 @@
     "web3-utils": "^1.0.0-beta.33"
   },
   "scripts": {
-    "clean": "rm -r ./build/contracts/*",
-    "testrpc": "ganache-cli --account='0xe176c157b5ae6413726c23094bb82198eb283030409624965231606ec0fbe65b,1000000000000000000000000000000000000000' --account='0xd18bc3878eb28192238d92ae085cdb9438527e36faa92484dea2e3baa047b083,1000000000000000000000000000000000000000' --port 8545 --gasLimit 0xFFFFFFF --gasPrice 0 --networkId 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
+    "testrpc": "ganache-cli --account='0xe176c157b5ae6413726c23094bb82198eb283030409624965231606ec0fbe65b,1000000000000000000000000000000000000000' --account='0xd18bc3878eb28192238d92ae085cdb9438527e36faa92484dea2e3baa047b083,1000000000000000000000000000000000000000' --port 8545 --gasLimit 0xFFFFFFFFFFF --gasPrice 0 --networkId 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
     "compile": "truffle compile",
     "deploy": "truffle deploy --network development",
     "depclique": "truffle deploy --network clique",
     "test": "truffle test --network clique",
     "coverage": "solidity-coverage",
     "lint": "solhint contracts/**/*.sol",
-    "genbin": "solc --overwrite --bin ./contracts/* -o abi",
-    "genabi": "solc --overwrite --abi ./contracts/* -o abi",
-    "abigen": "abigen --bin=abi/Validation.bin --abi=abi/Validation.abi --pkg=validation --out=validation.go"
+    "genbin": "solc --overwrite --bin ./contracts/*.sol -o abi",
+    "genabi": "solc --overwrite --abi ./contracts/*.sol -o abi"
   }
 }
