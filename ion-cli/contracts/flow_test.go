@@ -78,7 +78,7 @@ func Test_VerifyTx(t *testing.T) {
 	alloc[userAddr] = core.GenesisAccount{Balance: userIntialBalance}
 	blockchain := backends.NewSimulatedBackend(alloc)
 
-	// ----txTrigger-----------------------------------------
+	// ---------------------------------------------
 	// COMPILE AND DEPLOY ION
 	// ---------------------------------------------
 	contractChan := CompileAndDeployIon(ctx, blockchain, userKey, deployedChainID)

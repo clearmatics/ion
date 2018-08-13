@@ -176,7 +176,7 @@ A brief overview of the steps required are:
 * Verify event happened on testrpc and execute function
 
 ##### Step 1. Launch Ion CLI
-Having followed the instructions to run and build the Ion CLI and testrpc, see [here](#### Runninig Ion CLI), launch the CLI with the setup file `rinkeby.json`.
+Having followed the instructions to run and build the Ion CLI and testrpc, see [here](https://github.com/clearmatics/ion/tree/ion-stage-2#running-ion-cli), launch the CLI with the setup file `rinkeby.json`.
 ```
 $ ./ion-cli --config rinkeby.json
 ===============================================================
@@ -267,31 +267,65 @@ Enter Transaction Hash: 0x5da684940b4fd9dec708cc159dc504aa01e90d40bb76a2b73299ae
 Enter Block Hash: 0x74d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b046
 
 Returns:
-Transaction Hash: 0xc0bdb1b8dadd7bd0a68a9f773286236444a7c90fef9a2a7dacd9640f393df736
+Transaction Hash: 0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb
 ===============================================================
 ```
 
 ##### Step 5. Check Transaction Successfully Executed
 Attach to the geth client of the RPC TO chain and run:
 ```
-> eth.getTransaction("0xc0bdb1b8dadd7bd0a68a9f773286236444a7c90fef9a2a7dacd9640f393df736")
-{                            
-  blockHash: "0x4cd5b0a89b96b3e8c5e9176ecc4bf23586958118d82360ba55e24d9170ad2032",                                    
-  blockNumber: 438,          
-  contractAddress: null,     
-  cumulativeGasUsed: 104964, 
-  from: "0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d",      
-  gasUsed: 104964,           
-  logs: [],                  
-  logsBloom: "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000", 
-  status: "0x0",             
-  to: "0x93981af8db02c7ef40d0ed61caef2726a79eb903",        
-  transactionHash: "0xc0bdb1b8dadd7bd0a68a9f773286236444a7c90fef9a2a7dacd9640f393df736",                              
-  transactionIndex: 0        
-} 
+> eth.getTransactionReceipt("0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15")
+{
+  blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
+  blockNumber: 11,
+  contractAddress: null,
+  cumulativeGasUsed: 352099,
+  gasUsed: 352099,
+  logs: [{
+      address: "0x9abefbe4cca994c5d1934dff50c6a863edcf5f52",
+      blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
+      blockNumber: 11,
+      data: "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac807574d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b0460000000000000000000000000000000000000000000000000000000000000002",
+      logIndex: 0,
+      topics: ["0xf0bc00f5b90f382e1bbca216713ca9e2e8e298f9d7717d30847905395f287046"],
+      transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
+      transactionIndex: 0,
+      type: "mined"
+  }, {
+      address: "0x9abefbe4cca994c5d1934dff50c6a863edcf5f52",
+      blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
+      blockNumber: 11,
+      data: "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac807574d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b0460000000000000000000000000000000000000000000000000000000000000000",
+      logIndex: 1,
+      topics: ["0xf0bc00f5b90f382e1bbca216713ca9e2e8e298f9d7717d30847905395f287046"],
+      transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
+      transactionIndex: 0,
+      type: "mined"
+  }, {
+      address: "0x9abefbe4cca994c5d1934dff50c6a863edcf5f52",
+      blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
+      blockNumber: 11,
+      data: "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac807574d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b0460000000000000000000000000000000000000000000000000000000000000001",
+      logIndex: 2,
+      topics: ["0xf0bc00f5b90f382e1bbca216713ca9e2e8e298f9d7717d30847905395f287046"],
+      transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
+      transactionIndex: 0,
+      type: "mined"
+  }, {
+      address: "0x93981af8db02c7ef40d0ed61caef2726a79eb903",
+      blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
+      blockNumber: 11,
+      data: "0x00",
+      logIndex: 3,
+      topics: ["0x68f46c45a243a0e9065a97649faf9a5afe1692f2679e650c2f853b9cd734cc0e"],
+      transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
+      transactionIndex: 0,
+      type: "mined"
+  }],
+  logsBloom: "0x00000000000000000000000000000000000000000001000000080000000000000000000800000000000000000000000000000000000000010000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000100080000000000000000000000040000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000000",
+  status: "0x1",
+  transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
+  transactionIndex: 0
+}
 ``` 
-`status: "0x0"` shows the transaction executed successfully!
+`status: "0x1"` shows the transaction executed successfully!

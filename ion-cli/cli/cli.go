@@ -117,6 +117,7 @@ func Launch(
 			c.Print("Enter Validators: ")
 			validatorString := c.ReadLine()
 			valArray := strings.Fields(validatorString)
+			// valArray := strings.Fields("0x42eb768f2244c8811c63729a21a3569731535f06 0x6635f83421bf059cd8111f180f0727128685bae4 0x7ffc57839b00206d1ad20c69a1981b489f772031 0xb279182d99e65703f0076e4812653aab85fca0f0 0xd6ae8250b8348c94847280928c79fb3b63ca453e 0xda35dee8eddeaa556e4c26268463e26fb91ff74f 0xfc18cbc391de84dbd87db83b20935d3e89f5dd91")
 			var validators []common.Address
 			for _, val := range valArray {
 				validators = append(validators, common.HexToAddress(val))
@@ -126,6 +127,7 @@ func Launch(
 			c.Print("Enter Genesis Hash: ")
 			genesis := c.ReadLine()
 			bytesGenesis := common.HexToHash(genesis)
+			// bytesGenesis := common.HexToHash("0x100dc525cdcb7933e09f10d4019c38d342253a0aa32889fbbdbc5f2406c7546c")
 
 			tx := contract.RegisterChain(
 				ctx,
@@ -162,6 +164,7 @@ func Launch(
 			// Get the block number
 			c.Print("Enter Block Number: ")
 			blockNum := c.ReadLine()
+			// blockNum := "2776659"
 			c.Printf("RLP encode block:\nNumber:\t\t%s", blockNum)
 
 			signedBlock, unsignedBlock := calculateRlpEncoding(ethclientFrom, blockNum)
@@ -284,11 +287,13 @@ func Launch(
 			c.Print("Enter Transaction Hash: ")
 			txHash := c.ReadLine()
 			bytesTxHash := common.HexToHash(txHash)
+			// bytesTxHash := common.HexToHash("0x5da684940b4fd9dec708cc159dc504aa01e90d40bb76a2b73299aee13aa72098")
 
 			// Get the blockHash
 			c.Print("Enter Block Hash: ")
 			blockHash := c.ReadLine()
 			bytesBlockHash := common.HexToHash(blockHash)
+			// bytesBlockHash := common.HexToHash("0x74d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b046")
 
 			// Generate the proof
 			txPath, txValue, txNodes, receiptValue, receiptNodes := utils.GenerateProof(
@@ -297,26 +302,25 @@ func Launch(
 				bytesTxHash,
 			)
 
-			amount := big.NewInt(10000000)
-
 			// Execute
 			tx := contract.VerifyExecute(
 				ctx,
 				ethclientTo,
-				keyTo.PrivateKey,
+				keyFrom.PrivateKey,
 				Function,
 				common.HexToAddress(setup.Function),
 				bytesChainId,
 				bytesBlockHash,
 				common.HexToAddress(setup.Trigger), // TRIG_DEPLOYED_RINKEBY_ADDR,
-				txPath,                              // TEST_PATH,
-				txValue,                             // TEST_TX_VALUE,
-				txNodes,                             // TEST_TX_NODES,
-				receiptValue,                        // TEST_RECEIPT_VALUE,
-				receiptNodes,                        // TEST_RECEIPT_NODES,
-				common.HexToAddress(setup.AddrFrom), // TRIG_CALLED_BY,
-				amount,
+				txPath,                                 // TEST_PATH,
+				txValue,                                // TEST_TX_VALUE,
+				txNodes,                                // TEST_TX_NODES,
+				receiptValue,                           // TEST_RECEIPT_VALUE,
+				receiptNodes,                           // TEST_RECEIPT_NODES,
+				common.HexToAddress(setup.AccountFrom), // TRIG_CALLED_BY,
+				nil,
 			)
+
 			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
 			c.Println("===============================================================")
 		},

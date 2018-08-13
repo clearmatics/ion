@@ -181,7 +181,7 @@ func TransactionContract(
 
 	err = backend.SendTransaction(ctx, signedTx)
 	if err != nil {
-		log.Fatal("ERROR sending transaction", err)
+		log.Fatal("ERROR sending transaction: ", err)
 	}
 	return signedTx
 }

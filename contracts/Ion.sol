@@ -26,7 +26,6 @@ contract Ion {
     mapping (bytes32 => bool) public chains;
     mapping (bytes32 => bool) public m_blockhashes;
 	mapping (bytes32 => BlockHeader) public m_blockheaders;
-    mapping (bytes32 => address) public m_validation;
 
 
 
@@ -104,9 +103,6 @@ contract Ion {
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
         registeredChains.push(_id);
-
-        // Create mapping of registered _id to the validation address
-        m_validation[_id] = msg.sender;
 
         return true;
     }

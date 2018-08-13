@@ -3,8 +3,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/clearmatics/ion/ion-cli/cli"
@@ -27,6 +29,12 @@ func main() {
 		// Compile contracts to use in sending transactions
 		Validation := contract.CompileContract("Validation")
 		Function := contract.CompileContract("Function")
+		functionAbiStr, err := json.Marshal(Function.Info.AbiDefinition)
+		if err != nil {
+			log.Fatal("ERROR marshalling abi to string", err)
+		}
+
+		fmt.Printf("Function: %s\n", functionAbiStr)
 		Trigger := contract.CompileContract("Trigger")
 		printInfo(setup)
 

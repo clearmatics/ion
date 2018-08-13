@@ -2,7 +2,7 @@ const Ion = artifacts.require("Ion");
 const Validation = artifacts.require("Validation");
 const PatriciaTrie = artifacts.require("PatriciaTrie");
 const EventFunction = artifacts.require("Function");
-const EventVerifier = artifacts.require("EventVerifier");
+const EventVerifier = artifacts.require("TriggerEventVerifier");
 
 module.exports = async (deployer) => {
   try {

@@ -17,6 +17,22 @@ library SolUtils {
 		}
 	}
 
+
+	/*
+    * @description  copies 20 bytes from input into the output
+	* @param output	memory allocation for the data you need to extract
+	* @param input  array from which the data should be extracted
+	* @param buf	index which the data starts within the byte array needs to have 32 bytes appended
+	*/
+	function BytesToBytes20(bytes b, uint256 buf) internal pure returns (bytes20) {
+        bytes20 out;
+
+        for (uint i = 0; i < 20; i++) {
+            out |= bytes20(b[buf + i] & 0xFF) >> (i * 8);
+        }
+        return out;
+    }
+
 	/*
     * @description  copies output.length bytes from the input into the output
 	* @param output	memory allocation for the data you need to extract
