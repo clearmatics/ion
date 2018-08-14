@@ -34,6 +34,7 @@ contract Validation {
 
 	event broadcastSignature(address signer);
 	event broadcastHash(bytes32 blockHash);
+	event broadcastBytes(bytes blockHash);
 
 	/*
 	*	@param _id		genesis block of the blockchain where the contract is deployed
@@ -91,7 +92,12 @@ contract Validation {
         for (uint256 i=0; i<signedHeader.length; i++) {
             // Skip extra data field
             if (i==12) {
-                continue;
+                bytes memory extraData = new bytes(32);
+                bytes memory extraDataSigned = new bytes(32);
+                SolUtils.BytesToBytes(extraData, signedHeader[i].toBytes(), 2);
+                SolUtils.BytesToBytes(extraDataSigned, header[i].toBytes(), 1);
+                require(keccak256(extraDataSigned)==keccak256(extraData), "Header data doesn't match!");
+                // continue;
             } else{
                 require(keccak256(header[i].toBytes())==keccak256(signedHeader[i].toBytes()), "Header data doesn't match!");
             }
