@@ -3,6 +3,7 @@
 pragma solidity ^0.4.23;
 
 import "./libraries/RLP.sol";
+import "./libraries/SolidityUtils.sol";
 import "./EventVerifier.sol";
 
 /*
@@ -39,7 +40,8 @@ contract TriggerEventVerifier is EventVerifier {
         parameter in the event from our function call. This acts as our conditional check that the event called is what
         the user expects.
         */
-        bytes20 b20_address = bytesToBytes20(data, data.length - 20);
+        // bytes20 b20_address = bytesToBytes20(data, data.length - 20);
+        bytes20 b20_address = SolUtils.BytesToBytes20(data, data.length - 20);
         assert( b20_address == _expectedAddress );
 
         /*
@@ -49,12 +51,4 @@ contract TriggerEventVerifier is EventVerifier {
         return true;
     }
 
-    function bytesToBytes20(bytes b, uint _offset) private pure returns (bytes20) {
-        bytes20 out;
-
-        for (uint i = 0; i < 20; i++) {
-            out |= bytes20(b[_offset + i] & 0xFF) >> (i * 8);
-        }
-        return out;
-    }
 }
