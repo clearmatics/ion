@@ -37,6 +37,7 @@ contract Validation {
 
 	/*
 	*	@param _id		genesis block of the blockchain where the contract is deployed
+	*	@param _ion		address of the Ion hub contract with which this validation contract is connected
 	*/
 	constructor (bytes32 _id, address _ion) public {
 		chainId = _id;
@@ -46,7 +47,9 @@ contract Validation {
 
     /*
     * RegisterChain
-    * param: chainId (bytes32) Unique id of another chain to interoperate with
+    * param: _id (bytes32) Unique id of another chain to interoperate with
+    * param: _validators (address[]) Array containing the validators at the genesis block
+    * param: _genesisHash (bytes32) Hash of the genesis block for the chain being registered with Ion
     *
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
     * and adds it to the list of known chains.
