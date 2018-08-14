@@ -19,6 +19,7 @@ func CompileAndDeployValidation(
 	client bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
 	chainID interface{},
+	ionContractAddress common.Address,
 ) <-chan ContractInstance {
 	// ---------------------------------------------
 	// COMPILE VALIDATION AND DEPENDENCIES
@@ -46,6 +47,7 @@ func CompileAndDeployValidation(
 		nil,
 		uint64(3000000),
 		chainID,
+		ionContractAddress,
 	)
 
 	resChan := make(chan ContractInstance)
@@ -67,15 +69,14 @@ func CompileAndDeployValidation(
 	return resChan
 }
 
-// Registers chain with Validation contract specified
+// RegisterChain with Validation contract specified
 func RegisterChain(
 	ctx context.Context,
 	backend bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
 	contract *compiler.Contract,
 	toAddr common.Address,
-	chainId common.Hash,
-	ionAddr common.Address,
+	chainID common.Hash,
 	validators []common.Address,
 	registerHash common.Hash,
 ) (tx *types.Transaction) {
@@ -88,8 +89,7 @@ func RegisterChain(
 		nil,
 		uint64(3000000),
 		"RegisterChain",
-		chainId,
-		ionAddr,
+		chainID,
 		validators,
 		registerHash,
 	)
@@ -97,14 +97,14 @@ func RegisterChain(
 	return
 }
 
-// Submits block to Validation contract specified
+// SubmitBlock Submits block to Validation contract specified
 func SubmitBlock(
 	ctx context.Context,
 	backend bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
 	contract *compiler.Contract,
 	toAddr common.Address,
-	chainId common.Hash,
+	chainID common.Hash,
 	unsignedBlockHeaderRLP []byte,
 	signedBlockHeaderRLP []byte,
 ) (tx *types.Transaction) {
@@ -117,21 +117,21 @@ func SubmitBlock(
 		nil,
 		uint64(3000000),
 		"SubmitBlock",
-		chainId,
+		chainID,
 		unsignedBlockHeaderRLP,
 		signedBlockHeaderRLP,
 	)
 	return
 }
 
-// Queries validation contract to see is block is valid
+// ValidBlock Queries validation contract to see is block is valid
 func ValidBlock(
 	ctx context.Context,
 	backend bind.ContractBackend,
 	contract *compiler.Contract,
 	userAddr common.Address,
 	toAddr common.Address,
-	chainId common.Hash,
+	chainID common.Hash,
 	blockHash common.Hash,
 ) (isBlockValid bool) {
 	methodName := "m_blockhashes"
@@ -143,20 +143,20 @@ func ValidBlock(
 		toAddr,
 		methodName,
 		&isBlockValid,
-		chainId,
+		chainID,
 		blockHash,
 	)
 	return
 }
 
-// Queries validation contract to see is block is valid
+// LatestValidBlock Queries validation contract to see is block is valid
 func LatestValidBlock(
 	ctx context.Context,
 	backend bind.ContractBackend,
 	contract *compiler.Contract,
 	userAddr common.Address,
 	toAddr common.Address,
-	chainId common.Hash,
+	chainID common.Hash,
 ) (latestBlock common.Hash) {
 	methodName := "m_latestblock"
 	CallContract(
@@ -167,7 +167,7 @@ func LatestValidBlock(
 		toAddr,
 		methodName,
 		&latestBlock,
-		chainId,
+		chainID,
 	)
 	return
 }

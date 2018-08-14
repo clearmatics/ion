@@ -136,7 +136,6 @@ func Launch(
 				Validation,
 				common.HexToAddress(setup.Validation),
 				bytesChainId,
-				common.HexToAddress(setup.Ion),
 				validators,
 				bytesGenesis,
 			)

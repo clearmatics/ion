@@ -38,8 +38,9 @@ contract Validation {
 	/*
 	*	@param _id		genesis block of the blockchain where the contract is deployed
 	*/
-	constructor (bytes32 _id) public {
+	constructor (bytes32 _id, address _ion) public {
 		chainId = _id;
+        registeredIon = _ion;
 	}
 
 
@@ -50,7 +51,7 @@ contract Validation {
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
     * and adds it to the list of known chains.
     */
-    function RegisterChain(bytes32 _id, address _ion, address[] _validators, bytes32 _genesisHash) public {
+    function RegisterChain(bytes32 _id, address[] _validators, bytes32 _genesisHash) public {
         require( _id != chainId, "Cannot add this chain id to chain register" );
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
@@ -60,9 +61,8 @@ contract Validation {
             m_validators[_id][_validators[i]] = true;
     	}
 
-        Ion ion = Ion(_ion);
+        Ion ion = Ion(registeredIon);
         require(ion.addChain(_id), "Chain not added to Ion successfully!");
-        registeredIon = _ion;
 
 		m_blockheaders[_id][_genesisHash].blockHeight = 0;
 		m_blockheaders[_id][_genesisHash].latestHash = _genesisHash;
@@ -159,24 +159,6 @@ contract Validation {
     */
     function updateBlockHash(bytes32 _id, bytes32 _hash) internal {
         m_latestblock[_id] = _hash;
-    }
-
-    /*
-    * @description  returns the transaction root hash of a specific block
-    * @param _id    unique identifier of the chain from which the block hails     
-    * @param _hash  root hash of the block being queried
-    */
-    function getTxRootHash(bytes32 _id, bytes32 _hash) public returns(bytes32) {
-        return(m_blockheaders[_id][_hash].txRootHash);
-    }
-
-    /*
-    * @description  returns the receipt root hash of a specific block
-    * @param _id    unique identifier of the chain from which the block hails     
-    * @param _hash  root hash of the block being queried
-    */
-    function getReceiptRootHash(bytes32 _id, bytes32 _hash) public returns(bytes32) {
-        return(m_blockheaders[_id][_hash].receiptRootHash);
     }
 
     /*

@@ -91,13 +91,14 @@ func Test_RegisterChain(t *testing.T) {
 	ionContractInstance := <-contractChan
 
 	// deploy validation contract
-	contractChan = CompileAndDeployValidation(ctx, blockchain, userAKey, chainID)
+	var ionContractAddr [20]byte
+	copy(ionContractAddr[:], ionContractInstance.Address.Bytes())
+	contractChan = CompileAndDeployValidation(ctx, blockchain, userAKey, chainID, ionContractAddr)
 	blockchain.Commit()
 	validationContractInstance := <-contractChan
 
 	var chainIDA [32]byte
-	var ionAddress, validationAddress [20]byte
-	copy(ionAddress[:], ionContractInstance.Address.Bytes())
+	var validationAddress [20]byte
 	copy(validationAddress[:], validationContractInstance.Address.Bytes())
 	copy(chainIDA[:], crypto.Keccak256Hash([]byte("TESTCHAINID")).Bytes())
 	deployedChainID := common.HexToHash("0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075")
@@ -108,7 +109,6 @@ func Test_RegisterChain(t *testing.T) {
 		validationContractInstance.Contract,
 		validationContractInstance.Address,
 		chainIDA,
-		ionAddress,
 		testValidators,
 		deployedChainID,
 	)

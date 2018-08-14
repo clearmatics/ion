@@ -90,15 +90,16 @@ func Test_VerifyTx(t *testing.T) {
 	// ---------------------------------------------
 	// COMPILE AND DEPLOY VALIDATION
 	// ---------------------------------------------
-	contractChan = CompileAndDeployValidation(ctx, blockchain, userKey, deployedChainID)
+	var ionContractAddr [20]byte
+	copy(ionContractAddr[:], ionContractInstance.Address.Bytes())
+	contractChan = CompileAndDeployValidation(ctx, blockchain, userKey, deployedChainID, ionContractAddr)
 	blockchain.Commit()
 	validationContractInstance := <-contractChan
 
 	// ---------------------------------------------
 	// REGISTER CHAIN ON VALIDATION
 	// ---------------------------------------------
-	var ionContractAddr [20]byte
-	copy(ionContractAddr[:], ionContractInstance.Address.Bytes())
+
 	var genesisHash [32]byte
 	copy(genesisHash[:], block.ParentHash().Bytes())
 	txRegisterChainValidation := RegisterChain(
@@ -108,7 +109,6 @@ func Test_VerifyTx(t *testing.T) {
 		validationContractInstance.Contract,
 		validationContractInstance.Address,
 		testChainID,
-		ionContractAddr,
 		testValidators,
 		genesisHash,
 	)

@@ -3,6 +3,7 @@
 pragma solidity ^0.4.23;
 
 import "./libraries/RLP.sol";
+import "./libraries/SolidityUtils.sol";
 
 /*
     EventVerifier
@@ -49,7 +50,7 @@ contract EventVerifier {
             bytes32 containedEventSignature = RLP.toBytes32(topics[0]);
             if (containedEventSignature == _eventSignature) {
                 // If event signature is found, check the contract address it was emitted from
-                bytes20 b20_emissionSource = bytesToBytes20(RLP.toData(log[0]), 0);
+                bytes20 b20_emissionSource = SolUtils.BytesToBytes20(RLP.toData(log[0]), 0);
                 assert( b20_emissionSource == _contractEmittedAddress);
                 return log;
             }
@@ -57,12 +58,4 @@ contract EventVerifier {
         assert( false );
     }
 
-    function bytesToBytes20(bytes b, uint _offset) private pure returns (bytes20) {
-        bytes20 out;
-
-        for (uint i = 0; i < 20; i++) {
-            out |= bytes20(b[_offset + i] & 0xFF) >> (i * 8);
-        }
-        return out;
-    }
 }
