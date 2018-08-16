@@ -1,8 +1,8 @@
+os: linux
+dist: trusty
+
 matrix:
  include:
-    - os: linux
-      dist: trusty
-
     - name: "Javascript Contract Tests"
       services:
         - docker
@@ -20,8 +20,8 @@ matrix:
       go: 1.9.x
       script:
         - cd ./ion-cli
-        - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         - go get github.com/ethereum/go-ethereum
+        - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         - dep ensure
         - cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
         - make build
