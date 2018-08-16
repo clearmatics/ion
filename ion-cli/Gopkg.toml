@@ -1,6 +1,6 @@
 # Gopkg.toml example
 #
-# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
 # for detailed Gopkg.toml documentation.
 #
 # required = ["github.com/user/thing/cmd/thing"]
@@ -31,11 +31,7 @@
 
 [[constraint]]
   name = "github.com/ethereum/go-ethereum"
-  version = "1.8.12"
-
-[[constraint]]
-  name = "github.com/maxrobot/go-ethereum"
-  version = "1.8.11"
+  version = "1.8.13"
 
 [[constraint]]
   name = "github.com/stretchr/testify"

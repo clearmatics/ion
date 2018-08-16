@@ -3,29 +3,41 @@ language: go
 services:
   - docker
 
-before_install:
-  - sudo add-apt-repository ppa:ethereum/ethereum -y
-  - sudo apt-get update
-  - sudo apt-get install solc -y
-  - docker build . -t node
-  - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
-  - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
-
 matrix:
  include:
     - os: linux
       dist: trusty
+
+    - name: "Javascript Contract Tests"
+      script:
+        - npm install
+        - npm run test
+
+      before_install:
+        - docker build . -t node
+        - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
+        - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
+
+    - name: "Golang Ion-CLI Tests"
       go: 1.9.x
       script:
         - cd ./ion-cli
         - go get github.com/ethereum/go-ethereum
+        - cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
         - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         - dep ensure
         - make build
         - make test
-        - cd ..
-        - npm install
-        - npm run test
+      
+      before_install:
+        - sudo add-apt-repository ppa:ethereum/ethereum -y
+        - sudo apt-get update
+        - sudo apt-get install solc -y
+        - docker build . -t node
+        - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
+        - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
+
+
 
 notifications:
   slack:

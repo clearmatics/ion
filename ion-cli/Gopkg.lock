@@ -14,16 +14,14 @@
   revision = "155bce2042db95a783081fab225e74dd879055b0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
-  revision = "3e95f038af02770089c3988f48f9e1a6b6fe2ac5"
+  revision = "ea17b1a17847fb6e4c0a91de0b674704693469b0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
-  revision = "9a2f9524024889e129a5422aca2cff73cb3eabf6"
+  revision = "2e60448ffcc6bf78332d1fe590260095f554dd78"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -33,9 +31,14 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/deckarep/golang-set"
+  packages = ["."]
+  revision = "504e848d77ea4752b3057b8fb46da0e7f746ccf3"
+
+[[projects]]
   name = "github.com/edsrzf/mmap-go"
   packages = ["."]
-  revision = "0bce6a6887123b67a60366d2c9fe2dfb74289d2e"
+  revision = "935e0e8a636ca4ba70b713f3e38a19e1b77739e8"
 
 [[projects]]
   name = "github.com/ethereum/go-ethereum"
@@ -48,6 +51,7 @@
     "accounts/keystore",
     "common",
     "common/bitutil",
+    "common/compiler",
     "common/hexutil",
     "common/math",
     "common/mclock",
@@ -64,7 +68,6 @@
     "crypto/bn256",
     "crypto/bn256/cloudflare",
     "crypto/bn256/google",
-    "crypto/randentropy",
     "crypto/secp256k1",
     "crypto/sha3",
     "eth/filters",
@@ -79,8 +82,8 @@
     "rpc",
     "trie"
   ]
-  revision = "37685930d953bcbe023f9bc65b135a8d8b8f1488"
-  version = "v1.8.12"
+  revision = "225171a4bfcc16bd12a1906b1e0d43d0b18c353b"
+  version = "v1.8.13"
 
 [[projects]]
   name = "github.com/fatih/color"
@@ -97,8 +100,8 @@
 [[projects]]
   name = "github.com/go-stack/stack"
   packages = ["."]
-  revision = "259ab82a6cad3992b4e21ff5cac294ccb06474bc"
-  version = "v1.7.0"
+  revision = "54be5f394ed2c3e19dac9134a40a95ba5a017f7b"
+  version = "v1.5.4"
 
 [[projects]]
   branch = "master"
@@ -107,13 +110,12 @@
   revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
 
 [[projects]]
-  branch = "master"
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
     "simplelru"
   ]
-  revision = "0fb14efe8c47ae851c0034ed7a448854d3d34cf3"
+  revision = "0a025b7e63adc15a622f29b0b2c4c3848243bbf6"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -128,16 +130,9 @@
   version = "v0.0.3"
 
 [[projects]]
-  name = "github.com/maxrobot/go-ethereum"
-  packages = ["crypto"]
-  revision = "dea1ce052a10cd7d401a5c04f83f371a06fe293c"
-  version = "v1.8.11"
-
-[[projects]]
   name = "github.com/pborman/uuid"
   packages = ["."]
-  revision = "e790cca94e6cc75c7064b1332e63811d4aae1a53"
-  version = "v1.1"
+  revision = "1b00554d822231195d1babd97ff4a781231955c9"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -148,14 +143,19 @@
 [[projects]]
   name = "github.com/rjeczalik/notify"
   packages = ["."]
-  revision = "52ae50d8490436622a8941bd70c3dbe0acdd4bbf"
-  version = "v0.9.0"
+  revision = "c31e5f2cb22b3e4ef3f882f413847669bf2652b9"
 
 [[projects]]
   name = "github.com/rs/cors"
   packages = ["."]
-  revision = "3fb1b69b103a84de38a19c3c6ec073dd6caa4d3f"
-  version = "v1.5.0"
+  revision = "a62a804a8a009876ca59105f7899938a1349f4b3"
+  version = "v1.0"
+
+[[projects]]
+  name = "github.com/rs/xhandler"
+  packages = ["."]
+  revision = "d9d9599b6aaf6a058cb7b1f48291ded2cbd13390"
+  version = "v1.0"
 
 [[projects]]
   name = "github.com/stretchr/testify"
@@ -164,7 +164,6 @@
   version = "v1.2.2"
 
 [[projects]]
-  branch = "master"
   name = "github.com/syndtr/goleveldb"
   packages = [
     "leveldb",
@@ -183,42 +182,35 @@
   revision = "c4c61651e9e37fa117f53c5a906d3b63090d8445"
 
 [[projects]]
-  branch = "master"
   name = "golang.org/x/crypto"
   packages = [
     "pbkdf2",
     "ripemd160",
     "scrypt"
   ]
-  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
+  revision = "6a293f2d4b14b8e6d3f0539e383f6d0d30fce3fd"
 
 [[projects]]
-  branch = "master"
   name = "golang.org/x/net"
-  packages = ["websocket"]
-  revision = "c4299a1a0d8524c11563db160fbf9bddbceadb21"
+  packages = [
+    "context",
+    "websocket"
+  ]
+  revision = "a6577fac2d73be281a500b310739095313165611"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e"
+  revision = "1c9583448a9c3aa0f9a6a5241bf73c0bd8aafded"
 
 [[projects]]
-  branch = "master"
   name = "golang.org/x/tools"
   packages = [
     "go/ast/astutil",
-    "imports",
-    "internal/fastwalk"
+    "imports"
   ]
-  revision = "8cc4e8a6f4841aa92a8683fca47bc5d64b58875b"
-
-[[projects]]
-  name = "gopkg.in/fatih/set.v0"
-  packages = ["."]
-  revision = "57907de300222151a123d29255ed17f5ed43fad3"
-  version = "v0.1.0"
+  revision = "be0fcc31ae2332374e800dfff29b721c585b35df"
 
 [[projects]]
   branch = "v2"
@@ -235,6 +227,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "805e01dd280107fbb7b37497eab1b47175b241c1a5b253db91a375d83d208ae5"
+  inputs-digest = "61e6c38a8fde2002db259f4cefff56c1602f61842d325ec011613477dd20a819"
   solver-name = "gps-cdcl"
   solver-version = 1
