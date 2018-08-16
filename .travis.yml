@@ -1,5 +1,3 @@
-language: go
-
 services:
   - docker
 
@@ -23,9 +21,9 @@ matrix:
       script:
         - cd ./ion-cli
         - go get github.com/ethereum/go-ethereum
-        - cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
         - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         - dep ensure
+        - cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
         - make build
         - make test
       
@@ -33,9 +31,6 @@ matrix:
         - sudo add-apt-repository ppa:ethereum/ethereum -y
         - sudo apt-get update
         - sudo apt-get install solc -y
-        - docker build . -t node
-        - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
-        - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
 
 
 
