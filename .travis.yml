@@ -21,7 +21,8 @@ matrix:
         - npm run depclique 
         - npm run test
         - cd ./ion-cli
-        - go get -t ./...
+        - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+        - dep ensure
         - make build
         - make test
 
