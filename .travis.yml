@@ -17,6 +17,7 @@ matrix:
         - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
 
     - name: "Golang Ion-CLI Tests"
+      language: go
       go: 1.9.x
       script:
         - cd ./ion-cli
