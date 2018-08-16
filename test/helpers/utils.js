@@ -64,5 +64,4 @@ utils.txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
 utils.txLoggedArgs = txReceipt => txReceipt.logs[0].args
 utils.txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
 
-// bufToStr, joinHex, newSecretHashPair, oneFinney, random32, randomArr, randomHex, sha256, sleep, txGas, txLoggedArgs}
 module.exports = utils;

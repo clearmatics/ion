@@ -30,11 +30,13 @@ contract Validation {
     mapping (bytes32 => bytes32) public m_latestblock;
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
 	mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
+	mapping (bytes32 => uint256) public m_threshold;
 	mapping (bytes32 => mapping (address => bool)) public m_validators;
+	mapping (bytes32 => mapping (address => uint256)) public m_proposals;
+
 
 	event broadcastSignature(address signer);
 	event broadcastHash(bytes32 blockHash);
-	event broadcastBytes(bytes blockHash);
 
 	/*
 	*	@param _id		genesis block of the blockchain where the contract is deployed
@@ -60,10 +62,11 @@ contract Validation {
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
 
-        // Append validators
+        // Append validators and vote threshold
         for (uint256 i = 0; i < _validators.length; i++) {
             m_validators[_id][_validators[i]] = true;
     	}
+        m_threshold[_id] = (_validators.length/2) + 1;
 
         Ion ion = Ion(registeredIon);
         require(ion.addChain(_id), "Chain not added to Ion successfully!");
@@ -97,8 +100,7 @@ contract Validation {
                 SolUtils.BytesToBytes(extraData, signedHeader[i].toBytes(), 2);
                 SolUtils.BytesToBytes(extraDataSigned, header[i].toBytes(), 1);
                 require(keccak256(extraDataSigned)==keccak256(extraData), "Header data doesn't match!");
-                // continue;
-            } else{
+            } else {
                 require(keccak256(header[i].toBytes())==keccak256(signedHeader[i].toBytes()), "Header data doesn't match!");
             }
         }
@@ -113,7 +115,8 @@ contract Validation {
 
         recoverSignature(_id, signedHeader[12].toBytes(), _rlpBlockHeader);
 
-        // Append the new block to the struct       
+        // Append the new block to the struct
+        addProposal(_id, SolUtils.BytesToAddress(header[2].toBytes(), 1));
         addBlockHeaderToChain(_id, _blockHash, _parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint());
         addBlockHashToChain(_id, _blockHash);
         updateBlockHash(_id, _blockHash);
@@ -130,6 +133,20 @@ contract Validation {
 		require(m_validators[_id][sigAddr], "Signer not a validator!");
 
         emit broadcastSignature(sigAddr);
+    }
+
+    function addProposal(bytes32 _id, address _vote) {
+        if (_vote!=(0x0)) {
+            m_proposals[_id][_vote]++;
+            // Add validator if does not exist else remove
+            if (m_proposals[_id][_vote]>=m_threshold[_id] && !m_validators[_id][_vote]) {
+                m_validators[_id][_vote] = true;
+                m_proposals[_id][_vote] = 0;
+            } else if (m_proposals[_id][_vote]>=m_threshold[_id] && m_validators[_id][_vote]) {
+                m_validators[_id][_vote] = false;
+                m_proposals[_id][_vote] = 0;
+            }
+        }
     }
 
     /*

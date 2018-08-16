@@ -3,10 +3,9 @@
 
 const eth_util = require('ethereumjs-util');
 const utils = require('./helpers/utils.js');
+const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
-const Web3Abi = require('web3-eth-abi');
-const Web3Accounts = require('web3-eth-accounts');
 const rlp = require('rlp');
 
 const Validation = artifacts.require("Validation");
@@ -48,7 +47,7 @@ const VALIDATORS = ["0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d"];
 const GENESIS_HASH = "0xaf0d377824ecc16cfdd5946ad0cd0da904cbcfff8c6cd31628c9c9e5bed2c95b";
 
 
-contract('Validation.js', (accounts) => {
+contract.only('Validation.js', (accounts) => {
   const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('');
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
@@ -102,8 +101,7 @@ contract('Validation.js', (accounts) => {
     let blockHeight = header[0];
 
     assert.equal(0, blockHeight);
-;
-})
+  })
 
   it('Authentic Submission Happy Path - SubmitBlock()', async () => {
     const ion = await Ion.new(DEPLOYEDCHAINID);
@@ -114,57 +112,13 @@ contract('Validation.js', (accounts) => {
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);
 
-    const signedHeader = [
-        block.parentHash,
-        block.sha3Uncles,
-        block.miner,
-        block.stateRoot,
-        block.transactionsRoot,
-        block.receiptsRoot,
-        block.logsBloom,
-        Web3Utils.toBN(block.difficulty),
-        Web3Utils.toBN(block.number),
-        block.gasLimit,
-        block.gasUsed,
-        Web3Utils.toBN(block.timestamp),
-        block.extraData,
-        block.mixHash,
-        block.nonce
-      ];
-
-    // Remove last 65 Bytes of extraData
-    const extraBytes = utils.hexToBytes(block.extraData);
-    const extraBytesShort = extraBytes.splice(1, extraBytes.length-66);
-    const extraDataSignature = '0x' + utils.bytesToHex(extraBytes.splice(extraBytes.length-65));
-    const extraDataShort = '0x' + utils.bytesToHex(extraBytesShort);
-
-    const unsignedHeader = [
-        block.parentHash,
-        block.sha3Uncles,
-        block.miner,
-        block.stateRoot,
-        block.transactionsRoot,
-        block.receiptsRoot,
-        block.logsBloom,
-        Web3Utils.toBN(block.difficulty),
-        Web3Utils.toBN(block.number),
-        block.gasLimit,
-        block.gasUsed,
-        Web3Utils.toBN(block.timestamp),
-        extraDataShort, // extraData minus the signature
-        block.mixHash,
-        block.nonce
-      ];
-
-    const encodedSignedHeader = '0x' + rlp.encode(signedHeader).toString('hex');
-    const signedHeaderHash = Web3Utils.sha3(encodedSignedHeader);
+    const rlpHeaders = encoder.encodeBlockHeader(block);
+    const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
     assert.equal(block.hash, signedHeaderHash);
 
-    const encodedUnsignedHeader = '0x' + rlp.encode(unsignedHeader).toString('hex');
-    const unsignedHeaderHash = Web3Utils.sha3(encodedUnsignedHeader);
-
     // Submit block should succeed
-    const validationReceipt = await validation.SubmitBlock(TESTCHAINID, encodedUnsignedHeader, encodedSignedHeader);
+    // const validationReceipt = await validation.SubmitBlock(TESTCHAINID, encodedUnsignedHeader, encodedSignedHeader);
+    const validationReceipt = await validation.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed);
     const recoveredBlockHash = await validationReceipt.logs[0].args['blockHash'];
     assert.equal(signedHeaderHash, recoveredBlockHash);
     console.log("\tGas used to submit block = " + validationReceipt.receipt.gasUsed.toString() + " gas");
@@ -191,58 +145,12 @@ contract('Validation.js', (accounts) => {
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);
 
-    const signedHeader = [
-        block.parentHash,
-        block.sha3Uncles,
-        block.miner,
-        block.stateRoot,
-        block.transactionsRoot,
-        block.receiptsRoot,
-        block.logsBloom,
-        Web3Utils.toBN(block.difficulty),
-        Web3Utils.toBN(block.number),
-        block.gasLimit,
-        block.gasUsed,
-        Web3Utils.toBN(block.timestamp),
-        block.extraData,
-        block.mixHash,
-        block.nonce
-      ];
-
-    // Remove last 65 Bytes of extraData
-    const extraBytes = utils.hexToBytes(block.extraData);
-    const extraBytesShort = extraBytes.splice(1, extraBytes.length-66);
-    const extraDataSignature = '0x' + utils.bytesToHex(extraBytes.splice(extraBytes.length-65));
-    const extraDataShort = '0x' + utils.bytesToHex(extraBytesShort);
-
-    const unsignedHeader = [
-        block.parentHash,
-        block.sha3Uncles,
-        block.miner,
-        block.stateRoot,
-        block.transactionsRoot,
-        block.receiptsRoot,
-        block.logsBloom,
-        Web3Utils.toBN(block.difficulty),
-        Web3Utils.toBN(block.number),
-        block.gasLimit,
-        block.gasUsed,
-        Web3Utils.toBN(block.timestamp),
-        extraDataShort, // extraData minus the signature
-        block.mixHash,
-        block.nonce
-      ];
-
-    const encodedSignedHeader = '0x' + rlp.encode(signedHeader).toString('hex');
-    const signedHeaderHash = Web3Utils.sha3(encodedSignedHeader);
-    assert.equal(block.hash, signedHeaderHash);
-
-    const encodedUnsignedHeader = '0x' + rlp.encode(unsignedHeader).toString('hex');
-    const unsignedHeaderHash = Web3Utils.sha3(encodedUnsignedHeader);
+    const rlpHeaders = encoder.encodeBlockHeader(block);
+    const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
 
     // Encode and sign the new header
-    const encodedExtraData = '0x' + rlp.encode(extraDataShort).toString('hex');
-    const newSignedHeaderHash = eth_util.sha3(encodedUnsignedHeader);
+    const encodedExtraData = '0x' + rlp.encode(rlpHeaders.extraDataShort).toString('hex');
+    const newSignedHeaderHash = eth_util.sha3(rlpHeaders.unsigned);
 
     const privateKey = Buffer.from('e176c157b5ae6413726c23094bb82198eb283030409624965231606ec0fbe65b', 'hex')
 
@@ -250,9 +158,10 @@ contract('Validation.js', (accounts) => {
 
     // Append signature to the end of extraData
     const sigBytes = utils.hexToBytes(signature.toString('hex'));
-    const newExtraDataBytes = extraBytesShort.concat(sigBytes);
+    // const extraBytesShort = utils.hexToBytes(rlpHeaders.extraDataShort);
+    const newExtraDataBytes = rlpHeaders.extraBytesShort.concat(sigBytes);
     const newExtraData = '0x' + utils.bytesToHex(newExtraDataBytes);
-    assert.equal(extraDataSignature, '0x'+signature.toString('hex'))
+    assert.equal(rlpHeaders.extraDataSignature, '0x'+signature.toString('hex'))
 
     const newSignedHeader = [
       block.parentHash,
@@ -276,7 +185,7 @@ contract('Validation.js', (accounts) => {
     const offchainSignedHeader = '0x' + rlp.encode(newSignedHeader).toString('hex');
 
     // Submit block should succeed
-    const validationReceipt = await validation.SubmitBlock(TESTCHAINID, encodedUnsignedHeader, offchainSignedHeader);
+    const validationReceipt = await validation.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, offchainSignedHeader);
     const recoveredBlockHash = await validationReceipt.logs[0].args['blockHash'];
     assert.equal(signedHeaderHash, recoveredBlockHash);
 
@@ -521,57 +430,10 @@ contract('Validation.js', (accounts) => {
     // Fetch block 1 from testrpc
     const block = web3.eth.getBlock(1);
 
-    const signedHeader = [
-        block.parentHash,
-        block.sha3Uncles,
-        block.miner,
-        block.stateRoot,
-        block.transactionsRoot,
-        block.receiptsRoot,
-        block.logsBloom,
-        Web3Utils.toBN(block.difficulty),
-        Web3Utils.toBN(block.number),
-        block.gasLimit,
-        block.gasUsed,
-        Web3Utils.toBN(block.timestamp),
-        block.extraData,
-        block.mixHash,
-        block.nonce
-      ];
-
-    // Remove last 65 Bytes of extraData
-    const extraBytes = utils.hexToBytes(block.extraData);
-    const extraBytesShort = extraBytes.splice(1, extraBytes.length-66);
-    const extraDataSignature = '0x' + utils.bytesToHex(extraBytes.splice(extraBytes.length-65));
-    const extraDataShort = '0x' + utils.bytesToHex(extraBytesShort);
-
-    const unsignedHeader = [
-        block.parentHash,
-        block.sha3Uncles,
-        block.miner,
-        block.stateRoot,
-        block.transactionsRoot,
-        block.receiptsRoot,
-        block.logsBloom,
-        Web3Utils.toBN(block.difficulty),
-        Web3Utils.toBN(block.number),
-        block.gasLimit,
-        block.gasUsed,
-        Web3Utils.toBN(block.timestamp),
-        extraDataShort, // extraData minus the signature
-        block.mixHash,
-        block.nonce
-      ];
-
-    const encodedSignedHeader = '0x' + rlp.encode(signedHeader).toString('hex');
-    const signedHeaderHash = Web3Utils.sha3(encodedSignedHeader);
-    assert.equal(block.hash, signedHeaderHash);
-
-    const encodedUnsignedHeader = '0x' + rlp.encode(unsignedHeader).toString('hex');
-    const unsignedHeaderHash = Web3Utils.sha3(encodedUnsignedHeader);
+    const rlpHeaders = encoder.encodeBlockHeader(block);
 
     // Submit block should succeed
-    await validation.SubmitBlock(TESTCHAINID.slice(0, -2) + "ff", encodedUnsignedHeader, encodedSignedHeader).should.be.rejected;
+    await validation.SubmitBlock(TESTCHAINID.slice(0, -2) + "ff", rlpHeaders.unsigned, rlpHeaders.signed).should.be.rejected;
     
   })
 
