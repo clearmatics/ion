@@ -16,16 +16,16 @@ contract Ion {
     bytes32[] public registeredChains;
 
     /*
-    *   @description    persists the last submitted block of a chain being validated
+    *   @description    BlockHeader struct containing trie root hashes for tx verifications
     */
-	struct BlockHeader {
-        bytes32 txRootHash;
-        bytes32 receiptRootHash;
-	}
+    struct BlockHeader {
+	bytes32 txRootHash;
+	bytes32 receiptRootHash;
+    }
 
     mapping (bytes32 => bool) public chains;
     mapping (bytes32 => bool) public m_blockhashes;
-	mapping (bytes32 => BlockHeader) public m_blockheaders;
+    mapping (bytes32 => BlockHeader) public m_blockheaders;
 
 
 
@@ -41,12 +41,12 @@ contract Ion {
         chainId = _id;
     }
 
-
     enum ProofType { TX, RECEIPT, ROOTS }
 
     event VerifiedProof(bytes32 chainId, bytes32 blockHash, uint proofType);
     event broadcastSignature(address signer);
-	event broadcastHash(bytes32 blockHash);
+    event broadcastHash(bytes32 blockHash);
+    
 /*
 ========================================================================================================================
 
