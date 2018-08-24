@@ -7,6 +7,7 @@ const utils = require('./utils.js');
 
 const encoder = {};
 
+//
 encoder.encodeBlockHeader = (block) => {
     const signedHeader = [
         block.parentHash,
@@ -63,6 +64,28 @@ encoder.encodeBlockHeader = (block) => {
       extraDataShort: extraDataShort,
       extraBytesShort: extraBytesShort
     };
+}
+
+// Takes the extraData field from a clique genesis block and finds the validators
+encoder.extractValidators = (extraData) => {
+  genesisExtraData = utils.hexToBytes(extraData)
+
+  // Remove dressin, 32 bytes pre validators, 65 bytes post validators, and extra byte for 0x
+  extraDataValidators = genesisExtraData.splice(33, genesisExtraData.length-32-65-1)
+
+  // Check that the validators length is factor of 20 
+  assert.equal(extraDataValidators.length%20, 0);
+  numValidators = extraDataValidators.length / 20;
+
+  let validators = [];
+
+  // Append each new validator to the array
+  for (i = 0; i < numValidators; ++i) {
+    validator = extraDataValidators.splice(0, 20);
+    validators.push('0x' + utils.bytesToHex(validator));
+  }
+
+  return validators;
 }
 
 module.exports = encoder;

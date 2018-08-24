@@ -88,10 +88,7 @@ contract Ion {
 
     /*
     * addChain
-    * param: chainId        Unique id of another chain to interoperate with
-    * param: validationAddr Address of the validation contract required to make modular validation
-    * param: _validators    List of validators on the block chain
-    * param: _genesisHash   Genesis blockhash of the interop block chain
+    * param: id        Unique id of another chain to interoperate with
     *
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
     * and adds it to the list of known chains. 
