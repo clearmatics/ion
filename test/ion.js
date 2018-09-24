@@ -301,7 +301,6 @@ contract('Ion.js', (accounts) => {
 
         console.log("\tGas used to verify all proofs against ion, verify logs against the verifier and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
 
-
     })
 
     it('Fail Function Execution', async () => {

@@ -37,6 +37,7 @@ contract Validation {
 
 	event broadcastSignature(address signer);
 	event broadcastHash(bytes32 blockHash);
+    event test(bytes unsigned, bytes signed);
 
 	/*
 	*	@param _id		genesis block of the blockchain where the contract is deployed
@@ -78,8 +79,56 @@ contract Validation {
 
     }
 
+    /*
+    * SubmitBlocks
+    * param: _id (bytes32) Unique id of chain submitting block from
+    * param: _rlpBlockHeader (bytes) Concatenation of multiple RLP-encoded byte arrays of block headers from other chain without the signature in extraData
+    * param: _rlpSignedBlockHeader (bytes) Concatenation of multiple RLP-encoded byte arrays of block headers from other chain with the signature in extraData
+    * param: _unsignedIndices (uint256[]) Array containing the indices at which each individual block begins at in the unsigned header concatenation
+    * param: _signedIndices (uint256[]) Array containing the indices at which each individual block begins at in the signed header concatenation
+    *
+    * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
+    * and if valid the block is persisted as BlockHeader structs defined above.
+    */
+    function SubmitBlocks(
+        bytes32 _id,
+        bytes _rlpUnsignedBlockHeaders,
+        bytes _rlpSignedBlockHeaders,
+        uint256[] _unsignedIndices,
+        uint256[] _signedIndices
+    ) public {
+        // Loop over each header contained in the bytes arrays and submit to block accordingly
+        for (uint i=0; i<_signedIndices.length; ++i ) {
+            uint256 signedSize;
+            uint256 unsignedSize;
+
+            // Find the length in bytes of each encoded header
+            if (i==0) {
+                signedSize = _signedIndices[0];
+                unsignedSize = _unsignedIndices[0];
+            } else {
+                signedSize = _signedIndices[i] - _signedIndices[i-1];
+                unsignedSize = _unsignedIndices[i] - _unsignedIndices[i-1];
+            }
+
+            bytes memory signedHeader = new bytes(signedSize);
+            bytes memory unsignedHeader = new bytes(unsignedSize);
+            
+            if (i==0) {
+                SolUtils.BytesToBytes(signedHeader, _rlpSignedBlockHeaders, 0);
+                SolUtils.BytesToBytes(unsignedHeader, _rlpUnsignedBlockHeaders, 0);
+            } else {
+                SolUtils.BytesToBytes(signedHeader, _rlpSignedBlockHeaders, _signedIndices[i-1]);
+                SolUtils.BytesToBytes(unsignedHeader, _rlpUnsignedBlockHeaders, _unsignedIndices[i-1]);
+            }
+
+            // Submit block to the validation
+            SubmitBlock(_id, unsignedHeader, signedHeader);
+        }
+    }
+
 	/*
-    * ValidateBlock
+    * SubmitBlock
     * param: _id (bytes32) Unique id of chain submitting block from
     * param: _rlpBlockHeader (bytes) RLP-encoded byte array of the block header from other chain without the signature in extraData
     * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain with the signature in extraData
@@ -117,8 +166,7 @@ contract Validation {
 
         // Append the new block to the struct
         addProposal(_id, SolUtils.BytesToAddress(header[2].toBytes(), 1));
-        addBlockHeaderToChain(_id, _blockHash, _parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint());
-        addBlockHashToChain(_id, _blockHash);
+        addBlockToChain(_id, _blockHash, _parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint());
         updateBlockHash(_id, _blockHash);
 
     }
@@ -135,7 +183,7 @@ contract Validation {
         emit broadcastSignature(sigAddr);
     }
 
-    function addProposal(bytes32 _id, address _vote) {
+    function addProposal(bytes32 _id, address _vote) internal {
         if (_vote!=(0x0)) {
             m_proposals[_id][_vote]++;
             // Add validator if does not exist else remove
@@ -154,7 +202,15 @@ contract Validation {
     * @param _id        unique identifier of the chain from which the block hails     
     * @param _hash      root hash of the block being added
     */
-    function addBlockHeaderToChain(bytes32 _id, bytes32 _hash, bytes32 _parentHash, bytes32 _txRootHash, bytes32 _receiptRootHash, uint256 _height) internal {
+    function addBlockToChain(
+        bytes32 _id,
+        bytes32 _hash,
+        bytes32 _parentHash,
+        bytes32 _txRootHash,
+        bytes32 _receiptRootHash,
+        uint256 _height
+    ) internal {
+        m_blockhashes[_id][_hash] = true;
         // Append the new block to the struct
 		m_blockheaders[_id][_hash].blockHeight = _height;
 		m_blockheaders[_id][_hash].latestHash = _hash;
@@ -164,18 +220,8 @@ contract Validation {
 
         // Add block to Ion
         Ion ion = Ion(registeredIon);
-        ion.addBlockHeader(_hash, _txRootHash, _receiptRootHash);
-        ion.addBlockHash(_hash);
+        ion.addBlock(_hash, _txRootHash, _receiptRootHash);
 
-    }
-
-    /*
-    * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
-    * @param _id        unique identifier of the chain from which the block hails     
-    * @param _hash      root hash of the block being added
-    */
-    function addBlockHashToChain(bytes32 _id, bytes32 _hash) internal {
-        m_blockhashes[_id][_hash] = true;
     }
 
     /*

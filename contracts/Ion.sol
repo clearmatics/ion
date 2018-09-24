@@ -88,10 +88,7 @@ contract Ion {
 
     /*
     * addChain
-    * param: chainId        Unique id of another chain to interoperate with
-    * param: validationAddr Address of the validation contract required to make modular validation
-    * param: _validators    List of validators on the block chain
-    * param: _genesisHash   Genesis blockhash of the interop block chain
+    * param: id        Unique id of another chain to interoperate with
     *
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
     * and adds it to the list of known chains. 
@@ -155,7 +152,7 @@ contract Ion {
     *        blockHash: (bytes32) hash of the block verifying proof against
     *        proofType: (uint) enum of proof type
     *
-    * All data associated with the proof must be constructed and provided to this function. Modifiers restrict execution
+    * All data associated with the proof must be constructed and paddChainrovided to this function. Modifiers restrict execution
     * of this function to only allow if the chain the proof is for is registered to this contract and if the block that
     * the proof is for has been submitted.
     */
@@ -220,20 +217,13 @@ contract Ion {
     }
 
     /*
-    * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
-    * @param _hash      root hash of the block being added
-    */
-    function addBlockHash(bytes32 _hash) public {
-        m_blockhashes[_hash] = true;
-    }
-
-/*
-    * @description              when a block is submitted the header must be added to a mapping of chains to blockheaders
+    * @description              when a block is submitted the header must be added to a mapping of blockhashes and chains to blockheaders
     * @param _hash              root hash of the block being added
     * @param _txRootHash        transaction root hash of the block being added
     * @param _receiptRootHash   receipt root hash of the block being added
     */
-    function addBlockHeader(bytes32 _hash, bytes32 _txRootHash, bytes32 _receiptRootHash) public {
+    function addBlock(bytes32 _hash, bytes32 _txRootHash, bytes32 _receiptRootHash) public {
+        m_blockhashes[_hash] = true;
         m_blockheaders[_hash].txRootHash = _txRootHash;
         m_blockheaders[_hash].receiptRootHash = _receiptRootHash;
     }
@@ -252,7 +242,7 @@ contract Ion {
 	* @param _rlpNodes  RLP encoded trie
 	* @returns          root hash
 	*/
-    function getRootNodeHash(bytes _rlpNodes) private view returns (bytes32) {
+    function getRootNodeHash(bytes _rlpNodes) private returns (bytes32) {
         RLP.RLPItem memory nodes = RLP.toRLPItem(_rlpNodes);
         RLP.RLPItem[] memory nodeList = RLP.toList(nodes);
 
