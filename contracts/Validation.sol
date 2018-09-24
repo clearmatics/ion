@@ -166,7 +166,7 @@ contract Validation {
 
         // Append the new block to the struct
         addProposal(_id, SolUtils.BytesToAddress(header[2].toBytes(), 1));
-        addBlockToChain(_id, _blockHash, _parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint());
+        addBlockToChain(_id, _blockHash, _parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader);
         updateBlockHash(_id, _blockHash);
 
     }
@@ -208,7 +208,8 @@ contract Validation {
         bytes32 _parentHash,
         bytes32 _txRootHash,
         bytes32 _receiptRootHash,
-        uint256 _height
+        uint256 _height,
+        bytes   _rlpBlock
     ) internal {
         m_blockhashes[_id][_hash] = true;
         // Append the new block to the struct
@@ -220,7 +221,7 @@ contract Validation {
 
         // Add block to Ion
         Ion ion = Ion(registeredIon);
-        ion.addBlock(_hash, _txRootHash, _receiptRootHash);
+        ion.addBlock(_id, _hash, _txRootHash, _receiptRootHash, _rlpBlock);
 
     }
 

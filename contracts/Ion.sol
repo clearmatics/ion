@@ -222,7 +222,14 @@ contract Ion {
     * @param _txRootHash        transaction root hash of the block being added
     * @param _receiptRootHash   receipt root hash of the block being added
     */
-    function addBlock(bytes32 _hash, bytes32 _txRootHash, bytes32 _receiptRootHash) public {
+    function addBlock(bytes32 _id, bytes32 _hash, bytes32 _txRootHash, bytes32 _receiptRootHash, bytes _rlpBlockHeader) 
+        onlyRegisteredChains(_id)
+    {
+        RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
+
+        bytes32 hashedHeader = keccak256(_rlpBlockHeader);
+        require( hashedHeader == _hash );
+
         m_blockhashes[_hash] = true;
         m_blockheaders[_hash].txRootHash = _txRootHash;
         m_blockheaders[_hash].receiptRootHash = _receiptRootHash;
