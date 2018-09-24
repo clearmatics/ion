@@ -334,6 +334,7 @@ contract('Validation.js', (accounts) => {
 
     const signedHeader = [
         block.parentHash,
+// web3.setProvider(new web3.providers.HttpProvider('https://rinkeby.infura.io'));
         block.sha3Uncles,
         block.miner,
         block.stateRoot,

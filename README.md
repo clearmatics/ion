@@ -71,9 +71,7 @@ Which hopefully returns this:
 ### Testing Contracts
 In order to test the Solidity contracts using the Javascript tests a testrpc must be run. As the validation contract relies upon receiving signatures in the `extraData` field of the block header it is not sufficient to run an instance of ganache-cli, rather a Clique PoA chain must be initialised.
 
-To use the tests please follow the instructions on how to run a single validator Clique chain given [here](https://github.com/maxrobot/network-geth). Additionally you must ensure that the account sealing blocks is identical to that defined in the `validation.js` test itself `0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d`.
-
-Having launched a single-validator clique chain with the sealer `0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d`, run the tests as follows.
+Having launched a Clique PoA chain, hosted on `127.0.0.1:8501` (the first account on the `eth.accounts` array should be unlocked in the node), run the tests as follows:
 ```
 $ npm install
 $ npm run test
