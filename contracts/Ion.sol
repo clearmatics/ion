@@ -23,7 +23,8 @@ contract Ion {
 	bytes32 receiptRootHash;
     }
 
-    mapping (bytes32 => bool) public chains;
+    mapping (bytes32 => bool) public m_chains;
+    mapping (address => bool) public m_validation_modules;
     mapping (bytes32 => bool) public m_blockhashes;
     mapping (bytes32 => BlockHeader) public m_blockheaders;
 
@@ -62,7 +63,18 @@ contract Ion {
     * Modifier that checks if the provided chain id has been registered to this contract
     */
     modifier onlyRegisteredChains(bytes32 _id) {
-        require(chains[_id], "Chain is not registered");
+        require(m_chains[_id], "Chain is not registered");
+        _;
+    }
+
+    /*
+    * onlyRegisteredValidation
+    * param: _addr (address) Address of the Validation module being registered
+    *
+    * Modifier that checks if the provided chain id has been registered to this contract
+    */
+    modifier onlyRegisteredValidation(address _addr) {
+        require(m_validation_modules[_addr], "Validation module is not registered");
         _;
     }
 
@@ -89,16 +101,18 @@ contract Ion {
     /*
     * addChain
     * param: id        Unique id of another chain to interoperate with
+    * param: addr      Address of the validation module used for this new chain
     *
     * Supplied with an id of another chain, checks if this id already exists in the known set of ids
-    * and adds it to the list of known chains. 
+    * and adds it to the list of known m_chains. 
     *
     *Should be called by the validation registerChain() function
     */
     function addChain(bytes32 _id) public returns (bool) {
         require( _id != chainId, "Cannot add this chain id to chain register" );
-        require(!chains[_id], "Chain already exists" );
-        chains[_id] = true;
+        require(!m_chains[_id], "Chain already exists" );
+        m_chains[_id] = true;
+        m_validation_modules[msg.sender] = true;
         registeredChains.push(_id);
 
         return true;
@@ -217,18 +231,21 @@ contract Ion {
     }
 
     /*
-    * @description              when a block is submitted the header must be added to a mapping of blockhashes and chains to blockheaders
+    * @description              when a block is submitted the header must be added to a mapping of blockhashes and m_chains to blockheaders
     * @param _hash              root hash of the block being added
     * @param _txRootHash        transaction root hash of the block being added
     * @param _receiptRootHash   receipt root hash of the block being added
     */
     function addBlock(bytes32 _id, bytes32 _hash, bytes32 _txRootHash, bytes32 _receiptRootHash, bytes _rlpBlockHeader) 
+        onlyRegisteredValidation(msg.sender)
         onlyRegisteredChains(_id)
     {
+        require(!m_blockhashes[_hash]);
+
         RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
 
         bytes32 hashedHeader = keccak256(_rlpBlockHeader);
-        require( hashedHeader == _hash );
+        require(hashedHeader==_hash);
 
         m_blockhashes[_hash] = true;
         m_blockheaders[_hash].txRootHash = _txRootHash;

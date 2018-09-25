@@ -164,7 +164,7 @@ contract('Ion.js', (accounts) => {
 
         // Successfully add id of another chain
         await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-        let chain = await ion.chains(TESTCHAINID);
+        let chain = await ion.m_chains(TESTCHAINID);
 
         assert.equal(chain, true);
 
