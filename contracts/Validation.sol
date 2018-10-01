@@ -12,15 +12,14 @@ contract Validation {
     using RLP for RLP.Iterator;
     using RLP for bytes;
 
-    address registeredIon;
-    bytes32 public chainId;
+    Ion ion;
 
     /*
     *   @description    persists the last submitted block of a chain being validated
     */
 	struct BlockHeader {
-        uint256 blockHeight;
-		bytes32 latestHash; 
+        uint256 blockNumber;
+		bytes32 blockHash;
 		bytes32 prevBlockHash;
         bytes32 txRootHash;
         bytes32 receiptRootHash;
@@ -34,18 +33,12 @@ contract Validation {
 	mapping (bytes32 => mapping (address => bool)) public m_validators;
 	mapping (bytes32 => mapping (address => uint256)) public m_proposals;
 
-
-	event broadcastSignature(address signer);
-	event broadcastHash(bytes32 blockHash);
-    event test(bytes unsigned, bytes signed);
-
 	/*
 	*	@param _id		genesis block of the blockchain where the contract is deployed
 	*	@param _ion		address of the Ion hub contract with which this validation contract is connected
 	*/
-	constructor (bytes32 _id, address _ion) public {
-		chainId = _id;
-        registeredIon = _ion;
+	constructor (address _ionAddr) public {
+        ion = Ion(_ionAddr);
 	}
 
 
@@ -59,7 +52,7 @@ contract Validation {
     * and adds it to the list of known chains.
     */
     function RegisterChain(bytes32 _id, address[] _validators, bytes32 _genesisHash) public {
-        require( _id != chainId, "Cannot add this chain id to chain register" );
+        require( _id != ion.chainId(), "Cannot add this chain id to chain register" );
         require(!chains[_id], "Chain already exists" );
         chains[_id] = true;
 
@@ -69,62 +62,12 @@ contract Validation {
     	}
         m_threshold[_id] = (_validators.length/2) + 1;
 
-        Ion ion = Ion(registeredIon);
         require(ion.addChain(_id), "Chain not added to Ion successfully!");
 
-		m_blockheaders[_id][_genesisHash].blockHeight = 0;
-		m_blockheaders[_id][_genesisHash].latestHash = _genesisHash;
+		m_blockheaders[_id][_genesisHash].blockNumber = 0;
+		m_blockheaders[_id][_genesisHash].blockHash = _genesisHash;
 		m_blockhashes[_id][_genesisHash] = true;
 		m_latestblock[_id] = _genesisHash;
-
-    }
-
-    /*
-    * SubmitBlocks
-    * param: _id (bytes32) Unique id of chain submitting block from
-    * param: _rlpBlockHeader (bytes) Concatenation of multiple RLP-encoded byte arrays of block headers from other chain without the signature in extraData
-    * param: _rlpSignedBlockHeader (bytes) Concatenation of multiple RLP-encoded byte arrays of block headers from other chain with the signature in extraData
-    * param: _unsignedIndices (uint256[]) Array containing the indices at which each individual block begins at in the unsigned header concatenation
-    * param: _signedIndices (uint256[]) Array containing the indices at which each individual block begins at in the signed header concatenation
-    *
-    * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
-    * and if valid the block is persisted as BlockHeader structs defined above.
-    */
-    function SubmitBlocks(
-        bytes32 _id,
-        bytes _rlpUnsignedBlockHeaders,
-        bytes _rlpSignedBlockHeaders,
-        uint256[] _unsignedIndices,
-        uint256[] _signedIndices
-    ) public {
-        // Loop over each header contained in the bytes arrays and submit to block accordingly
-        for (uint i=0; i<_signedIndices.length; ++i ) {
-            uint256 signedSize;
-            uint256 unsignedSize;
-
-            // Find the length in bytes of each encoded header
-            if (i==0) {
-                signedSize = _signedIndices[0];
-                unsignedSize = _unsignedIndices[0];
-            } else {
-                signedSize = _signedIndices[i] - _signedIndices[i-1];
-                unsignedSize = _unsignedIndices[i] - _unsignedIndices[i-1];
-            }
-
-            bytes memory signedHeader = new bytes(signedSize);
-            bytes memory unsignedHeader = new bytes(unsignedSize);
-            
-            if (i==0) {
-                SolUtils.BytesToBytes(signedHeader, _rlpSignedBlockHeaders, 0);
-                SolUtils.BytesToBytes(unsignedHeader, _rlpUnsignedBlockHeaders, 0);
-            } else {
-                SolUtils.BytesToBytes(signedHeader, _rlpSignedBlockHeaders, _signedIndices[i-1]);
-                SolUtils.BytesToBytes(unsignedHeader, _rlpUnsignedBlockHeaders, _unsignedIndices[i-1]);
-            }
-
-            // Submit block to the validation
-            SubmitBlock(_id, unsignedHeader, signedHeader);
-        }
     }
 
 	/*
@@ -139,6 +82,7 @@ contract Validation {
     function SubmitBlock(bytes32 _id, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader) onlyRegisteredChains(_id) public {
         RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
         RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
+        require( header.length == signedHeader.length, "Header properties length mismatch" );
 
         // Check header and signedHeader contain the same data
         for (uint256 i=0; i<signedHeader.length; i++) {
@@ -155,32 +99,29 @@ contract Validation {
         }
 
         // Check the parent hash is the same as the previous block submitted
-		bytes32 _parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
-		require(m_blockhashes[_id][_parentBlockHash], "Not child of previous block!");
+		bytes32 parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
+		require(m_blockhashes[_id][parentBlockHash], "Not child of previous block!");
 
         // Check the blockhash
-        bytes32 _blockHash = keccak256(_rlpSignedBlockHeader);
-        emit broadcastHash(_blockHash);
+        bytes32 blockHash = keccak256(_rlpSignedBlockHeader);
 
-        recoverSignature(_id, signedHeader[12].toBytes(), _rlpBlockHeader);
+        require (checkSignature(_id, signedHeader[12].toBytes(), _rlpBlockHeader), "Signer is not validator" );
 
         // Append the new block to the struct
         addProposal(_id, SolUtils.BytesToAddress(header[2].toBytes(), 1));
-        addBlockToChain(_id, _blockHash, _parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader);
-        updateBlockHash(_id, _blockHash);
-
+        storeBlock(_id, blockHash, parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader);
+        updateBlockHash(_id, blockHash);
     }
 
-    function recoverSignature(bytes32 _id, bytes signedHeader, bytes _rlpBlockHeader) internal {
+    function checkSignature(bytes32 _id, bytes signedHeader, bytes _rlpBlockHeader) internal returns (bool) {
         bytes memory extraDataSig = new bytes(65);
         uint256 length = signedHeader.length;
         SolUtils.BytesToBytes(extraDataSig, signedHeader, length-65);
 
         // Recover the signature of 
         address sigAddr = ECVerify.ecrecovery(keccak256(_rlpBlockHeader), extraDataSig);
-		require(m_validators[_id][sigAddr], "Signer not a validator!");
 
-        emit broadcastSignature(sigAddr);
+		return m_validators[_id][sigAddr];
     }
 
     function addProposal(bytes32 _id, address _vote) internal {
@@ -202,7 +143,7 @@ contract Validation {
     * @param _id        unique identifier of the chain from which the block hails     
     * @param _hash      root hash of the block being added
     */
-    function addBlockToChain(
+    function storeBlock(
         bytes32 _id,
         bytes32 _hash,
         bytes32 _parentHash,
@@ -212,17 +153,16 @@ contract Validation {
         bytes   _rlpBlock
     ) internal {
         m_blockhashes[_id][_hash] = true;
-        // Append the new block to the struct
-		m_blockheaders[_id][_hash].blockHeight = _height;
-		m_blockheaders[_id][_hash].latestHash = _hash;
-		m_blockheaders[_id][_hash].prevBlockHash = _parentHash;
-        m_blockheaders[_id][_hash].txRootHash = _txRootHash;
-        m_blockheaders[_id][_hash].receiptRootHash = _receiptRootHash;
+
+        BlockHeader storage header = m_blockheaders[_id][_hash];
+        header.blockNumber = _height;
+        header.blockHash = _hash;
+        header.prevBlockHash = _parentHash;
+        header.txRootHash = _txRootHash;
+        header.receiptRootHash = _receiptRootHash;
 
         // Add block to Ion
-        Ion ion = Ion(registeredIon);
         ion.addBlock(_id, _hash, _txRootHash, _receiptRootHash, _rlpBlock);
-
     }
 
     /*
@@ -232,6 +172,15 @@ contract Validation {
     */
     function updateBlockHash(bytes32 _id, bytes32 _hash) internal {
         m_latestblock[_id] = _hash;
+    }
+
+    /*
+    * @description      when a block is submitted the latest block is updated here
+    * @param _id        unique identifier of the chain from which the block hails
+    * @param _hash      root hash of the block being added
+    */
+    function getLatestBlockHash(bytes32 _id) public returns (bytes32) {
+        return m_latestblock[_id];
     }
 
     /*

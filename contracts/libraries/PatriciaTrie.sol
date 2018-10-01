@@ -101,7 +101,7 @@ library PatriciaTrie {
     function processNestedNode(RLP.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes _value) private returns (bytes32, uint) {
         RLP.RLPItem[] memory currentNode = RLP.toList(_nextNode);
         if (currentNode.length == 17) {
-            // Extension Node
+            // Branch Node
             return processBranchNode(currentNode, _traversedNibbles, _path, _value);
         } else if (currentNode.length == 2) {
             // Leaf Node

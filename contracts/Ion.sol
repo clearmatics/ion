@@ -12,22 +12,21 @@ contract Ion {
     using RLP for RLP.Iterator;
     using RLP for bytes;
 
-    bytes32 public chainId;
-    bytes32[] public registeredChains;
-
     /*
     *   @description    BlockHeader struct containing trie root hashes for tx verifications
     */
     struct BlockHeader {
-	bytes32 txRootHash;
-	bytes32 receiptRootHash;
+        bytes32 txRootHash;
+        bytes32 receiptRootHash;
     }
+
+    bytes32 public chainId;
+    bytes32[] public registeredChains;
 
     mapping (bytes32 => bool) public m_chains;
     mapping (address => bool) public m_validation_modules;
     mapping (bytes32 => bool) public m_blockhashes;
     mapping (bytes32 => BlockHeader) public m_blockheaders;
-
 
 
     /*
@@ -45,8 +44,8 @@ contract Ion {
     enum ProofType { TX, RECEIPT, ROOTS }
 
     event VerifiedProof(bytes32 chainId, bytes32 blockHash, uint proofType);
-    event broadcastSignature(address signer);
-    event broadcastHash(bytes32 blockHash);
+    event BroadcastSignature(address signer);
+    event BroadcastHash(bytes32 blockHash);
     
 /*
 ========================================================================================================================
@@ -177,23 +176,15 @@ contract Ion {
         bytes _parentNodes,
         bytes _path
     )
-    onlyRegisteredChains(_id)
-    onlyExistingBlocks(_id, _blockHash)
-    public
-    returns (bool)
+        onlyRegisteredChains(_id)
+        onlyExistingBlocks(_id, _blockHash)
+        public
+        returns (bool)
     {
         verifyProof(_value, _parentNodes, _path, m_blockheaders[_blockHash].receiptRootHash);
 
         emit VerifiedProof(_id, _blockHash, uint(ProofType.RECEIPT));
         return true;
-    }
-
-    /*
-     * Verify proof assertion to avoid  stack to deep error (it doesn't show during compile time but it breaks
-     * blockchain simulator)
-     */
-    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _hash) {
-        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, _hash) );
     }
 
     /*
@@ -231,6 +222,14 @@ contract Ion {
     }
 
     /*
+     * Verify proof assertion to avoid  stack to deep error (it doesn't show during compile time but it breaks
+     * blockchain simulator)
+     */
+    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _hash) {
+        assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, _hash) );
+    }
+
+    /*
     * @description              when a block is submitted the header must be added to a mapping of blockhashes and m_chains to blockheaders
     * @param _hash              root hash of the block being added
     * @param _txRootHash        transaction root hash of the block being added
@@ -245,7 +244,7 @@ contract Ion {
         RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
 
         bytes32 hashedHeader = keccak256(_rlpBlockHeader);
-        require(hashedHeader==_hash);
+        require(hashedHeader == _hash, "Hashed header does not match submitted block hash!");
 
         m_blockhashes[_hash] = true;
         m_blockheaders[_hash].txRootHash = _txRootHash;
