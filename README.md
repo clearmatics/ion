@@ -8,14 +8,14 @@ To facilitate this Ion has three main components:
   * Modular Validation Scheme
   * Ion Framework Contracts
 
-The Ion hub contract is the core component of the framework, the contract persists key data of all valid blocks submitted to the validation contracts.  To prove a transaction has occurred on an external blockchain the Ion framework contract require:
+The Ion hub contract is the core component of the framework, the contract persists key data of all valid blocks submitted to the validation contracts required to verify a state transition. To prove a transaction has occurred on an external blockchain the Ion framework contract require (for EVM-based chains):
 
-* Block Header (RLP encoding of the following array of items):
-  * Previous block hash
-  * State root hash
+* Block Header:
   * Tx root hash
-  * TxReceipt root hash
+  * Receipt root hash
 * Block Hash
+
+For other blockchains, different data will be required to prove state transitions and as such contracts must be written that adhere to those system-specific mechanisms.
 
 For each block submitted to the validation contracts this information is appended to the Ion hub contract, thus creating a generic interface for Ion framework contracts to receive valid block data. Ion provides a generalised interoperability framework and thus block validation is designed to be modular, in order to allow for interop between chains with any consensus mechanism.
 
