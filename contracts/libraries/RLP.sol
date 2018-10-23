@@ -300,16 +300,11 @@ library RLP {
     /// @param self The RLPItem.
     /// @return The decoded string.
     function toAddress(RLPItem memory self) internal pure returns (address data) {
-        if(!isData(self))
-            revert();
-        uint rStartPos;
         uint len;
-        (rStartPos, len) = _decode(self);
-        if (len != 20)
+        (, len) = _decode(self);
+        if (len > 20)
             revert();
-        assembly {
-            data := div(mload(rStartPos), exp(256, 12))
-        }
+        return address(toUint(self));
     }
 
     // Get the payload offset.
