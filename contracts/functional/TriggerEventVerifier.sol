@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.23;
 
-import "./libraries/RLP.sol";
-import "./libraries/SolidityUtils.sol";
-import "./EventVerifier.sol";
+import "../libraries/RLP.sol";
+import "../libraries/SolidityUtils.sol";
+import "../EventVerifier.sol";
 
 /*
     TriggerEventVerifier

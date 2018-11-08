@@ -13,12 +13,13 @@ const sha3 = require('js-sha3').keccak_256
 // Connect to the Test RPC running
 const Web3 = require('web3');
 const web3 = new Web3();
-web3.setProvider(new web3.providers.HttpProvider('http://localhost:8501'));
+web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
 const Ion = artifacts.require("Ion");
-const Validation = artifacts.require("Validation");
-const TriggerEventVerifier = artifacts.require("TriggerEventVerifier");
-const FunctionEvent = artifacts.require("Function");
+const MockValidation = artifacts.require("MockValidation");
+const MockStorage = artifacts.require("MockStorage");
+//const TriggerEventVerifier = artifacts.require("TriggerEventVerifier");
+//const FunctionEvent = artifacts.require("Function");
 
 require('chai')
  .use(require('chai-as-promised'))
@@ -150,215 +151,66 @@ const GENESIS_HASH = TESTBLOCK.parentHash;
 
 
 contract('Ion.js', (accounts) => {
+    let ion;
+    let validation;
+    let storage;
+
+    beforeEach('setup contract for each test', async function () {
+        ion = await Ion.new(DEPLOYEDCHAINID);
+        validation = await MockValidation.new(ion.address);
+        storage = await MockStorage.new(ion.address);
+    })
+
     it('Deploy Ion', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
         let chainId = await ion.chainId();
 
         assert.equal(chainId, DEPLOYEDCHAINID);
     })
 
-    it('Register Chain', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
+    describe('Register Validation', () => {
+        it('Successful registration', async () => {
+            // Successfully add id of another chain
+            let registered = await validation.register.call();
+            await validation.register();
 
-        // Successfully add id of another chain
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-        let chain = await ion.m_chains(TESTCHAINID);
+            assert(registered);
+        })
 
-        assert.equal(chain, true);
+        it('Fail second registration', async () => {
+            // Successfully add id of another chain
+            let registered = await validation.register.call();
+            await validation.register();
 
-        // Fail adding id of this chain
-        await validation.RegisterChain(DEPLOYEDCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
+            assert(registered);
 
-        // Fail adding id of chain already registered
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
+            // Fail second attempt to register validation
+            validation.register.call().should.be.rejected;
+        })
+
+        it('Fail registration by non-contract', async () => {
+            ion.registerValidationModule().should.be.rejected;
+        })
     })
 
-    it('Check Tx Proof', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
+    describe('Store Block', () => {
+        it('Successful Store Block', async () => {
+            await validation.register();
 
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
+            const tx = await validation.SubmitBlock(storage.address, TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock(bytes32)") });
+            assert.ok(event, "Block not stored");
+        })
 
-        const val = await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
+        it('Fail Store Block by unregistered validation', async () => {
+            validation.SubmitBlock(storage.address, TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER).should.be.rejected;
+        })
 
-        let tx = await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH);
+        it('Fail Store Block by non-contract', async () => {
+            ion.storeBlock(storage.address, TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER).should.be.rejected;
+        })
 
-        console.log("\tGas used to submit check tx proof = " + tx.receipt.gasUsed.toString() + " gas");
+        it('Fail Store Block with non contract storage address', async () => {
+            ion.storeBlock(accounts[0], TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER).should.be.rejected;
+        })
     })
-
-    it('Fail Tx Proof', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
-
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
-
-        // Fail with wrong chain ID
-        await ion.CheckTxProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH).should.be.rejected;
-
-        // Fail with wrong block hash
-        await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash.substring(0, 30) + "ff", TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH).should.be.rejected;
-
-        // Fail with wrong path
-        await ion.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, "0xff").should.be.rejected;
-    })
-
-    it('Check Receipt Proof', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
-
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
-
-        nodes = generateTestReceiptRLPNodes();
-
-        let tx = await ion.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, "0x"+nodes.toString('hex'), TEST_PATH);
-        console.log("\tGas used to submit check receipt proof = " + tx.receipt.gasUsed.toString() + " gas");
-    })
-
-    it('Fail Receipt Proof', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
-
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
-
-        // Fail with wrong chain ID
-        await ion.CheckReceiptProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TEST_PATH).should.be.rejected;
-
-        // Fail with wrong block hash
-        await ion.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash.substring(0, 30) + "ff", TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TEST_PATH).should.be.rejected;
-
-        // Fail with wrong path
-        await ion.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, "0xff").should.be.rejected;
-    })
-
-    it('Check Roots Proof', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
-
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
-
-
-        let tx = await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES);
-
-        console.log("\tGas used to submit check roots proof = " + tx.receipt.gasUsed.toString() + " gas");
-    })
-
-    it('Fail Roots Proof', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
-
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
-
-
-        // Fail with wrong chain ID
-        await ion.CheckRootsProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES).should.be.rejected
-
-        // Fail with wrong block hash
-        await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash.substring(0, 30) + "ff", TEST_TX_NODES, TEST_RECEIPT_NODES).should.be.rejected;
-
-        // Fail with wrong tx nodes
-        await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, "0xf9011FF851a0f2c8598d0469e213e269219f0f631bf9834344426238de6b986cf64e8ab7a76a80808080808080a04a397832771093a06e1fbfde782a2fc1624f214d090825c065d301f0325e0c7b8080808080808080f85180a0a6177c642f5f21f80f5e7ba81558bfb253da9fbe0bcedc768433cbff6f973073a0d56c80e3abbe59dfa6b65f3640f8f0661b485b76c44379d3c478545c59e508a48080808080808080808080808080f87520b872f8708302a122850ba43b740083015f909453e0551a1e31a40855bc8e086eb8db803a625bbf880e861ef96aefa800801ca03a92b0a4ffd7f8774688325c1306387e15e64225d03a5a43aeceaf2e53ea782da033f501d040a857572b747e7a0968f269107e34dae093f901b380423937862084", TEST_RECEIPT_NODES).should.be.rejected;
-
-        // Fail with wrong receipt nodes
-        await ion.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, "0xf90FF8f851a0e174e998404ccb578d781d64efceb6bf63547f4aed3d801e67229f1fbd827c6480808080808080a06e2f5c4a84018daf85387f2a09955f2fb535d8d459b867aabd0235ba97d991738080808080808080f85180a07d4e8719e289768c06065586d7e5b56a73b8c81e724724476ed75c9b5b59a5caa02eb7a5cd9716b4b4824e556c2df895a60fa6a0b68bd093081d24ba93eea522488080808080808080808080808080f9012f20b9012bf90128a0bbc7f826deb035ff86a12507aa7c967c931e920deffcf82bb61109267d88cab482f618b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0").should.be.rejected;
-    })
-
-    it('Deploy Function Contract', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
-
-        const verifier = await TriggerEventVerifier.new();
-        const functionContract = await FunctionEvent.new(ion.address, verifier.address);
-    })
-
-    it('Verify Function Execution', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
-
-        const verifier = await TriggerEventVerifier.new();
-        const functionContract = await FunctionEvent.new(ion.address, verifier.address);
-
-        // Register chain and submit block to Ion
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
-
-        let tx = await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY);
-
-        executeEventFound = tx.logs.some(l => { return l.event == "Executed" });
-        assert.ok(executeEventFound, "Function did not execute");
-
-        console.log("\tGas used to verify all proofs against ion, verify logs against the verifier and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
-
-    })
-
-    it('Fail Function Execution', async () => {
-        const ion = await Ion.new(DEPLOYEDCHAINID);
-        const validation = await Validation.new(ion.address);
-
-        const verifier = await TriggerEventVerifier.new();
-        const functionContract = await FunctionEvent.new(ion.address, verifier.address);
-
-        // Register chain and submit block to Ion
-        await validation.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH);
-        
-        await validation.SubmitBlock(TESTCHAINID, TEST_UNSIGNED_HEADER, TEST_SIGNED_HEADER);
-
-        // Fail with wrong chain ID
-        await functionContract.verifyAndExecute(DEPLOYEDCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY).should.be.rejected;
-
-        // Fail with wrong block hash
-        await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash.substring(0, 30) + "ff", TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY).should.be.rejected;
-
-        // Fail with wrong deployed contract address
-        await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_CALLED_BY, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY).should.be.rejected;
-
-        // Fail with wrong path
-        await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, "0xff", TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY).should.be.rejected;
-
-        // Fail with wrong tx nodes
-        await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, "0xf9011FF851a0f2c8598d0469e213e269219f0f631bf9834344426238de6b986cf64e8ab7a76a80808080808080a04a397832771093a06e1fbfde782a2fc1624f214d090825c065d301f0325e0c7b8080808080808080f85180a0a6177c642f5f21f80f5e7ba81558bfb253da9fbe0bcedc768433cbff6f973073a0d56c80e3abbe59dfa6b65f3640f8f0661b485b76c44379d3c478545c59e508a48080808080808080808080808080f87520b872f8708302a122850ba43b740083015f909453e0551a1e31a40855bc8e086eb8db803a625bbf880e861ef96aefa800801ca03a92b0a4ffd7f8774688325c1306387e15e64225d03a5a43aeceaf2e53ea782da033f501d040a857572b747e7a0968f269107e34dae093f901b380423937862084", TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_CALLED_BY).should.be.rejected;
-
-        // Fail with wrong receipt nodes
-        await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, "0xf90FF8f851a0e174e998404ccb578d781d64efceb6bf63547f4aed3d801e67229f1fbd827c6480808080808080a06e2f5c4a84018daf85387f2a09955f2fb535d8d459b867aabd0235ba97d991738080808080808080f85180a07d4e8719e289768c06065586d7e5b56a73b8c81e724724476ed75c9b5b59a5caa02eb7a5cd9716b4b4824e556c2df895a60fa6a0b68bd093081d24ba93eea522488080808080808080808080808080f9012f20b9012bf90128a0bbc7f826deb035ff86a12507aa7c967c931e920deffcf82bb61109267d88cab482f618b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0", TRIG_CALLED_BY).should.be.rejected;
-
-        // Fail with wrong expected value
-        await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_DEPLOYED_RINKEBY_ADDR).should.be.rejected;
-    })
-
 })
-
-async function verifyReceipts(eP, txHash) {
-    await eP.getReceiptTrieRoot(txHash).then( (root) => {
-        console.log("EP RECEIPT Root hash = 0x" + root.toString('hex'))
-    })
-
-    var verified;
-    await eP.getReceiptProof(txHash).then( (proof) => {
-        verified = EP.receipt(proof.path, proof.value, proof.parentNodes, proof.header, proof.blockHash);
-    })
-    return verified;
-}
-
-function generateTestReceiptRLPNodes() {
-    let root = Buffer.from("f871a012d378fe6800bc18f22e715a31971ef7e73ac5d1d85384f4b66ac32036ae43dea004d6e2678656a957ac776dbef512a04d266c1af3e2c5587fd233261a3d423213808080808080a05fac317a4d6d78181319fbc7e2cae4a9260f1a6afb5c6fea066e2308eed416818080808080808080", 'hex');
-    second = Buffer.from("f90151a03da235c6dd0fbdaf208c60cbdca0d609dee2ba107495aa7adaa658362616c8aaa09ebf378a9064aa4da0512c55c790a5e007ac79d2713e4533771cd2c95be47a4da0c06fed36ffe1f2ec164ba88f73b353960448d2decbb65355c5298a33555de742a0e057afe423ee17e5499c570a56880b0f5b5c1884b90ff9b9b5baa827f72fc816a093e06093cd2fdb67e0f87cfcc35ded2f445cc1309a0ff178e59f932aeadb6d73a0193e4e939fbc5d34a570bea3fff7c6d54adcb1c3ab7ef07510e7bd5fcef2d4b3a0a17a0c71c0118092367220f65b67f2ba2eb9068ff5270baeabe8184a01a37f14a03479a38e63123d497588ad5c31d781276ec8c11352dd3895c8add34f9a2b786ba042254728bb9ab94b58adeb75d2238da6f30382969c00c65e55d4cc4aa474c0a6a03c088484aa1c73b8fb291354f80e9557ab75a01c65d046c2471d19bd7f2543d880808080808080", 'hex');
-    leaf = Buffer.from("f9016b20b90167f901640183252867b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000f85af8589461621bcf02914668f8404c1f860e92fc1893f74ce1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000279884e133f9346f2fad9cc158222068221b613e", 'hex');
-
-    decodedRoot = rlp.decode(root);
-    decodedSecond = rlp.decode(second);
-    decodedLeaf = rlp.decode(leaf);
-
-    nodes = rlp.encode([decodedRoot, decodedSecond, decodedLeaf]);
-    return nodes;
-}

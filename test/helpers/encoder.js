@@ -60,6 +60,8 @@ encoder.encodeBlockHeader = (block) => {
     return { 
       unsigned: encodedUnsignedHeader,
       signed: encodedSignedHeader,
+      rawunsigned: unsignedHeader,
+      rawsigned: signedHeader,
       extraDataSignature: extraDataSignature,
       extraDataShort: extraDataShort,
       extraBytesShort: extraBytesShort
