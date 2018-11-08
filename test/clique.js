@@ -68,10 +68,18 @@ contract('Clique.js', (accounts) => {
   const genesisBlock = rinkeby.eth.getBlock(0);
   const VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
   const GENESIS_HASH = genesisBlock.hash;
+  
+  let ion;
+  let clique;
+  let storage;
+    
+  beforeEach('setup contract for each test', async function () {
+    ion = await MockIon.new(DEPLOYEDCHAINID);
+    clique = await Clique.new(ion.address);
+    storage = await MockStorage.new(ion.address);
+  })
 
   it('Deploy Contract', async () => {
-    const ion = await MockIon.new(DEPLOYEDCHAINID);
-    const clique = await Clique.new(ion.address);
     let chainId = await ion.chainId();
 
     assert.equal(chainId, DEPLOYEDCHAINID);
@@ -79,10 +87,6 @@ contract('Clique.js', (accounts) => {
 
   describe('Register Chain', () => {
       it('Successful Register Chain', async () => {
-        const ion = await MockIon.new(DEPLOYEDCHAINID);
-        const clique = await Clique.new(ion.address);
-        const storage = await MockStorage.new(ion.address);
-
         // Successfully add id of another chain
         let tx = await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
         console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
@@ -98,10 +102,6 @@ contract('Clique.js', (accounts) => {
       })
 
       it('Check Validators', async () => {
-        const ion = await MockIon.new(DEPLOYEDCHAINID);
-        const clique = await Clique.new(ion.address);
-        const storage = await MockStorage.new(ion.address);
-
         // Successfully add id of another chain
         await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
@@ -112,10 +112,6 @@ contract('Clique.js', (accounts) => {
       })
 
       it('Check Genesis Hash', async () => {
-        const ion = await MockIon.new(DEPLOYEDCHAINID);
-        const clique = await Clique.new(ion.address);
-        const storage = await MockStorage.new(ion.address);
-
         // Successfully add id of another chain
         await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
@@ -128,10 +124,6 @@ contract('Clique.js', (accounts) => {
 
   describe('Submit Block', () => {
       it('Authentic Submission Happy Path', async () => {
-        const ion = await MockIon.new(DEPLOYEDCHAINID);
-        const clique = await Clique.new(ion.address);
-        const storage = await MockStorage.new(ion.address);
-
         await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
         // Fetch block 1 from rinkeby
@@ -163,10 +155,6 @@ contract('Clique.js', (accounts) => {
 
       // Here the block header is signed off chain but by a a non-whitelisted validator
       it('Fail Submit Block unkown validator - SubmitBlock()', async () => {
-        const ion = await MockIon.new(DEPLOYEDCHAINID);
-        const clique = await Clique.new(ion.address);
-        const storage = await MockStorage.new(ion.address);
-
         // Successfully add id of another chain
         await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
@@ -226,10 +214,6 @@ contract('Clique.js', (accounts) => {
       })
 
       it('Fail Submit Block from unknown chain - SubmitBlock()', async () => {
-        const ion = await MockIon.new(DEPLOYEDCHAINID);
-        const clique = await Clique.new(ion.address);
-        const storage = await MockStorage.new(ion.address);
-
         await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
         // Fetch block 1 from testrpc
@@ -243,9 +227,7 @@ contract('Clique.js', (accounts) => {
       })
 
       it('Fail Submit Block with wrong unsigned header - SubmitBlock()', async () => {
-        const ion = await MockIon.new(DEPLOYEDCHAINID);
-        const clique = await Clique.new(ion.address);
-        const storage = await MockStorage.new(ion.address);
+        
 
         await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
@@ -274,10 +256,6 @@ contract('Clique.js', (accounts) => {
     // Rinkeby adds its first non-genesis validator at block 873987 with the votes occuring at blocks 873983 and 873986
     // we will start following the chain from 873982 and then add blocks until the vote threshold, n/2 + 1, is passed.
     it('Add Validators Through Block Submission', async () => {
-    const ion = await MockIon.new(DEPLOYEDCHAINID);
-    const clique = await Clique.new(ion.address);
-    const storage = await MockStorage.new(ion.address);
-
       await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_START, ADD_VALIDATORS_GENESIS_HASH);
 
       let voteThreshold = await clique.m_threshold(TESTCHAINID);
