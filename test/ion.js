@@ -1,6 +1,15 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
 
+/*
+    Ion Mediator contract test
+
+    Tests here are standalone unit tests for Ion functionality.
+    Other contracts have been mocked to simulate basic behaviour.
+
+    Tests the central mediator for block passing and validation registering.
+*/
+
 const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
 const BN = require('bignumber.js')
@@ -18,8 +27,6 @@ web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 const Ion = artifacts.require("Ion");
 const MockValidation = artifacts.require("MockValidation");
 const MockStorage = artifacts.require("MockStorage");
-//const TriggerEventVerifier = artifacts.require("TriggerEventVerifier");
-//const FunctionEvent = artifacts.require("Function");
 
 require('chai')
  .use(require('chai-as-promised'))

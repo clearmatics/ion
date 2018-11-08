@@ -1,6 +1,15 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
 
+/*
+    Ethereum Storage contract test
+
+    Tests here are standalone unit tests for Ion functionality.
+    Other contracts have been mocked to simulate basic behaviour.
+
+    Tests Ethereum block structure decoding and verification of state transitions.
+*/
+
 const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
 const BN = require('bignumber.js')

@@ -1,6 +1,15 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
 
+/*
+    Clique Validation contract test
+
+    Tests here are standalone unit tests for clique module functionality.
+    Other contracts have been mocked to simulate basic behaviour.
+
+    Tests the clique scheme for block submission, validator signature verification and more.
+*/
+
 const eth_util = require('ethereumjs-util');
 const utils = require('./helpers/utils.js');
 const encoder = require('./helpers/encoder.js');
