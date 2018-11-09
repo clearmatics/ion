@@ -29,6 +29,15 @@ contract Clique is IonCompatible {
         bytes32 receiptRootHash;
 	}
 
+    struct Metadata {
+        address[] validators;
+        mapping (address => bool) m_validators;
+        mapping (address => uint256) m_proposals;
+        uint256 threshold;
+    }
+
+    event BlockSubmitted(bytes32 chainId, bytes32 blockHash);
+
     /*
     * onlyRegisteredChains
     * param: _id (bytes32) Unique id of chain supplied to function
@@ -41,12 +50,14 @@ contract Clique is IonCompatible {
     }
 
     mapping (bytes32 => bool) public chains;
-    mapping (bytes32 => bytes32) public m_latestblock;
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
 	mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
-	mapping (bytes32 => uint256) public m_threshold;
-	mapping (bytes32 => mapping (address => bool)) public m_validators;
-	mapping (bytes32 => mapping (address => uint256)) public m_proposals;
+	mapping (bytes32 => mapping (bytes32 => Metadata)) public m_blockmetadata;
+
+//	mapping (bytes32 => mapping (bytes32 => uint256)) public m_threshold;
+//	mapping (bytes32 => mapping (bytes32 => mapping (address => bool))) public m_validators;
+//    mapping (bytes32 => mapping (bytes32 => uint256)) public m_nValidators;
+//	mapping (bytes32 => mapping (bytes32 => mapping (address => uint256))) public m_proposals;
 
 	constructor (address _ionAddr) IonCompatible(_ionAddr) public {}
 
@@ -69,19 +80,23 @@ contract Clique is IonCompatible {
         require(!chains[_chainId], "Chain already exists" );
         chains[_chainId] = true;
 
-        // Append validators and vote threshold
-        for (uint256 i = 0; i < _validators.length; i++) {
-            m_validators[_chainId][_validators[i]] = true;
-    	}
-        m_threshold[_chainId] = (_validators.length/2) + 1;
 
         ion.addChain(_storeAddr, _chainId);
 
         BlockHeader storage header = m_blockheaders[_chainId][_genesisBlockHash];
 		header.blockNumber = 0;
 		header.blockHash = _genesisBlockHash;
+
+        Metadata storage metadata = m_blockmetadata[_chainId][_genesisBlockHash];
+        metadata.validators = _validators;
+
+        // Append validators and vote threshold
+        for (uint256 i = 0; i < _validators.length; i++) {
+            metadata.m_validators[_validators[i]] = true;
+        }
+        metadata.threshold = (_validators.length/2) + 1;
+
 		m_blockhashes[_chainId][_genesisBlockHash] = true;
-		m_latestblock[_chainId] = _genesisBlockHash;
     }
 
 	/*
@@ -106,44 +121,87 @@ contract Clique is IonCompatible {
                 bytes memory extraDataSigned = new bytes(32);
                 SolUtils.BytesToBytes(extraData, signedHeader[i].toBytes(), 2);
                 SolUtils.BytesToBytes(extraDataSigned, header[i].toBytes(), 1);
-                require(keccak256(extraDataSigned)==keccak256(extraData), "Header data doesn't match!");
+                require(keccak256(extraDataSigned) == keccak256(extraData), "Header data doesn't match!");
             } else {
-                require(keccak256(header[i].toBytes())==keccak256(signedHeader[i].toBytes()), "Header data doesn't match!");
+                require(keccak256(header[i].toBytes()) == keccak256(signedHeader[i].toBytes()), "Header data doesn't match!");
             }
         }
 
         // Check the parent hash is the same as the previous block submitted
 		bytes32 parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
-		require(m_blockhashes[_chainId][parentBlockHash], "Not child of previous block!");
-        require (checkSignature(_chainId, signedHeader[12].toBytes(), _rlpBlockHeader), "Signer is not validator" );
+		require( m_blockhashes[_chainId][parentBlockHash], "Not child of previous block!" );
+        require( checkSignature(_chainId, signedHeader[12].toBytes(), _rlpBlockHeader, parentBlockHash), "Signer is not validator" );
 
         // Append the new block to the struct
-        addProposal(_chainId, SolUtils.BytesToAddress(header[2].toBytes(), 1));
+        addProposal(_chainId, SolUtils.BytesToAddress(header[2].toBytes(), 1), keccak256(_rlpSignedBlockHeader), parentBlockHash);
         storeBlock(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader, _storageAddr);
-        updateBlockHash(_chainId, keccak256(_rlpSignedBlockHeader));
+
+        emit BlockSubmitted(_chainId, keccak256(_rlpSignedBlockHeader));
     }
 
-    function checkSignature(bytes32 _chainId, bytes signedHeader, bytes _rlpBlockHeader) internal returns (bool) {
+    function checkSignature(bytes32 _chainId, bytes _signedHeader, bytes _rlpBlockHeader, bytes32 _parentBlockHash) internal returns (bool) {
         bytes memory extraDataSig = new bytes(65);
-        uint256 length = signedHeader.length;
-        SolUtils.BytesToBytes(extraDataSig, signedHeader, length-65);
+        uint256 length = _signedHeader.length;
+        SolUtils.BytesToBytes(extraDataSig, _signedHeader, length-65);
 
         // Recover the signature of 
         address sigAddr = ECVerify.ecrecovery(keccak256(_rlpBlockHeader), extraDataSig);
+        Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
 
-		return m_validators[_chainId][sigAddr];
+        // Check if signature is a validator that exists in previous block
+		return parentMetadata.m_validators[sigAddr];
     }
 
-    function addProposal(bytes32 _id, address _vote) internal {
-        if (_vote!=(0x0)) {
-            m_proposals[_id][_vote]++;
-            // Add validator if does not exist else remove
-            if (m_proposals[_id][_vote]>=m_threshold[_id] && !m_validators[_id][_vote]) {
-                m_validators[_id][_vote] = true;
-                m_proposals[_id][_vote] = 0;
-            } else if (m_proposals[_id][_vote]>=m_threshold[_id] && m_validators[_id][_vote]) {
-                m_validators[_id][_vote] = false;
-                m_proposals[_id][_vote] = 0;
+    function addProposal(bytes32 _chainId, address _candidate, bytes32 _blockHash, bytes32 _parentBlockHash) internal {
+        Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
+        Metadata storage metadata = m_blockmetadata[_chainId][_blockHash];
+
+        if (_candidate != 0x0) {
+            uint newVoteCount;
+            uint newThreshold = metadata.threshold;
+            address[] storage newValidators = metadata.validators;
+
+            // If votes pass threshold, add validator if exists, remove validator if not exists. Else metadata equal to parent
+            if ( (parentMetadata.m_proposals[_candidate] + 1) >= parentMetadata.threshold && !parentMetadata.m_validators[_candidate]) {
+                newVoteCount = 0;
+
+                for (uint i = 0; i < parentMetadata.validators.length; i++) {
+                    newValidators.push(parentMetadata.validators[i]);
+                }
+                newValidators.push(_candidate);
+            } else if ( (parentMetadata.m_proposals[_candidate] + 1) >= parentMetadata.threshold && parentMetadata.m_validators[_candidate]) {
+                newVoteCount = 0;
+
+                for (uint j = 0; j < parentMetadata.validators.length; j++) {
+                    if (parentMetadata.validators[j] != _candidate) {
+                        newValidators.push(parentMetadata.validators[j]);
+                    }
+                }
+            } else {
+                newVoteCount = parentMetadata.m_proposals[_candidate] + 1;
+
+                for (uint k = 0; k < parentMetadata.validators.length; k++) {
+                    newValidators.push(parentMetadata.validators[k]);
+                }
+            }
+
+            metadata.m_proposals[_candidate] = newVoteCount;
+            newThreshold = (newValidators.length/2) + 1;
+
+            for (uint vi = 0; vi < newValidators.length; vi++) {
+                metadata.m_validators[newValidators[vi]] = true;
+                if (newValidators[vi] != _candidate) {
+                    metadata.m_proposals[newValidators[vi]] = parentMetadata.m_proposals[newValidators[vi]];
+                }
+            }
+        } else {
+            // If no vote, set current block metadata equal to parent block
+            metadata.validators = parentMetadata.validators;
+            metadata.threshold = parentMetadata.threshold;
+
+            for (uint pi = 0; pi < parentMetadata.validators.length; pi++) {
+                metadata.m_validators[parentMetadata.validators[pi]] = true;
+                metadata.m_proposals[parentMetadata.validators[pi]] = parentMetadata.m_proposals[parentMetadata.validators[pi]];
             }
         }
     }
@@ -176,23 +234,11 @@ contract Clique is IonCompatible {
         ion.storeBlock(_storageAddr, _chainId, _hash, _rlpBlockHeader);
     }
 
-    /*
-    * @description      when a block is submitted the latest block is updated here
-    * @param _id        unique identifier of the chain from which the block hails     
-    * @param _hash      root hash of the block being added
-    */
-    function updateBlockHash(bytes32 _id, bytes32 _hash) internal {
-        m_latestblock[_id] = _hash;
+    function getValidators(bytes32 _chainId, bytes32 _blockHash) constant returns (address[]) {
+        return m_blockmetadata[_chainId][_blockHash].validators;
     }
 
-    /*
-    * @description      when a block is submitted the latest block is updated here
-    * @param _id        unique identifier of the chain from which the block hails
-    * @param _hash      root hash of the block being added
-    */
-    function getLatestBlockHash(bytes32 _id) public returns (bytes32) {
-        return m_latestblock[_id];
+    function getProposal(bytes32 _chainId, bytes32 _blockHash, address _candidate) constant returns (uint256) {
+        return m_blockmetadata[_chainId][_blockHash].m_proposals[_candidate];
     }
-
-
 }

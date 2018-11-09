@@ -99,9 +99,9 @@ contract('Clique.js', (accounts) => {
         // Successfully add id of another chain
         let tx = await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
         console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
-        let chain = await clique.chains(TESTCHAINID);
+        let chainExists = await clique.chains(TESTCHAINID);
 
-        assert(chain);
+        assert(chainExists);
 
         // Fail adding id of this chain
         await clique.RegisterChain(storage.address, DEPLOYEDCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
@@ -114,8 +114,10 @@ contract('Clique.js', (accounts) => {
         // Successfully add id of another chain
         await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
+        let registeredValidators = await clique.getValidators.call(TESTCHAINID, GENESIS_HASH);
+
         for (let i = 0; i < VALIDATORS.length; i++) {
-            let validatorExists = await clique.m_validators(TESTCHAINID, VALIDATORS[i]);
+            let validatorExists = registeredValidators.some(v => { return v == VALIDATORS[i] });;
             assert(validatorExists);
         }
       })
@@ -147,8 +149,8 @@ contract('Clique.js', (accounts) => {
         let event = validationReceipt.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock(bytes32)") });
         assert.ok(event, "Stored event not emitted");
 
-        const recoveredBlockHash = await clique.getLatestBlockHash.call(TESTCHAINID);
-        assert.equal(signedHeaderHash, recoveredBlockHash);
+        const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
+        assert.equal(signedHeaderHash, submittedEvent.args.blockHash);
 
         let blockHashExists = await clique.m_blockhashes(TESTCHAINID, block.hash);
         assert(blockHashExists);
@@ -236,7 +238,7 @@ contract('Clique.js', (accounts) => {
       })
 
       it('Fail Submit Block with wrong unsigned header - SubmitBlock()', async () => {
-        
+
 
         await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
 
@@ -259,18 +261,17 @@ contract('Clique.js', (accounts) => {
       })
 
 
-
-
     // This test checks that new validators get added into the validator list as blocks are submitted to the contract.
     // Rinkeby adds its first non-genesis validator at block 873987 with the votes occuring at blocks 873983 and 873986
     // we will start following the chain from 873982 and then add blocks until the vote threshold, n/2 + 1, is passed.
     it('Add Validators Through Block Submission', async () => {
       await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_START, ADD_VALIDATORS_GENESIS_HASH);
 
-      let voteThreshold = await clique.m_threshold(TESTCHAINID);
+      let registeredValidators = await clique.getValidators.call(TESTCHAINID, ADD_VALIDATORS_GENESIS_HASH);
+      let voteThreshold = Math.floor((registeredValidators.length/2) + 1);
       assert.equal(voteThreshold, 2);
 
-      let voteProposal = await clique.m_proposals(TESTCHAINID, VALIDATORS_FINISH[1]);
+      let voteProposal = await clique.getProposal.call(TESTCHAINID, ADD_VALIDATORS_GENESIS_HASH, VALIDATORS_FINISH[1]);
       assert.equal(voteProposal, 0);
 
       // Fetch block 873982 from rinkeby
@@ -288,11 +289,12 @@ contract('Clique.js', (accounts) => {
       // Submit block should succeed
       validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
       console.log("\tGas used to submit block 873983 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
+      let submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
+      let blockHash = submittedEvent.args.blockHash;
 
       // Check proposal is added
-      voteProposal = await clique.m_proposals(TESTCHAINID, VALIDATORS_FINISH[1]);
+      voteProposal = await clique.getProposal.call(TESTCHAINID, blockHash, VALIDATORS_FINISH[1]);
       assert.equal(voteProposal, 1);
-
 
       // Fetch block 873984 from rinkeby
       block = rinkeby.eth.getBlock(873984);
@@ -317,17 +319,23 @@ contract('Clique.js', (accounts) => {
       // Submit block should succeed
       validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
       console.log("\tGas used to submit block 873986 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
+      submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
+      blockHash = submittedEvent.args.blockHash;
 
       // Check proposal is added
-      voteProposal = await clique.m_proposals(TESTCHAINID, VALIDATORS_FINISH[1]);
+      voteProposal = await clique.getProposal.call(TESTCHAINID, blockHash, VALIDATORS_FINISH[1]);
       assert.equal(voteProposal, 0);
 
-      // Check all new validators are added
+      // Check all validators exist
+      registeredValidators = await clique.getValidators.call(TESTCHAINID, blockHash);
       for (let i = 0; i < VALIDATORS_FINISH.length; i++) {
-          let validatorExists = await clique.m_validators(TESTCHAINID, VALIDATORS_FINISH[i]);
+          let validatorExists = registeredValidators.some(v => { return v == VALIDATORS_FINISH[i] });;
           assert(validatorExists);
       }
 
+      // Check that the vote threshold has increased with validator set size
+      voteThreshold = Math.floor((registeredValidators.length/2) + 1);
+      assert.equal(voteThreshold, 3);
     })
   })
 });
