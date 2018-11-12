@@ -36,6 +36,7 @@ contract Clique is IonCompatible {
         uint256 threshold;
     }
 
+    event GenesisCreated(bytes32 chainId, bytes32 blockHash);
     event BlockSubmitted(bytes32 chainId, bytes32 blockHash);
 
     /*
@@ -53,14 +54,16 @@ contract Clique is IonCompatible {
     mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
 	mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
 	mapping (bytes32 => mapping (bytes32 => Metadata)) public m_blockmetadata;
-
-//	mapping (bytes32 => mapping (bytes32 => uint256)) public m_threshold;
-//	mapping (bytes32 => mapping (bytes32 => mapping (address => bool))) public m_validators;
-//    mapping (bytes32 => mapping (bytes32 => uint256)) public m_nValidators;
-//	mapping (bytes32 => mapping (bytes32 => mapping (address => uint256))) public m_proposals;
+    mapping (bytes32 => bytes32[]) public heads;
 
 	constructor (address _ionAddr) IonCompatible(_ionAddr) public {}
 
+/* =====================================================================================================================
+
+        Public Functions
+
+   =====================================================================================================================
+*/
     function register() public returns (bool) {
         ion.registerValidationModule();
         return true;
@@ -68,42 +71,34 @@ contract Clique is IonCompatible {
 
     /*
     * RegisterChain
-    * param: _id (bytes32) Unique id of another chain to interoperate with
+    * param: _chainId (bytes32) Unique id of another chain to interoperate with
     * param: _validators (address[]) Array containing the validators at the genesis block
     * param: _genesisHash (bytes32) Hash of the genesis block for the chain being registered with Ion
+    * param: _storeAddr (address) Address of block store contract to register chain to
     *
-    * Supplied with an id of another chain, checks if this id already exists in the known set of ids
-    * and adds it to the list of known chains.
+    * Registers knowledge of the id of another interoperable chain requiring the genesis block metadata. Allows
+    * the initialising of genesis blocks and their validator sets for chains. Multiple may be submitted and built upon
+    * and is not opinionated on how they are used.
     */
-    function RegisterChain(address _storeAddr, bytes32 _chainId, address[] _validators, bytes32 _genesisBlockHash) public {
+    function RegisterChain(bytes32 _chainId, address[] _validators, bytes32 _genesisBlockHash, address _storeAddr) public {
         require( _chainId != ion.chainId(), "Cannot add this chain id to chain register" );
-        require(!chains[_chainId], "Chain already exists" );
-        chains[_chainId] = true;
 
-
-        ion.addChain(_storeAddr, _chainId);
-
-        BlockHeader storage header = m_blockheaders[_chainId][_genesisBlockHash];
-		header.blockNumber = 0;
-		header.blockHash = _genesisBlockHash;
-
-        Metadata storage metadata = m_blockmetadata[_chainId][_genesisBlockHash];
-        metadata.validators = _validators;
-
-        // Append validators and vote threshold
-        for (uint256 i = 0; i < _validators.length; i++) {
-            metadata.m_validators[_validators[i]] = true;
+        if (chains[_chainId]) {
+            require( !m_blockhashes[_chainId][_genesisBlockHash], "Chain already exists with identical genesis" );
+        } else {
+            chains[_chainId] = true;
+            ion.addChain(_storeAddr, _chainId);
         }
-        metadata.threshold = (_validators.length/2) + 1;
 
-		m_blockhashes[_chainId][_genesisBlockHash] = true;
+        addGenesisBlock(_storeAddr, _chainId, _validators, _genesisBlockHash);
     }
 
 	/*
     * SubmitBlock
-    * param: _id (bytes32) Unique id of chain submitting block from
+    * param: _chainId (bytes32) Unique id of chain submitting block from
     * param: _rlpBlockHeader (bytes) RLP-encoded byte array of the block header from other chain without the signature in extraData
     * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain with the signature in extraData
+    * param: _storeAddr (address) Address of block store contract to store block to
     *
     * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
     * and if valid the block is persisted as BlockHeader structs defined above.
@@ -135,14 +130,62 @@ contract Clique is IonCompatible {
         // Append the new block to the struct
         addProposal(_chainId, SolUtils.BytesToAddress(header[2].toBytes(), 1), keccak256(_rlpSignedBlockHeader), parentBlockHash);
         storeBlock(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader, _storageAddr);
+        shiftHead(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash);
 
         emit BlockSubmitted(_chainId, keccak256(_rlpSignedBlockHeader));
     }
 
-    function checkSignature(bytes32 _chainId, bytes _signedHeader, bytes _rlpBlockHeader, bytes32 _parentBlockHash) internal returns (bool) {
+
+/* =====================================================================================================================
+
+        Internal Functions
+
+   =====================================================================================================================
+*/
+
+    /*
+    * addGenesisBlock
+    * param: _chainId (bytes32) Unique id of another chain to interoperate with
+    * param: _validators (address[]) Array containing the validators at the genesis block
+    * param: _genesisHash (bytes32) Hash of the genesis block for the chain being registered with Ion
+    * param: _storeAddr (address) Address of block store contract to register chain to
+    *
+    * Adds a genesis block with the validators and other metadata for this genesis block
+    */
+    function addGenesisBlock(bytes32 _chainId, address[] _validators, bytes32 _genesisBlockHash, address _storeAddr) internal {
+        BlockHeader storage header = m_blockheaders[_chainId][_genesisBlockHash];
+        header.blockNumber = 0;
+        header.blockHash = _genesisBlockHash;
+
+        Metadata storage metadata = m_blockmetadata[_chainId][_genesisBlockHash];
+        metadata.validators = _validators;
+
+        // Append validators and vote threshold
+        for (uint256 i = 0; i < _validators.length; i++) {
+            metadata.m_validators[_validators[i]] = true;
+        }
+        metadata.threshold = (_validators.length/2) + 1;
+
+        m_blockhashes[_chainId][_genesisBlockHash] = true;
+        shiftHead(_chainId, _genesisBlockHash, 0x0);
+
+        emit GenesisCreated(_chainId, _genesisBlockHash);
+    }
+
+    /*
+    * checkSignature
+    * param: _chainId (bytes32) Unique id of interoperating chain
+    * param: _extraData (bytes) Byte array of the extra data containing signature
+    * param: _rlpBlockHeader (bytes) Byte array of RLP encoded unsigned block header
+    * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
+    *
+    * Checks that the submitted block has actually been signed, recovers the signer and checks if they are validator in
+    * parent block
+    */
+    function checkSignature(bytes32 _chainId, bytes _extraData, bytes _rlpBlockHeader, bytes32 _parentBlockHash) internal returns (bool) {
         bytes memory extraDataSig = new bytes(65);
-        uint256 length = _signedHeader.length;
-        SolUtils.BytesToBytes(extraDataSig, _signedHeader, length-65);
+        uint256 length = _extraData.length;
+        SolUtils.BytesToBytes(extraDataSig, _extraData, length-65);
 
         // Recover the signature of 
         address sigAddr = ECVerify.ecrecovery(keccak256(_rlpBlockHeader), extraDataSig);
@@ -152,6 +195,15 @@ contract Clique is IonCompatible {
 		return parentMetadata.m_validators[sigAddr];
     }
 
+    /*
+    * addProposal
+    * param: _chainId (bytes32) Unique id of interoperating chain
+    * param: _candidate (address) Byte array of the extra data containing signature
+    * param: _blockHash (bytes32) Current block hash being checked
+    * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
+    *
+    * Modifies the proposal/validator set via votes collated from the block. Checks parent block for latest state.
+    */
     function addProposal(bytes32 _chainId, address _candidate, bytes32 _blockHash, bytes32 _parentBlockHash) internal {
         Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
         Metadata storage metadata = m_blockmetadata[_chainId][_blockHash];
@@ -207,9 +259,17 @@ contract Clique is IonCompatible {
     }
 
     /*
-    * @description      when a block is submitted the root hash must be added to a mapping of chains to hashes
-    * @param _id        unique identifier of the chain from which the block hails     
-    * @param _hash      root hash of the block being added
+    * storeBlock
+    * param: _chainId (bytes32) Unique id of interoperating chain
+    * param: _hash (address) Byte array of the extra data containing signature
+    * param: _parentHash (bytes32) Current block hash being checked
+    * param: _txRootHash (bytes32) Parent block hash of current block being checked
+    * param: _receiptRootHash (bytes32) Parent block hash of current block being checked
+    * param: _height (bytes32) Parent block hash of current block being checked
+    * param: _rlpBlockHeader (bytes32) Parent block hash of current block being checked
+    * param: _storageAddr (bytes32) Parent block hash of current block being checked
+    *
+    * Takes the submitted block to propagate to the storage contract.
     */
     function storeBlock(
         bytes32 _chainId,
@@ -232,6 +292,35 @@ contract Clique is IonCompatible {
 
         // Add block to Ion
         ion.storeBlock(_storageAddr, _chainId, _hash, _rlpBlockHeader);
+    }
+
+    /*
+    * shiftHead
+    * param: _chainId (bytes32) Unique id of chain
+    * param: _childHash (bytes32) New block hash
+    * param: _parentHash (bytes32) Previous block hash
+    *
+    * Updates set of current open chain heads per chain. Open chain heads are blocks that do not have a child that can
+    * be built upon.
+    */
+    function shiftHead(bytes32 _chainId, bytes32 _childHash, bytes32 _parentHash) public {
+        int index = -1;
+        bytes32[] storage chainHeads = heads[_chainId];
+
+        // Check if parent hash is an open head and replace with child
+        for (uint i = 0; i < chainHeads.length; i++) {
+            if (chainHeads[i] == _parentHash) {
+                index = int(i);
+
+                delete chainHeads[index];
+                chainHeads[index] = _childHash;
+
+                return;
+            }
+        }
+
+        // If parent is not an open head, child is, so append to heads
+        chainHeads.push(_childHash);
     }
 
     function getValidators(bytes32 _chainId, bytes32 _blockHash) constant returns (address[]) {
