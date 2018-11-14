@@ -90,7 +90,7 @@ contract Clique is IonCompatible {
             ion.addChain(_storeAddr, _chainId);
         }
 
-        addGenesisBlock(_storeAddr, _chainId, _validators, _genesisBlockHash);
+        addGenesisBlock(_chainId, _validators, _genesisBlockHash, _storeAddr);
     }
 
 	/*
@@ -312,8 +312,8 @@ contract Clique is IonCompatible {
             if (chainHeads[i] == _parentHash) {
                 index = int(i);
 
-                delete chainHeads[index];
-                chainHeads[index] = _childHash;
+                delete chainHeads[uint(index)];
+                chainHeads[uint(index)] = _childHash;
 
                 return;
             }
