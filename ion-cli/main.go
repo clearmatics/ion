@@ -13,7 +13,7 @@ import (
 	"github.com/clearmatics/ion/ion-cli/utils"
 )
 
-var configFile = flag.String("config", "setup.json", "Description:\n path to the configuration file")
+var configFile = flag.String("config", "", "Description:\n path to the configuration file")
 
 func main() {
 	flag.Parse()
