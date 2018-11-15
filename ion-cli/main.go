@@ -9,7 +9,7 @@ import (
 
 	"github.com/clearmatics/ion/ion-cli/cli"
 	"github.com/clearmatics/ion/ion-cli/config"
-	contract "github.com/clearmatics/ion/ion-cli/contracts"
+	// contract "github.com/clearmatics/ion/ion-cli/contracts"
 	"github.com/clearmatics/ion/ion-cli/utils"
 )
 
@@ -25,9 +25,9 @@ func main() {
 		clientFrom := utils.ClientRPC(setup.AddrFrom)
 
 		// Compile contracts to use in sending transactions
-		Validation := contract.CompileContract("Validation")
-		Function := contract.CompileContract("Function")
-		Trigger := contract.CompileContract("Trigger")
+		// Validation := contract.CompileContract("Validation")
+		// Function := contract.CompileContract("Function")
+		// Trigger := contract.CompileContract("Trigger")
 		printInfo(setup)
 
 		// Launch the CLI
@@ -35,9 +35,6 @@ func main() {
 			setup,
 			clientTo,
 			clientFrom,
-			Validation,
-			Trigger,
-			Function,
 		)
 
 	} else {
@@ -55,12 +52,8 @@ func printInfo(setup config.Setup) {
 	fmt.Println("\tListening on:\t\t" + setup.AddrTo)
 	fmt.Println("\tUser Account:\t\t" + setup.AccountTo)
 	fmt.Println("\tRPC ChainId:\t\t" + setup.ChainId)
-	fmt.Println("\tValidation Contract:\t" + setup.Validation)
-	fmt.Println("\tIon Contract:\t\t" + setup.Ion)
-	fmt.Println("\tFunction Contract:\t" + setup.Function)
 	fmt.Println("\nRPC Client [FROM]:")
 	fmt.Println("\tListening on:\t\t" + setup.AddrFrom)
 	fmt.Println("\tUser Account:\t\t" + setup.AccountFrom)
-	fmt.Println("\tTrigger Contract:\t" + setup.Trigger)
 	fmt.Println("===============================================================")
 }

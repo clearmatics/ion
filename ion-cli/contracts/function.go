@@ -7,14 +7,15 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/compiler"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-// CompileAndDeployTriggerVerifierAndConsumerFunction method
 func CompileAndDeployTriggerVerifierAndConsumerFunction(
 	ctx context.Context,
 	client bind.ContractBackend,
@@ -34,9 +35,9 @@ func CompileAndDeployTriggerVerifierAndConsumerFunction(
 	}
 
 	triggerEventVerifierContract := contracts[triggerEventVerifierContractPath+":TriggerEventVerifier"]
-	triggerEventVerifierBinStr, triggerEventVerifierABIStr := getContractBytecodeAndABI(triggerEventVerifierContract)
+	triggerEventVerifierBinStr, triggerEventVerifierABIStr := GetContractBytecodeAndABI(triggerEventVerifierContract)
 	consumerFunctionContract := contracts[consumerFunctionContractPath+":Function"]
-	consumerFunctionBinStr, consumerFunctionABIStr := getContractBytecodeAndABI(consumerFunctionContract)
+	consumerFunctionBinStr, consumerFunctionABIStr := GetContractBytecodeAndABI(consumerFunctionContract)
 
 	// ---------------------------------------------
 	// DEPLOY TRIGGER EVENT CONTRACT
@@ -80,7 +81,11 @@ func CompileAndDeployTriggerVerifierAndConsumerFunction(
 			triggerEventAddr,
 		)
 
-		resChan <- ContractInstance{triggerEventVerifierContract, triggerEventAddr}
+		triggerAbi, err := abi.JSON(strings.NewReader(triggerEventVerifierABIStr))
+        if err != nil {
+		    log.Fatal("ERROR failed to compile TriggerEventVerifier.sol:", err)
+        }
+		resChan <- ContractInstance{triggerEventVerifierContract, triggerEventAddr, &triggerAbi}
 
 		// wait for consumer function contract to be deployed
 		consumerFunctionAddr, err := bind.WaitDeployed(ctx, deployBackend, consumerFunctionSignedTx)
@@ -88,7 +93,11 @@ func CompileAndDeployTriggerVerifierAndConsumerFunction(
 			log.Fatal("ERROR while waiting for contract deployment")
 		}
 
-		resChan <- ContractInstance{consumerFunctionContract, consumerFunctionAddr}
+		functionAbi, err := abi.JSON(strings.NewReader(consumerFunctionABIStr))
+        if err != nil {
+		    log.Fatal("ERROR failed to compile Function.sol:", err)
+        }
+		resChan <- ContractInstance{consumerFunctionContract, consumerFunctionAddr, &functionAbi}
 	}()
 
 	return resChan

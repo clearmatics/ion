@@ -23,11 +23,12 @@ import (
 type ContractInstance struct {
 	Contract *compiler.Contract
 	Address  common.Address
+	Abi *abi.ABI
 }
 
 // GENERIC UTIL FUNCTIONS
 
-func getContractBytecodeAndABI(c *compiler.Contract) (string, string) {
+func GetContractBytecodeAndABI(c *compiler.Contract) (string, string) {
 	cABIBytes, err := json.Marshal(c.Info.AbiDefinition)
 	if err != nil {
 		log.Fatal("ERROR marshalling contract ABI:", err)
@@ -196,6 +197,20 @@ func CompileContract(contract string) (compiledContract *compiler.Contract) {
 	}
 
 	compiledContract = contracts[basePath+contract+".sol:"+contract]
+
+	return
+}
+
+func CompileContractAt(contractPath string) (compiledContract *compiler.Contract) {
+    contract, err := compiler.CompileSolidity("", contractPath)
+	if err != nil {
+		log.Fatal("ERROR failed to compile contract:", err)
+	}
+
+	path := strings.Split(contractPath, "/")
+	contractName := path[len(path)-1]
+
+    compiledContract = contract[contractPath+":"+strings.Replace(contractName, ".sol", "", -1)]
 
 	return
 }

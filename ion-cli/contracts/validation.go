@@ -6,7 +6,9 @@ import (
 	"crypto/ecdsa"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/compiler"
@@ -33,7 +35,7 @@ func CompileAndDeployValidation(
 	}
 
 	validationContract := contracts[basePath+"Validation.sol:Validation"]
-	validationBinStr, validationABIStr := getContractBytecodeAndABI(validationContract)
+	validationBinStr, validationABIStr := GetContractBytecodeAndABI(validationContract)
 
 	// ---------------------------------------------
 	// DEPLOY VALIDATION CONTRACT
@@ -63,7 +65,11 @@ func CompileAndDeployValidation(
 		if err != nil {
 			log.Fatal("ERROR while waiting for contract deployment")
 		}
-		resChan <- ContractInstance{validationContract, validationAddr}
+		abistruct, err := abi.JSON(strings.NewReader(validationABIStr))
+        if err != nil {
+		    log.Fatal("ERROR failed to compile Validation.sol:", err)
+        }
+		resChan <- ContractInstance{validationContract, validationAddr, &abistruct}
 	}()
 
 	return resChan

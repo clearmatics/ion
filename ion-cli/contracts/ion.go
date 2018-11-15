@@ -7,7 +7,9 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common/compiler"
 )
@@ -31,10 +33,10 @@ func CompileAndDeployIon(
 	}
 
 	patriciaTrieContract := contracts[basePath+"libraries/PatriciaTrie.sol:PatriciaTrie"]
-	patriciaTrieBinStr, patriciaTrieABIStr := getContractBytecodeAndABI(patriciaTrieContract)
+	patriciaTrieBinStr, patriciaTrieABIStr := GetContractBytecodeAndABI(patriciaTrieContract)
 
 	ionContract := contracts[basePath+"Ion.sol:Ion"]
-	ionBinStr, ionABIStr := getContractBytecodeAndABI(ionContract)
+	ionBinStr, ionABIStr := GetContractBytecodeAndABI(ionContract)
 
 	// ---------------------------------------------
 	// DEPLOY PATRICIA LIB ADDRESS
@@ -80,9 +82,13 @@ func CompileAndDeployIon(
 			chainID,
 		)
 
+		patriciaAbi, err := abi.JSON(strings.NewReader(patriciaTrieABIStr))
+        if err != nil {
+		    log.Fatal("ERROR failed to compile PatriciaTrie.sol:", err)
+        }
 		// only stop blocking the first result after the Ion contract as been deploy
 		// this guarantees that it works well with the blockchain simulator Commit()
-		resChan <- ContractInstance{patriciaTrieContract, patriciaTrieAddr}
+		resChan <- ContractInstance{patriciaTrieContract, patriciaTrieAddr, &patriciaAbi}
 
 		// wait for Ion to be deployed
 		ionAddr, err := bind.WaitDeployed(ctx, deployBackend, ionSignedTx)
@@ -90,7 +96,11 @@ func CompileAndDeployIon(
 			log.Fatal("ERROR while waiting for contract deployment")
 		}
 
-		resChan <- ContractInstance{ionContract, ionAddr}
+		ionAbi, err := abi.JSON(strings.NewReader(ionABIStr))
+        if err != nil {
+		    log.Fatal("ERROR failed to compile Ion.sol:", err)
+        }
+		resChan <- ContractInstance{ionContract, ionAddr, &ionAbi}
 	}()
 
 	return resChan

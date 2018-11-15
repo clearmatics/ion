@@ -30,6 +30,11 @@ type Setup struct {
 	Function     string `json:"function-addr"`
 }
 
+type Account struct {
+    Auth *bind.TransactOpts
+    Key *keystore.Key
+}
+
 // Takes path to a JSON and returns a struct of the contents
 func ReadSetup(config string) (setup Setup) {
 	raw, err := ioutil.ReadFile(config)

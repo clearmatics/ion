@@ -10,8 +10,11 @@ import (
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/clearmatics/ion/ion-cli/utils"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // Header used to marshall blocks into a string based struct
@@ -33,9 +36,15 @@ type header struct {
 	Nonce       string `json:"nonce"`
 }
 
-func latestBlock(client *ethclient.Client) (lastBlock *types.Header) {
+type EthClient struct {
+    client *ethclient.Client
+    rpcClient *rpc.Client
+    url string
+}
+
+func latestBlock(eth *EthClient) (lastBlock *types.Header) {
 	// var lastBlock Block
-	lastBlock, err := client.HeaderByNumber(context.Background(), nil)
+	lastBlock, err := eth.client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
 		fmt.Println("can't get latest block:", err)
 		return nil
@@ -44,12 +53,12 @@ func latestBlock(client *ethclient.Client) (lastBlock *types.Header) {
 	return
 }
 
-func getBlock(client *ethclient.Client, block string) {
+func getBlockByNumber(eth *EthClient, block string) {
 	// var blockHeader header
 	blockNum := new(big.Int)
 	blockNum.SetString(block, 10)
 
-	lastBlock, err := client.HeaderByNumber(context.Background(), blockNum)
+	lastBlock, err := eth.client.HeaderByNumber(context.Background(), blockNum)
 	if err != nil {
 		fmt.Println("can't get requested block:", err)
 		return
@@ -64,7 +73,42 @@ func getBlock(client *ethclient.Client, block string) {
 	fmt.Println(string(b))
 }
 
-// func calculateRlpEncoding(client *ethclient.Client, block string) {
+func getBlockByHash(eth *EthClient, block string) {
+	blockHash := common.HexToHash(block)
+
+	lastBlock, err := eth.client.HeaderByHash(context.Background(), blockHash)
+	if err != nil {
+		fmt.Println("can't get requested block:", err)
+		return
+	}
+	// Marshal into a JSON
+	b, err := json.MarshalIndent(lastBlock, "", " ")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return
+	}
+	fmt.Println("Block:", block)
+	fmt.Println(string(b))
+}
+
+func getProof(eth *EthClient, transactionHash string) {
+    // Get the transaction hash
+    bytesTxHash := common.HexToHash(transactionHash)
+
+    // Generate the proof
+    txPath, txValue, txNodes, receiptValue, receiptNodes := utils.GenerateProof(
+        context.Background(),
+        eth.rpcClient,
+        bytesTxHash,
+    )
+
+    fmt.Printf( "Path:           0x%x\n" +
+                "TxValue:        0x%x\n" +
+                "TxNodes:        0x%x\n" +
+                "ReceiptValue:   0x%x\n" +
+                "ReceiptNodes:   0x%x\n", txPath, txValue, txNodes, receiptValue, receiptNodes)
+}
+
 func calculateRlpEncoding(client *ethclient.Client, block string) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
 	// var blockHeader header
 	blockNum := new(big.Int)
