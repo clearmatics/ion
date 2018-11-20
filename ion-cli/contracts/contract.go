@@ -4,11 +4,13 @@ package contract
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"encoding/json"
 	"log"
 	"math/big"
 	"os"
 	"strings"
+	"errors"
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -160,31 +162,50 @@ func TransactionContract(
 	gasLimit uint64,
 	methodName string,
 	args ...interface{},
-) *types.Transaction {
+) (*types.Transaction, error) {
+
+    fmt.Print("Marshalling ABI\n")
 	abiStr, err := json.Marshal(contract.Info.AbiDefinition)
 	if err != nil {
-		log.Fatal("ERROR marshalling abi to string", err)
+	    errStr := fmt.Sprintf("ERROR marshalling abi to string: %s\n", err)
+	    return nil, errors.New(errStr)
+		log.Fatal()
 	}
 
+
+    fmt.Print("JSONify ABI\n")
 	abiContract, err := abi.JSON(strings.NewReader(string(abiStr)))
 	if err != nil {
-		log.Fatal("ERROR reading contract ABI ", err)
+	    errStr := fmt.Sprintf("ERROR reading contract ABI: %s\n", err)
+	    return nil, errors.New(errStr)
 	}
 
+
+    fmt.Print("Packing Args to ABI\n")
 	payload, err := abiContract.Pack(methodName, args...)
 	if err != nil {
-		log.Fatal("ERROR packing the method name for the contract call: ", err)
+	    errStr := fmt.Sprintf("ERROR packing the method name for the contract call: %s\n", err)
+	    return nil, errors.New(errStr)
 	}
 
+
+    fmt.Print("Retrieving public key\n")
 	from := crypto.PubkeyToAddress(userKey.PublicKey)
+
+    fmt.Print("Creating transaction\n")
 	tx := newTx(ctx, backend, &from, &to, amount, gasLimit, payload)
+
+    fmt.Print("Signing transaction\n")
 	signedTx := signTx(tx, userKey)
+
+    fmt.Print("SENDING TRANSACTION\n")
 
 	err = backend.SendTransaction(ctx, signedTx)
 	if err != nil {
-		log.Fatal("ERROR sending transaction: ", err)
+	    errStr := fmt.Sprintf("ERROR sending transaction: %s\n", err)
+	    return nil, errors.New(errStr)
 	}
-	return signedTx
+	return signedTx, nil
 }
 
 func CompileContract(contract string) (compiledContract *compiler.Contract) {

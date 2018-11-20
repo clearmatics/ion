@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -86,7 +87,7 @@ func RegisterChain(
 	validators []common.Address,
 	registerHash common.Hash,
 ) (tx *types.Transaction) {
-	tx = TransactionContract(
+	tx, err := TransactionContract(
 		ctx,
 		backend,
 		userKey,
@@ -99,6 +100,10 @@ func RegisterChain(
 		validators,
 		registerHash,
 	)
+
+	if err != nil {
+	    fmt.Println(err)
+	}
 
 	return
 }
@@ -114,7 +119,7 @@ func SubmitBlock(
 	unsignedBlockHeaderRLP []byte,
 	signedBlockHeaderRLP []byte,
 ) (tx *types.Transaction) {
-	tx = TransactionContract(
+	tx, err := TransactionContract(
 		ctx,
 		backend,
 		userKey,
@@ -127,6 +132,11 @@ func SubmitBlock(
 		unsignedBlockHeaderRLP,
 		signedBlockHeaderRLP,
 	)
+
+	if err != nil {
+	    fmt.Println(err)
+	}
+
 	return
 }
 

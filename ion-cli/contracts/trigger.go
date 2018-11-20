@@ -4,6 +4,7 @@ package contract
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,7 +20,7 @@ func Fire(
 	contract *compiler.Contract,
 	toAddr common.Address,
 ) (tx *types.Transaction) {
-	tx = TransactionContract(
+	tx, err := TransactionContract(
 		ctx,
 		backend,
 		userKey,
@@ -29,6 +30,10 @@ func Fire(
 		uint64(3000000),
 		"fire",
 	)
+
+    if err != nil {
+        fmt.Println(err)
+    }
 
 	return
 }

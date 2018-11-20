@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -121,7 +122,7 @@ func VerifyExecute(
 	amount *big.Int,
 
 ) (tx *types.Transaction) {
-	tx = TransactionContract(
+	tx, err := TransactionContract(
 		ctx,
 		backend,
 		userKey,
@@ -140,5 +141,8 @@ func VerifyExecute(
 		receiptTriggerProofArr, // TEST_RECEIPT_NODES,
 		triggerCalledBy,        // TRIG_CALLED_BY,
 	)
+	if err != nil {
+	    fmt.Println(err)
+	}
 	return
 }

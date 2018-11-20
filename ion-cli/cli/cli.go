@@ -5,11 +5,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	//"encoding/json"
+	"encoding/hex"
 	"math/big"
 	"strconv"
 	"errors"
 	"strings"
+	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
 	// "github.com/ethereum/go-ethereum/common/compiler"
@@ -148,37 +149,68 @@ func Launch(
 			if len(c.Args) != 5 {
                 c.Println("Usage: \tmessageCallFunction [contract name] [function name] [from account name] [amount] [gasLimit] \n")
 			} else {
+			    if ethClient == nil {
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
+			    }
+
                 instance := contracts[c.Args[0]]
+                methodName := c.Args[1]
                 account := accounts[c.Args[2]]
+
+                if instance == nil {
+                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n", c.Args[0])
+                    c.Println(errStr)
+			        return
+                }
+                if account == nil {
+                    errStr := fmt.Sprintf("Account %s not found.\nUse \taddAccount [name] [path/to/keystore] [password] \n", c.Args[2])
+			        c.Println(errStr)
+			        return
+                }
+
                 amount := new(big.Int)
                 amount, ok := amount.SetString(c.Args[3], 10)
                 if !ok {
                     c.Err(errors.New("Please enter an integer for <amount>"))
                 }
-                gasLimit := new(big.Int)
-                gasLimit, ok = amount.SetString(c.Args[4], 10)
-                if !ok {
+                gasLimit, err := strconv.ParseUint(c.Args[4], 10, 64)
+                if err != nil {
                     c.Err(errors.New("Please enter an integer for <gasLimit>"))
                 }
 
-                account = account
-                amount = amount
-                gasLimit = gasLimit
+                if instance.Abi.Methods[methodName].Name == "" {
+                    c.Printf("Method name \"%s\" not found for contract \"%s\"\n", methodName, c.Args[0])
+                    return
+                }
 
-                parseMethodParameters(c, instance.Abi, c.Args[1])
+                inputs, err := parseMethodParameters(c, instance.Abi, methodName)
+                if err != nil {
+                    c.Printf("Error parsing parameters: %s\n", err)
+                    return
+                }
+                //inputs := []interface{}{[]bool{true, false}, []bool{false,false,true}}
 
-                /*contract.TransactionContract(
+                c.Printf("Inputs = %s\n", inputs)
+                c.Printf("First index type: %s\n", reflect.TypeOf(inputs[0]))
+
+                tx, err := contract.TransactionContract(
                     ctx,
-                    ethClient,
+                    ethClient.client,
                     account.Key.PrivateKey,
+                    instance.Contract,
                     instance.Address,
-                    common.HexToHash(configuration.ChainId),
                     amount,
                     gasLimit,
                     c.Args[1],
-                    ,
-
-                    )*/
+                    inputs...
+                )
+                 if err != nil {
+                    c.Println(err)
+                    return
+                 } else {
+                    c.Printf("Transaction hash: %s", tx)
+                 }
 			}
 			c.Println("===============================================================")
 		},
@@ -480,12 +512,208 @@ func getClient(url string) (client *EthClient) {
     return &EthClient{client: eth, rpcClient: rpc, url: url}
 }
 
-func parseMethodParameters(c *ishell.Context, abi *abi.ABI, methodName string) (args []interface{}) {
-    inputParameters := abi.Methods[methodName].Inputs
-    fmt.Printf("%s\n", inputParameters)
+func parseMethodParameters(c *ishell.Context, abiStruct *abi.ABI, methodName string) (args []interface{}, err error) {
+    inputParameters := abiStruct.Methods[methodName].Inputs
+    c.ShowPrompt(false)
+    defer c.ShowPrompt(true)
 
-    for argument := range inputParameters {
-        fmt.Printf("%s\n", abi.UnmarshalJSON(argument))
+    for i := 0; i < len(inputParameters); i++ {
+        argument := inputParameters[i]
+        c.Printf("Enter input data for parameter %s:\n", argument.Name)
+
+        input := c.ReadLine()
+
+        c.Printf("Name: %s\n", argument.Name)
+        c.Printf("Type: %s\n", argument.Type)
+        c.Printf("Type: %s\n", argument.Type.Type)
+        c.Printf("Kind: %s\n", argument.Type.Kind)
+        c.Printf("Elem: %s\n", argument.Type.Elem)
+        if argument.Type.Elem != nil {
+            c.Printf("Elem Type: %s\n", argument.Type.Elem.Type)
+            c.Printf("Elem Kind: %s\n", argument.Type.Elem.Kind)
+        }
+
+        c.Printf("Reflect byte type: %s\n", reflect.TypeOf([]byte{}))
+
+        if argument.Type.Kind == reflect.Array || argument.Type.Kind == reflect.Slice {
+            c.Println("Argument is array\n")
+
+            // Occurs if argument is address which resolves Kind to array with no element
+            if argument.Type.Type == reflect.TypeOf(common.Address{}) {
+                item, err := utils.ConvertToType(input, &argument.Type)
+                if err != nil {
+                    c.Err(err)
+                }
+                args = append(args, item)
+                continue
+            }
+
+            elementType := argument.Type.Elem
+            // bytes = []byte{} argument type = slice, no element, type equates to []uint8
+            // byte[] = [][1]byte{} argument type = slice, element type = array, type equates to [][1]uint8
+            // byte = bytes1
+            // bytesn = [n]byte{} 0 < n < 33, argument type = array, no element, type equates to [n]uint8
+            // bytesn[] = [][n]byte{} argument type = slice, element type = array, type equares to [][n]uint8
+            // bytesn[m] = [m][n]byte{} argument type = array, element type = array, type equates to [m][n]uint8
+            // Many annoying cases of byte arrays
+
+            c.Printf("Argument type: %s\n", argument.Type.Type)
+            c.Printf("Byte array type: %s\n", reflect.TypeOf([]byte{}))
+            if argument.Type.Type == reflect.TypeOf([]byte{}) {
+                c.Printf("Element is byte\n")
+                bytes, err := hex.DecodeString(input)
+                if err != nil {
+                    c.Err(err)
+                }
+                args = append(args, bytes)
+            } else {
+                c.Printf("Element type: %s\n", elementType.Type)
+                c.Printf("Element kind: %s\n", elementType.Kind)
+                c.Printf("Element size: %s\n", elementType.Size)
+                c.Printf("Element element: %s\n", elementType.Elem)
+                array := strings.Split(input, ",")
+
+                argSize := argument.Type.Size
+                size := len(array)
+                if argSize != 0 {
+                    for size != argSize {
+                        c.Printf("Please enter %i comma-separated list of elements:\n", argSize)
+                        input = c.ReadLine()
+                        array = strings.Split(input, ",")
+                        size = len(array)
+                    }
+                }
+
+                size = len(array)
+
+                switch elementType.Type {
+                case reflect.TypeOf(bool(false)):
+                    convertedArray := make([]bool, 0, size)
+                    for _, item := range array {
+                        b, err := utils.ConvertToBool(item)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, b)
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(int8(0)):
+                    convertedArray := make([]int8, 0, size)
+                    for _, item := range array {
+                        i, err := strconv.ParseInt(item, 10, 8)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, int8(i))
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(int16(0)):
+                    convertedArray := make([]int16, 0, size)
+                    for _, item := range array {
+                        i, err := strconv.ParseInt(item, 10, 16)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, int16(i))
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(int32(0)):
+                    convertedArray := make([]int32, 0, size)
+                    for _, item := range array {
+                        i, err := strconv.ParseInt(item, 10, 32)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, int32(i))
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(int64(0)):
+                    convertedArray := make([]int64, 0, size)
+                    for _, item := range array {
+                        i, err := strconv.ParseInt(item, 10, 64)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, int64(i))
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(uint8(0)):
+                    convertedArray := make([]uint8, 0, size)
+                    for _, item := range array {
+                        u, err := strconv.ParseUint(item, 10, 8)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, uint8(u))
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(uint16(0)):
+                    convertedArray := make([]uint16, 0, size)
+                    for _, item := range array {
+                        u, err := strconv.ParseUint(item, 10, 16)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, uint16(u))
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(uint32(0)):
+                    convertedArray := make([]uint32, 0, size)
+                    for _, item := range array {
+                        u, err := strconv.ParseUint(item, 10, 32)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, uint32(u))
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(uint64(0)):
+                    convertedArray := make([]uint64, 0, size)
+                    for _, item := range array {
+                        u, err := strconv.ParseUint(item, 10, 64)
+                        if err != nil {
+                            return nil, err
+                        }
+                        convertedArray = append(convertedArray, uint64(u))
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(&big.Int{}):
+                    convertedArray := make([]*big.Int, 0, size)
+                    for _, item := range array {
+                        newInt := new(big.Int)
+                        newInt, ok := newInt.SetString(item, 10)
+                        if !ok {
+                            return nil, errors.New("Could not convert string to big.int")
+                        }
+                        convertedArray = append(convertedArray, newInt)
+                    }
+                    args = append(args, convertedArray)
+                case reflect.TypeOf(common.Address{}):
+                    convertedArray := make([]common.Address, 0, size)
+                    for _, item := range array {
+                        a := common.HexToAddress(item)
+                        convertedArray = append(convertedArray, a)
+                    }
+                    args = append(args, convertedArray)
+                /*case reflect.TypeOf([]byte{}):
+                    convertedArray := make([]common.Address, 0, size)
+                    for _, item := range array {
+                        a := common.HexToAddress(item)
+                        convertedArray = append(convertedArray, a)
+                    }
+                    args = append(args, convertedArray)*/
+                default:
+                    errStr := fmt.Sprintf("Type %s not found", elementType.Type)
+                    return nil, errors.New(errStr)
+                }
+            }
+        } else {
+            item, err := utils.ConvertToType(input, &argument.Type)
+            if err != nil {
+                c.Err(err)
+            }
+            args = append(args, item)
+        }
     }
 
     return
