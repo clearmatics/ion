@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -60,23 +59,23 @@ func ReadString(path string) (contents string) {
 
 }
 
-func InitUser(privkeystore string, password string) (auth *bind.TransactOpts, userkey *keystore.Key) {
+func InitUser(privkeystore string, password string) (auth *bind.TransactOpts, userkey *keystore.Key, err error) {
 	// retrieve private key
 	keyjson, err := ioutil.ReadFile(privkeystore)
 	if err != nil {
-		fmt.Println("Error failed to read keystore: %v", err)
+		return nil, nil, err
 	}
 
 	userkey, err = keystore.DecryptKey(keyjson, password)
 	if err != nil {
-		fmt.Println("Error json key failed to decrypt: %v", err)
+		return nil, nil, err
 	}
 
 	// Create an authorized transactor
 	key := ReadString(privkeystore)
 	auth, err = bind.NewTransactor(strings.NewReader(key), password)
 	if err != nil {
-		log.Fatalf("Error failed to create authorized transactor: %v", err)
+		return nil, nil, err
 	}
 
 	return

@@ -43,7 +43,7 @@ func CompileAndDeployTriggerVerifierAndConsumerFunction(
 	// ---------------------------------------------
 	// DEPLOY TRIGGER EVENT CONTRACT
 	// ---------------------------------------------
-	triggerEventSignedTx := compileAndDeployContract(
+	triggerEventSignedTx := CompileAndDeployContract(
 		ctx,
 		client,
 		userKey,
@@ -70,7 +70,7 @@ func CompileAndDeployTriggerVerifierAndConsumerFunction(
 		// ---------------------------------------------
 		// DEPLOY CONSUMER FUNCTION CONTRACT
 		// ---------------------------------------------
-		consumerFunctionSignedTx := compileAndDeployContract(
+		consumerFunctionSignedTx := CompileAndDeployContract(
 			ctx,
 			client,
 			userKey,
@@ -86,10 +86,10 @@ func CompileAndDeployTriggerVerifierAndConsumerFunction(
         if err != nil {
 		    log.Fatal("ERROR failed to compile TriggerEventVerifier.sol:", err)
         }
-		resChan <- ContractInstance{triggerEventVerifierContract, triggerEventAddr, &triggerAbi}
+		resChan <- ContractInstance{triggerEventVerifierContract, &triggerAbi}
 
 		// wait for consumer function contract to be deployed
-		consumerFunctionAddr, err := bind.WaitDeployed(ctx, deployBackend, consumerFunctionSignedTx)
+		_, err = bind.WaitDeployed(ctx, deployBackend, consumerFunctionSignedTx)
 		if err != nil {
 			log.Fatal("ERROR while waiting for contract deployment")
 		}
@@ -98,7 +98,7 @@ func CompileAndDeployTriggerVerifierAndConsumerFunction(
         if err != nil {
 		    log.Fatal("ERROR failed to compile Function.sol:", err)
         }
-		resChan <- ContractInstance{consumerFunctionContract, consumerFunctionAddr, &functionAbi}
+		resChan <- ContractInstance{consumerFunctionContract, &functionAbi}
 	}()
 
 	return resChan

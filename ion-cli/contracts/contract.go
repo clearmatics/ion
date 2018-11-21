@@ -24,7 +24,6 @@ import (
 // ContractInstance is just an util type to output contract and address
 type ContractInstance struct {
 	Contract *compiler.Contract
-	Address  common.Address
 	Abi *abi.ABI
 }
 
@@ -94,7 +93,7 @@ func signTx(tx *types.Transaction, userKey *ecdsa.PrivateKey) *types.Transaction
 	return signedTx
 }
 
-func compileAndDeployContract(
+func CompileAndDeployContract(
 	ctx context.Context,
 	backend bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
@@ -208,24 +207,24 @@ func TransactionContract(
 	return signedTx, nil
 }
 
-func CompileContract(contract string) (compiledContract *compiler.Contract) {
+func CompileContract(contract string) (compiledContract *compiler.Contract, err error) {
 	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
 	contractPath := basePath + contract + ".sol"
 
 	contracts, err := compiler.CompileSolidity("", contractPath)
 	if err != nil {
-		log.Fatal("ERROR failed to compile contract:", err)
+	    return nil, err
 	}
 
 	compiledContract = contracts[basePath+contract+".sol:"+contract]
 
-	return
+	return compiledContract, nil
 }
 
-func CompileContractAt(contractPath string) (compiledContract *compiler.Contract) {
+func CompileContractAt(contractPath string) (compiledContract *compiler.Contract, err error) {
     contract, err := compiler.CompileSolidity("", contractPath)
 	if err != nil {
-		log.Fatal("ERROR failed to compile contract:", err)
+	    return nil, err
 	}
 
 	path := strings.Split(contractPath, "/")
@@ -233,5 +232,5 @@ func CompileContractAt(contractPath string) (compiledContract *compiler.Contract
 
     compiledContract = contract[contractPath+":"+strings.Replace(contractName, ".sol", "", -1)]
 
-	return
+	return compiledContract, nil
 }

@@ -23,4 +23,20 @@ contract Trigger {
     function fire() public {
         emit Triggered(msg.sender);
     }
+
+    event Boolean(bool b);
+    event Int256(int256 i);
+    event Int8(int8 i);
+    event Address(address a);
+    event Bytes(bytes b);
+    event Addresses(address[] a);
+
+    function testTypes(bool b, int256 i256, int8 i8, address a, bytes by, address[] addresses) {
+        emit Boolean(b);
+        emit Int256(i256);
+        emit Int8(i8);
+        emit Address(a);
+        emit Bytes(by);
+        emit Addresses(addresses);
+    }
 }

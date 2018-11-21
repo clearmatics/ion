@@ -4,7 +4,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log"
 	"encoding/hex"
 	"math/big"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/abiosoft/ishell"
 
@@ -37,35 +37,9 @@ func Launch(
 	// Create new context
 	ctx := context.Background()
 
-	//ethclientTo := ethclient.NewClient(clientTo)
-	ethclientFrom := ethclient.NewClient(clientFrom)
-
 	var ethClient *EthClient = nil
 	var contracts map[string]*contract.ContractInstance = make(map[string]*contract.ContractInstance)
 	var accounts map[string]*config.Account = make(map[string]*config.Account)
-    contracts = contracts
-    accounts = accounts
-
-	// Get a suggested gas price
-	gasPrice, err := ethclientFrom.SuggestGasPrice(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Create an authorized transactor and corrsponding privateKey
-	authTo, keyTo := config.InitUser(configuration.KeystoreTo, configuration.PasswordTo)
-	authTo.Value = big.NewInt(0)     // in wei
-	authTo.GasLimit = uint64(100000) // in units
-	authTo.GasPrice = gasPrice
-
-	// Create an authorized transactor and spend 1 unicorn
-	authFrom, keyFrom := config.InitUser(configuration.KeystoreFrom, configuration.PasswordFrom)
-	authFrom.Value = big.NewInt(0)     // in wei
-	authFrom.GasLimit = uint64(100000) // in units
-	authFrom.GasPrice = gasPrice
-
-    keyTo = keyTo
-    keyFrom = keyFrom
 
 	//---------------------------------------------------------------------------------------------
 	// 	RPC Client Specific Commands
@@ -88,18 +62,16 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "addContractInstance",
-		Help: "use: \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n\t\t\t\tdescription: Compiles a contract for use",
+		Help: "use: \taddContractInstance [name] [path/to/solidity/contract]\n\t\t\t\tdescription: Compiles a contract for use",
 		Func: func(c *ishell.Context) {
-			if len(c.Args) != 3 {
-                c.Println("Usage: \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n")
+			if len(c.Args) != 2 {
+                c.Println("Usage: \taddContractInstances [name] [path/to/solidity/contract]\n")
 			} else {
-                compiledContract := contract.CompileContractAt(c.Args[1])
-                _, Abi := contract.GetContractBytecodeAndABI(compiledContract)
-                abistruct, err := abi.JSON(strings.NewReader(Abi))
+                err := addContractInstance(c.Args[1], c.Args[0], contracts)
                 if err != nil {
-                    c.Err(err)
+                    c.Println(err)
+                    return
                 }
-                contracts[c.Args[0]] = &contract.ContractInstance{Contract: compiledContract, Address: common.HexToAddress(c.Args[2]), Abi: &abistruct}
 			}
 			c.Println("===============================================================")
 		},
@@ -118,14 +90,24 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "addAccount",
-		Help: "use: \taddAccount [name] [path/to/keystore] [password] \n\t\t\t\tdescription: Add account to be used for transactions",
+		Help: "use: \taddAccount [name] [path/to/keystore]\n\t\t\t\tdescription: Add account to be used for transactions",
 		Func: func(c *ishell.Context) {
-			if len(c.Args) != 3 {
-                c.Println("Usage: \taddAccount [name] [path/to/keystore] [password] \n")
+			if len(c.Args) != 2 {
+                c.Println("Usage: \taddAccount [name] [path/to/keystore]\n")
 			} else {
-                auth, key := config.InitUser(c.Args[1], c.Args[2])
+                c.ShowPrompt(false)
+                defer c.ShowPrompt(true)
+			    c.Println("Please provide your key decryption password.")
+			    input := c.ReadPassword()
+                auth, key, err := config.InitUser(c.Args[1], input)
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
                 account := &config.Account{Auth: auth, Key: key}
                 accounts[c.Args[0]] = account
+
+                c.Println("Account added succesfully.")
 			}
 			c.Println("===============================================================")
 		},
@@ -143,11 +125,60 @@ func Launch(
 	})
 
 	shell.AddCmd(&ishell.Cmd{
-		Name: "messageCallFunction",
-		Help: "use: \tmessageCallFunction [contract name] [function name] [from account name] [amount] [gasLimit] \n\t\t\t\tdescription: Connects to an RPC client to be used",
+		Name: "deployContract",
+		Help: "use: \tdeployContract [contract name] [account name] \n\t\t\t\tdescription: Deploys specified contract instance to connected client",
 		Func: func(c *ishell.Context) {
-			if len(c.Args) != 5 {
-                c.Println("Usage: \tmessageCallFunction [contract name] [function name] [from account name] [amount] [gasLimit] \n")
+            if len(c.Args) != 2 {
+                c.Println("Usage: \tdeployContract [contract name] [account name] \n")
+            } else {
+			    if ethClient == nil {
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
+			    }
+                contractInstance := contracts[c.Args[0]]
+                if contractInstance == nil {
+                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n", c.Args[0])
+                    c.Println(errStr)
+			        return
+                }
+
+                binStr, abiStr := contract.GetContractBytecodeAndABI(contractInstance.Contract)
+
+                account := accounts[c.Args[1]]
+                if account == nil {
+                    errStr := fmt.Sprintf("Account %s not found.\nUse \taddAccount [name] [path/to/keystore] [password] \n", c.Args[1])
+			        c.Println(errStr)
+			        return
+                }
+
+                tx := contract.CompileAndDeployContract(
+                    ctx,
+                    ethClient.client,
+                    account.Key.PrivateKey,
+                    binStr,
+                    abiStr,
+                    nil,
+                    uint64(3000000),
+                )
+
+                c.Println("Waiting for contract to be deployed")
+                addr, err := bind.WaitDeployed(ctx, ethClient.client, tx)
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                c.Printf("Deployed contract at: %s\n", addr.String())
+            }
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "messageCallFunction",
+		Help: "use: \tmessageCallFunction [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n\t\t\t\tdescription: Connects to an RPC client to be used",
+		Func: func(c *ishell.Context) {
+			if len(c.Args) != 6 {
+                c.Println("Usage: \tmessageCallFunction [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n")
 			} else {
 			    if ethClient == nil {
 			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
@@ -157,6 +188,7 @@ func Launch(
                 instance := contracts[c.Args[0]]
                 methodName := c.Args[1]
                 account := accounts[c.Args[2]]
+                contractDeployedAddress := common.HexToAddress(c.Args[3])
 
                 if instance == nil {
                     errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n", c.Args[0])
@@ -170,11 +202,11 @@ func Launch(
                 }
 
                 amount := new(big.Int)
-                amount, ok := amount.SetString(c.Args[3], 10)
+                amount, ok := amount.SetString(c.Args[4], 10)
                 if !ok {
                     c.Err(errors.New("Please enter an integer for <amount>"))
                 }
-                gasLimit, err := strconv.ParseUint(c.Args[4], 10, 64)
+                gasLimit, err := strconv.ParseUint(c.Args[5], 10, 64)
                 if err != nil {
                     c.Err(errors.New("Please enter an integer for <gasLimit>"))
                 }
@@ -189,17 +221,13 @@ func Launch(
                     c.Printf("Error parsing parameters: %s\n", err)
                     return
                 }
-                //inputs := []interface{}{[]bool{true, false}, []bool{false,false,true}}
-
-                c.Printf("Inputs = %s\n", inputs)
-                c.Printf("First index type: %s\n", reflect.TypeOf(inputs[0]))
 
                 tx, err := contract.TransactionContract(
                     ctx,
                     ethClient.client,
                     account.Key.PrivateKey,
                     instance.Contract,
-                    instance.Address,
+                    contractDeployedAddress,
                     amount,
                     gasLimit,
                     c.Args[1],
@@ -209,7 +237,13 @@ func Launch(
                     c.Println(err)
                     return
                  } else {
-                    c.Printf("Transaction hash: %s", tx)
+                    c.Println("Waiting for transaction to be mined...")
+                    receipt, err := bind.WaitMined(ctx, ethClient.client, tx)
+                    if err != nil {
+                        c.Println(err)
+                        return
+                    }
+                    c.Printf("Transaction hash: %s\n", receipt.TxHash.String())
                  }
 			}
 			c.Println("===============================================================")
@@ -220,17 +254,18 @@ func Launch(
 		Name: "getBlockByNumber",
 		Help: "use: \tgetBlockByNumber [rpc url] [integer] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
 		Func: func(c *ishell.Context) {
-			if len(c.Args) != 2 {
+            if len(c.Args) == 1 {
                 if ethClient != nil {
 			        getBlockByNumber(ethClient, c.Args[0])
                 } else {
-				    c.Println("Usage: \tgetBlock [rpc url] [integer] \n")
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
                 }
-			} else {
-			    c.Println("Connecting to client...\n")
-			    newClient := getClient(c.Args[0])
-			    getBlockByNumber(newClient, c.Args[1])
-			}
+            } else if len(c.Args) == 2 {
+			    getBlockByNumber(getClient(c.Args[0]), c.Args[1])
+            } else {
+                c.Println("Usage: \tgetBlock [rpc url] [integer] \n")
+            }
 			c.Println("===============================================================")
 		},
 	})
@@ -239,33 +274,37 @@ func Launch(
 		Name: "getBlockByHash",
 		Help: "use: \tgetBlockByNumber [rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
 		Func: func(c *ishell.Context) {
-			if len(c.Args) != 2 {
-                if (ethClient != nil) {
+            if len(c.Args) == 1 {
+                if ethClient != nil {
 			        getBlockByHash(ethClient, c.Args[0])
                 } else {
-				    c.Println("Usage: \tgetBlock [rpc url] [hash] \n")
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
                 }
-			} else {
-			    c.Println("Connecting to client...\n")
-			    newClient := getClient(c.Args[0])
-			    getBlockByHash(newClient, c.Args[1])
-			}
+            } else if len(c.Args) == 2 {
+			    getBlockByHash(getClient(c.Args[0]), c.Args[1])
+            } else {
+                c.Println("Usage: \tgetBlock [optional rpc url] [hash] \n")
+            }
 			c.Println("===============================================================")
 		},
 	})
 
 	shell.AddCmd(&ishell.Cmd{
         Name: "getProof",
-        Help: "use: \tgetProof [rpc url] [Transaction Hash] \n\t\t\t\tdescription: Returns a merkle patricia proof of a specific transaction and its receipt in a block",
+        Help: "use: \tgetProof [optional rpc url] [Transaction Hash] \n\t\t\t\tdescription: Returns a merkle patricia proof of a specific transaction and its receipt in a block",
         Func: func(c *ishell.Context) {
-            if len(c.Args) != 2 {
-                if (ethClient != nil) {
+            if len(c.Args) == 1 {
+                if ethClient != nil {
                     getProof(ethClient, c.Args[0])
                 } else {
-                    c.Println("Usage: \tgetBlock [rpc url] [hash] \n")
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
                 }
-            } else {
+            } else if len(c.Args) == 2 {
                 getProof(getClient(c.Args[0]), c.Args[1])
+            } else {
+                c.Println("Usage: \tgetBlock [optional rpc url] [hash] \n")
             }
             c.Println("===============================================================")
         },
@@ -718,11 +757,12 @@ func parseMethodParameters(c *ishell.Context, abiStruct *abi.ABI, methodName str
             elementType := argument.Type.Elem
 
             // Elements cannot be kind slice                                        only mean slice
-            if elementType.Kind == reflect.Array {
+            if elementType.Kind == reflect.Array && elementType.Type != reflect.TypeOf(common.Address{}) {
                 // Is 2D byte array
                 /* Nightmare to implement, have to account for:
                     * Slice of fixed byte arrays; bytes32[] in solidity for example, generally bytesn[]
                     * Fixed array of fixed byte arrays; bytes32[10] in solidity for example bytesn[m]
+                    * Slice or fixed array of string; identical to above two cases as string in solidity is array of bytes
 
                     Since the upper bound of elements in an array in solidity is 2^256-1, and each fixed byte array
                     has a limit of bytes32 (bytes1, bytes2, ..., bytes31, bytes32), and Golang array creation takes
@@ -941,6 +981,24 @@ func parseMethodParameters(c *ishell.Context, abiStruct *abi.ABI, methodName str
     }
 
     return
+}
+
+func checkClientExists(client *EthClient) bool {
+    return client != nil
+}
+
+func addContractInstance(pathToContract string, contractName string, contracts map[string]*contract.ContractInstance) (error) {
+    compiledContract, err := contract.CompileContractAt(pathToContract)
+    if err != nil {
+        return err
+    }
+    _, Abi := contract.GetContractBytecodeAndABI(compiledContract)
+    abistruct, err := abi.JSON(strings.NewReader(Abi))
+    if err != nil {
+        return err
+    }
+    contracts[contractName] = &contract.ContractInstance{Contract: compiledContract, Abi: &abistruct}
+    return nil
 }
 
 func strToHex(input string) (output string) {

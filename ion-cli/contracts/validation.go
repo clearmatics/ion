@@ -41,7 +41,7 @@ func CompileAndDeployValidation(
 	// ---------------------------------------------
 	// DEPLOY VALIDATION CONTRACT
 	// ---------------------------------------------
-	validationSignedTx := compileAndDeployContract(
+	validationSignedTx := CompileAndDeployContract(
 		ctx,
 		client,
 		userKey,
@@ -62,7 +62,7 @@ func CompileAndDeployValidation(
 		deployBackend := client.(bind.DeployBackend)
 
 		// wait for PatriciaTrie library to be deployed
-		validationAddr, err := bind.WaitDeployed(ctx, deployBackend, validationSignedTx)
+		_, err := bind.WaitDeployed(ctx, deployBackend, validationSignedTx)
 		if err != nil {
 			log.Fatal("ERROR while waiting for contract deployment")
 		}
@@ -70,7 +70,7 @@ func CompileAndDeployValidation(
         if err != nil {
 		    log.Fatal("ERROR failed to compile Validation.sol:", err)
         }
-		resChan <- ContractInstance{validationContract, validationAddr, &abistruct}
+		resChan <- ContractInstance{validationContract, &abistruct}
 	}()
 
 	return resChan

@@ -41,7 +41,7 @@ func CompileAndDeployIon(
 	// ---------------------------------------------
 	// DEPLOY PATRICIA LIB ADDRESS
 	// ---------------------------------------------
-	patriciaTrieSignedTx := compileAndDeployContract(
+	patriciaTrieSignedTx := CompileAndDeployContract(
 		ctx,
 		client,
 		userKey,
@@ -71,7 +71,7 @@ func CompileAndDeployIon(
 		// replace palceholder with Prticia Trie Lib address
 		var re = regexp.MustCompile(`__.*__`)
 		ionBinStrWithLibAddr := re.ReplaceAllString(ionBinStr, patriciaTrieAddr.Hex()[2:])
-		ionSignedTx := compileAndDeployContract(
+		ionSignedTx := CompileAndDeployContract(
 			ctx,
 			client,
 			userKey,
@@ -88,10 +88,10 @@ func CompileAndDeployIon(
         }
 		// only stop blocking the first result after the Ion contract as been deploy
 		// this guarantees that it works well with the blockchain simulator Commit()
-		resChan <- ContractInstance{patriciaTrieContract, patriciaTrieAddr, &patriciaAbi}
+		resChan <- ContractInstance{patriciaTrieContract, &patriciaAbi}
 
 		// wait for Ion to be deployed
-		ionAddr, err := bind.WaitDeployed(ctx, deployBackend, ionSignedTx)
+		_, err = bind.WaitDeployed(ctx, deployBackend, ionSignedTx)
 		if err != nil {
 			log.Fatal("ERROR while waiting for contract deployment")
 		}
@@ -100,7 +100,7 @@ func CompileAndDeployIon(
         if err != nil {
 		    log.Fatal("ERROR failed to compile Ion.sol:", err)
         }
-		resChan <- ContractInstance{ionContract, ionAddr, &ionAbi}
+		resChan <- ContractInstance{ionContract, &ionAbi}
 	}()
 
 	return resChan
