@@ -41,13 +41,7 @@ contract TriggerEventVerifier is EventVerifier {
         the user expects.
         */
         bytes20 b20_address = SolUtils.BytesToBytes20(data, data.length - 20);
-        assert( b20_address == _expectedAddress );
-
-        /*
-        Once verified, the logs of this specific event are proven as true and returns as such. Else, the execution
-        reverts.
-        */
-        return true;
+        return b20_address == _expectedAddress;
     }
 
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/compiler"
+	"github.com/clearmatics/autonity/common/compiler"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -102,7 +102,7 @@ func CompileAndDeployContract(
 	amount *big.Int,
 	gasLimit uint64,
 	constructorArgs ...interface{},
-) *types.Transaction {
+) (*types.Transaction, error){
 	payload := generateContractPayload(binStr, abiStr, constructorArgs...)
 	userAddr := crypto.PubkeyToAddress(userKey.PublicKey)
 	tx := newTx(ctx, backend, &userAddr, nil, amount, gasLimit, payload)
@@ -110,9 +110,9 @@ func CompileAndDeployContract(
 
 	err := backend.SendTransaction(ctx, signedTx)
 	if err != nil {
-		log.Fatal("ERROR sending contract deployment transaction")
+	    return nil, err
 	}
-	return signedTx
+	return signedTx, nil
 }
 
 // CallContract without changing the state
@@ -124,30 +124,32 @@ func CallContract(
 	methodName string,
 	out interface{},
 	args ...interface{},
-) {
+) (res interface{}, err error) {
 	abiStr, err := json.Marshal(contract.Info.AbiDefinition)
 	if err != nil {
-		log.Fatal("ERROR marshalling abi to string", err)
+		return nil, err
 	}
 
 	abiContract, err := abi.JSON(strings.NewReader(string(abiStr)))
 	if err != nil {
-		log.Fatal("ERROR reading contract ABI ", err)
+		return nil, err
 	}
 
 	input, err := abiContract.Pack(methodName, args...)
 	if err != nil {
-		log.Fatal("ERROR packing the method name for the contract call: ", err)
+		return nil, err
 	}
 	msg := ethereum.CallMsg{From: from, To: &to, Data: input}
 	output, err := client.CallContract(ctx, msg, nil)
 	if err != nil {
-		log.Fatal("ERROR calling the Ion Contract", err)
+		return nil, err
 	}
 	err = abiContract.Unpack(out, methodName, output)
 	if err != nil {
-		log.Fatal("ERROR upacking the call: ", err)
+		return nil, err
 	}
+
+	return out, nil
 }
 
 // TransactionContract execute function in contract
@@ -222,13 +224,17 @@ func CompileContract(contract string) (compiledContract *compiler.Contract, err 
 }
 
 func CompileContractAt(contractPath string) (compiledContract *compiler.Contract, err error) {
-    contract, err := compiler.CompileSolidity("", contractPath)
+	path := strings.Split(contractPath, "/")
+	contractName := path[len(path)-1]
+	contractFolder := path[len(path)-2]
+
+	i := strings.Index(contractPath, contractFolder)
+	remapping := fmt.Sprintf("../=%s", contractPath[:i])
+
+    contract, err := compiler.CompileSolidity("", remapping, contractPath)
 	if err != nil {
 	    return nil, err
 	}
-
-	path := strings.Split(contractPath, "/")
-	contractName := path[len(path)-1]
 
     compiledContract = contract[contractPath+":"+strings.Replace(contractName, ".sol", "", -1)]
 

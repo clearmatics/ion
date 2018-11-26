@@ -53,7 +53,12 @@ func Launch(
                 c.Println("Usage: \tconnectToClient [rpc url] \n")
 			} else {
 			    c.Println("Connecting to client...\n")
-			    ethClient = getClient(c.Args[0])
+			    client, err := getClient(c.Args[0])
+			    if err != nil {
+			        c.Println("Could not connect to client.\n")
+			        return
+			    }
+			    ethClient = client
 			    c.Println("Connected!")
 			}
 			c.Println("===============================================================")
@@ -126,10 +131,10 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "deployContract",
-		Help: "use: \tdeployContract [contract name] [account name] \n\t\t\t\tdescription: Deploys specified contract instance to connected client",
+		Help: "use: \tdeployContract [contract name] [account name] [gas limit]\n\t\t\t\tdescription: Deploys specified contract instance to connected client",
 		Func: func(c *ishell.Context) {
-            if len(c.Args) != 2 {
-                c.Println("Usage: \tdeployContract [contract name] [account name] \n")
+            if len(c.Args) != 3 {
+                c.Println("Usage: \tdeployContract [contract name] [account name] [gas limit] \n")
             } else {
 			    if ethClient == nil {
 			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
@@ -146,20 +151,37 @@ func Launch(
 
                 account := accounts[c.Args[1]]
                 if account == nil {
-                    errStr := fmt.Sprintf("Account %s not found.\nUse \taddAccount [name] [path/to/keystore] [password] \n", c.Args[1])
+                    errStr := fmt.Sprintf("Account %s not found.\nUse \taddAccount [name] [path/to/keystore] \n", c.Args[1])
 			        c.Println(errStr)
 			        return
                 }
 
-                tx := contract.CompileAndDeployContract(
+                gasLimit, err := strconv.ParseUint(c.Args[2], 10, 64)
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+
+                constructorInputs, err := parseMethodParameters(c, contractInstance.Abi, "")
+                if err != nil {
+                    c.Printf("Error parsing constructor parameters: %s\n", err)
+                    return
+                }
+
+                tx, err := contract.CompileAndDeployContract(
                     ctx,
                     ethClient.client,
                     account.Key.PrivateKey,
                     binStr,
                     abiStr,
                     nil,
-                    uint64(3000000),
+                    gasLimit,
+                    constructorInputs...
                 )
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
 
                 c.Println("Waiting for contract to be deployed")
                 addr, err := bind.WaitDeployed(ctx, ethClient.client, tx)
@@ -174,11 +196,11 @@ func Launch(
 	})
 
 	shell.AddCmd(&ishell.Cmd{
-		Name: "messageCallFunction",
-		Help: "use: \tmessageCallFunction [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n\t\t\t\tdescription: Connects to an RPC client to be used",
+		Name: "transactionMessage",
+		Help: "use: \ttransactionMessage [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n\t\t\t\tdescription: Connects to an RPC client to be used",
 		Func: func(c *ishell.Context) {
 			if len(c.Args) != 6 {
-                c.Println("Usage: \tmessageCallFunction [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n")
+                c.Println("Usage: \ttransactionMessage [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n")
 			} else {
 			    if ethClient == nil {
 			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
@@ -196,7 +218,7 @@ func Launch(
 			        return
                 }
                 if account == nil {
-                    errStr := fmt.Sprintf("Account %s not found.\nUse \taddAccount [name] [path/to/keystore] [password] \n", c.Args[2])
+                    errStr := fmt.Sprintf("Account %s not found.\nUse \taddAccount [name] [path/to/keystore]\n", c.Args[2])
 			        c.Println(errStr)
 			        return
                 }
@@ -244,48 +266,173 @@ func Launch(
                         return
                     }
                     c.Printf("Transaction hash: %s\n", receipt.TxHash.String())
+                    c.Printf("Mined in block: %s\n", receipt.TxHash.String())
                  }
 			}
 			c.Println("===============================================================")
 		},
 	})
 
-	shell.AddCmd(&ishell.Cmd{
-		Name: "getBlockByNumber",
-		Help: "use: \tgetBlockByNumber [rpc url] [integer] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+	/*shell.AddCmd(&ishell.Cmd{
+		Name: "callMessage",
+		Help: "use: \tcallMessage [contract name] [function name] [from account name] [deployed contract address] \n\t\t\t\tdescription: Connects to an RPC client to be used",
 		Func: func(c *ishell.Context) {
+			if len(c.Args) != 4 {
+                c.Println("Usage: \tcallMessage [contract name] [function name] [from account name] [deployed contract address] \n")
+			} else {
+			    if ethClient == nil {
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
+			    }
+
+                instance := contracts[c.Args[0]]
+                methodName := c.Args[1]
+                account := accounts[c.Args[2]]
+                contractDeployedAddress := common.HexToAddress(c.Args[3])
+
+                if instance == nil {
+                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n", c.Args[0])
+                    c.Println(errStr)
+			        return
+                }
+                if account == nil {
+                    errStr := fmt.Sprintf("Account %s not found.\nUse \taddAccount [name] [path/to/keystore]\n", c.Args[2])
+			        c.Println(errStr)
+			        return
+                }
+
+                if instance.Abi.Methods[methodName].Name == "" {
+                    c.Printf("Method name \"%s\" not found for contract \"%s\"\n", methodName, c.Args[0])
+                    return
+                }
+
+                inputs, err := parseMethodParameters(c, instance.Abi, methodName)
+                if err != nil {
+                    c.Printf("Error parsing parameters: %s\n", err)
+                    return
+                }
+
+                var out interface{}
+
+                out, err = contract.CallContract(
+                    ctx,
+                    ethClient.client,
+                    instance.Contract,
+                    account.Key.Address,
+                    contractDeployedAddress,
+                    c.Args[1],
+                    out,
+                    inputs...
+                )
+                 if err != nil {
+                    c.Println(err)
+                    return
+                 } else {
+                    c.Printf("Result: %s\n", out)
+                 }
+			}
+			c.Println("===============================================================")
+		},
+	})*/
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "getTransactionByHash",
+		Help: "use: \tgetTransactionByHash [optional rpc url] [hash]\n\t\t\t\tdescription: Returns transaction specified by hash",
+		Func: func(c *ishell.Context) {
+		    var json []byte
+		    var err error
+
             if len(c.Args) == 1 {
                 if ethClient != nil {
-			        getBlockByNumber(ethClient, c.Args[0])
+			        _, json, err = getTransactionByHash(ethClient, c.Args[0])
                 } else {
 			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
 			        return
                 }
             } else if len(c.Args) == 2 {
-			    getBlockByNumber(getClient(c.Args[0]), c.Args[1])
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+			    _, json, err = getTransactionByHash(client, c.Args[1])
             } else {
-                c.Println("Usage: \tgetBlock [rpc url] [integer] \n")
+                c.Println("Usage: \tgetTransactionByHash [optional rpc url] [hash]\n")
+                return
             }
+            if err != nil {
+                c.Println(err)
+                return
+            }
+            c.Printf("Transaction: %s\n", json)
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "getBlockByNumber",
+		Help: "use: \tgetBlockByNumber [optional rpc url] [integer]\n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Func: func(c *ishell.Context) {
+		    var json []byte
+		    var err error
+
+            if len(c.Args) == 1 {
+                if ethClient != nil {
+			        _, json, err = getBlockByNumber(ethClient, c.Args[0])
+                } else {
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
+                }
+            } else if len(c.Args) == 2 {
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+			    _, json, err = getBlockByNumber(client, c.Args[1])
+            } else {
+                c.Println("Usage: \tgetBlockByNumber [optional rpc url] [integer]\n")
+                return
+            }
+            if err != nil {
+                c.Println(err)
+                return
+            }
+            c.Printf("Block: %s\n", json)
 			c.Println("===============================================================")
 		},
 	})
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getBlockByHash",
-		Help: "use: \tgetBlockByNumber [rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Help: "use: \tgetBlockByNumber [optional rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
 		Func: func(c *ishell.Context) {
+		    var json []byte
+		    var err error
+
             if len(c.Args) == 1 {
                 if ethClient != nil {
-			        getBlockByHash(ethClient, c.Args[0])
+			        _, json, err = getBlockByHash(ethClient, c.Args[0])
                 } else {
 			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
 			        return
                 }
             } else if len(c.Args) == 2 {
-			    getBlockByHash(getClient(c.Args[0]), c.Args[1])
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+			    _, json, err = getBlockByHash(client, c.Args[1])
             } else {
-                c.Println("Usage: \tgetBlock [optional rpc url] [hash] \n")
+                c.Println("Usage: \tgetBlockByNumber [optional rpc url] [hash] \n")
+                return
             }
+            if err != nil {
+                c.Println(err)
+                return
+            }
+            c.Printf("Block: %s\n", json)
 			c.Println("===============================================================")
 		},
 	})
@@ -302,17 +449,144 @@ func Launch(
 			        return
                 }
             } else if len(c.Args) == 2 {
-                getProof(getClient(c.Args[0]), c.Args[1])
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                getProof(client, c.Args[1])
             } else {
-                c.Println("Usage: \tgetBlock [optional rpc url] [hash] \n")
+                c.Println("Usage: \tgetProof [optional rpc url] [Transaction hash] \n")
+                return
             }
             c.Println("===============================================================")
         },
     })
 
 	//---------------------------------------------------------------------------------------------
-	// 	Validation Specific Commands
+	// 	Clique Specific Commands
 	//---------------------------------------------------------------------------------------------
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "getBlockByNumber_Clique",
+		Help: "use: \tgetBlockByNumber_Clique [optional rpc url] [integer]\n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Func: func(c *ishell.Context) {
+            if len(c.Args) == 1 {
+                if ethClient != nil {
+			        block, _, err := getBlockByNumber(ethClient, c.Args[0])
+                    if err != nil {
+                        c.Println(err)
+                        return
+                    }
+                    signedBlock, unsignedBlock := RlpEncode(block)
+                    c.Printf("Signed Block: %+x\n", signedBlock)
+                    c.Printf("Unsigned Block: %+x\n", unsignedBlock)
+                } else {
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
+                }
+            } else if len(c.Args) == 2 {
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+			    block, _, err := getBlockByNumber(client, c.Args[1])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                signedBlock, unsignedBlock := RlpEncode(block)
+                c.Printf("Signed Block:\n %+x\n", signedBlock)
+                c.Printf("Unsigned Block:\n %+x\n", unsignedBlock)
+            } else {
+                c.Println("Usage: \tgetBlockByNumber_Clique [optional rpc url] [integer]\n")
+                return
+            }
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "getBlockByHash_Clique",
+		Help: "use: \tgetBlockByHash_Clique [optional rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Func: func(c *ishell.Context) {
+            if len(c.Args) == 1 {
+                if ethClient != nil {
+			        block, _, err := getBlockByHash(ethClient, c.Args[0])
+                    if err != nil {
+                        c.Println(err)
+                        return
+                    }
+                    signedBlock, unsignedBlock := RlpEncode(block)
+                    c.Printf("Signed Block: 0x%+x\n", signedBlock)
+                    c.Printf("Unsigned Block: 0x%+x\n", unsignedBlock)
+                } else {
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
+                }
+            } else if len(c.Args) == 2 {
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+			    block, _, err := getBlockByHash(client, c.Args[1])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                signedBlock, unsignedBlock := RlpEncode(block)
+                c.Printf("Signed Block:\n %+x\n", signedBlock)
+                c.Printf("Unsigned Block:\n %+x\n", unsignedBlock)
+            } else {
+                c.Println("Usage: \tgetBlockByHash_Clique [optional rpc url] [hash]\n")
+                return
+            }
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "getBlockByHash_Clique",
+		Help: "use: \tgetBlockByHash_Clique [optional rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Func: func(c *ishell.Context) {
+            if len(c.Args) == 1 {
+                if ethClient != nil {
+			        block, _, err := getBlockByHash(ethClient, c.Args[0])
+                    if err != nil {
+                        c.Println(err)
+                        return
+                    }
+                    signedBlock, unsignedBlock := RlpEncode(block)
+                    c.Printf("Signed Block: 0x%+x\n", signedBlock)
+                    c.Printf("Unsigned Block: 0x%+x\n", unsignedBlock)
+                } else {
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
+                }
+            } else if len(c.Args) == 2 {
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+			    block, _, err := getBlockByHash(client, c.Args[1])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                signedBlock, unsignedBlock := RlpEncode(block)
+                c.Printf("Signed Block:\n %+x\n", signedBlock)
+                c.Printf("Unsigned Block:\n %+x\n", unsignedBlock)
+            } else {
+                c.Println("Usage: \tgetBlockByHash_Clique [optional rpc url] [hash]\n")
+                return
+            }
+			c.Println("===============================================================")
+		},
+	})
+
 	/*
 	shell.AddCmd(&ishell.Cmd{
 		Name: "registerChainValidation",
@@ -544,15 +818,25 @@ func Launch(
 	shell.Run()
 }
 
-func getClient(url string) (client *EthClient) {
+func getClient(url string) (*EthClient, error) {
     rpc := utils.ClientRPC(url)
     eth := ethclient.NewClient(rpc)
 
-    return &EthClient{client: eth, rpcClient: rpc, url: url}
+    client := EthClient{client: eth, rpcClient: rpc, url: url}
+
+    _, _, err := getBlockByNumber(&client, "0")
+
+    return &client, err
 }
 
 func parseMethodParameters(c *ishell.Context, abiStruct *abi.ABI, methodName string) (args []interface{}, err error) {
-    inputParameters := abiStruct.Methods[methodName].Inputs
+    var inputParameters abi.Arguments
+    if methodName != "" {
+        inputParameters = abiStruct.Methods[methodName].Inputs
+    } else {
+        inputParameters = abiStruct.Constructor.Inputs
+    }
+
     c.ShowPrompt(false)
     defer c.ShowPrompt(true)
 

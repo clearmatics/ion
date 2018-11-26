@@ -31,7 +31,9 @@ contract Function {
     TriggerEventVerifier verifier;
 
     /* Custom event that fires when execution is performed successfully. */
-    event Executed();
+    event Executed(address caller);
+    event Another(address caller);
+    event Verify(bool result);
 
     /*  Constructor. Requires Ion contract address and all used event verifier contract addresses. In this case we only
         use one verifier. */
@@ -42,7 +44,7 @@ contract Function {
 
     /* This is the function that is intended to be executed upon successful verification of proofs */
     function execute() internal {
-        emit Executed();
+        emit Executed(msg.sender);
     }
 
     /*  
@@ -92,8 +94,10 @@ contract Function {
             execute();
             return true;
         } else {
-            return false;
+            emit Verify(false);
         }
+        emit Another(msg.sender);
+        return false;
     }
 }
 
