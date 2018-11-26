@@ -31,9 +31,7 @@ contract Function {
     TriggerEventVerifier verifier;
 
     /* Custom event that fires when execution is performed successfully. */
-    event Executed(address caller);
-    event Another(address caller);
-    event Verify(bool result);
+    event Executed();
 
     /*  Constructor. Requires Ion contract address and all used event verifier contract addresses. In this case we only
         use one verifier. */
@@ -44,7 +42,7 @@ contract Function {
 
     /* This is the function that is intended to be executed upon successful verification of proofs */
     function execute() internal {
-        emit Executed(msg.sender);
+        emit Executed();
     }
 
     /*  
@@ -85,19 +83,13 @@ contract Function {
         bytes _receipt,
         bytes _receiptNodes,
         bytes20 _expectedAddress
-    ) public returns (bool) {
+    ) public {
         assert( blockStore.CheckRootsProof(_chainId, _blockHash, _txNodes, _receiptNodes) );
         assert( blockStore.CheckTxProof(_chainId, _blockHash, _tx, _txNodes, _path) );
         assert( blockStore.CheckReceiptProof(_chainId, _blockHash, _receipt, _receiptNodes, _path) );
 
-        if (verifier.verify(_contractEmittedAddress, _receipt, _expectedAddress)) {
-            execute();
-            return true;
-        } else {
-            emit Verify(false);
-        }
-        emit Another(msg.sender);
-        return false;
+        require( verifier.verify(_contractEmittedAddress, _receipt, _expectedAddress), "Event verification failed." );
+        execute();
     }
 }
 
