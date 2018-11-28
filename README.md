@@ -21,11 +21,14 @@ Clone the repository and ensure that all the components work out of the box.
 Run:
 
 ```
-$ npm install```
+$ npm install
 ```
-$ npm run testrpc```
 ```
-$ npm run test```
+$ npm run testrpc
+```
+```
+$ npm run test
+```
 
 to test the full stack of contracts including our example flow.
 
