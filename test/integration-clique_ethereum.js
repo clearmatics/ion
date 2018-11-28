@@ -188,7 +188,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
         it('Successful Register Chain', async () => {
             await clique.register();
 
-            let tx = await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+            let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
             console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
             let chain = await clique.chains(TESTCHAINID);
 
@@ -198,13 +198,13 @@ contract('Clique-Ethereum Integration', (accounts) => {
         it('Fail Register Twice', async () => {
             await clique.register();
 
-            let tx = await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+            let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
             console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
             let chain = await clique.chains(TESTCHAINID);
 
             assert(chain);
 
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address).should.be.rejected;
         })
 
         it('Fail Register Deployment Chain', async () => {
@@ -213,14 +213,14 @@ contract('Clique-Ethereum Integration', (accounts) => {
         })
 
         it('Fail Register Chain without registering clique module', async () => {
-            let tx = await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
+            let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address).should.be.rejected;
         })
     })
 
     describe('Add Block', () => {
         it('Successful Add Block', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
             // Fetch block 1 from rinkeby
             const block = rinkeby.eth.getBlock(1);
@@ -241,7 +241,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Successful Add Block from different genesis', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -262,7 +262,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Add Block with unregistered chain id', async () => {
             await clique.register();
-//            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+//            await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
             // Fetch block 1 from rinkeby
             const block = rinkeby.eth.getBlock(1);
@@ -276,7 +276,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Add Block with non-sequential block', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
             // Fetch block 2 from rinkeby instead of block 1
             const block = rinkeby.eth.getBlock(2);
@@ -304,7 +304,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
     describe('Check Tx Proof of Tx 0xafc3ab60059ed38e71c7f6bea036822abe16b2c02fcf770a4f4b5fffcbfe6e7e on Rinkeby', () => {
         it('Successful Check Tx Proof', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -327,7 +327,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Tx Proof with wrong tx value', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -349,7 +349,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Tx Proof with wrong tx nodes', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -371,7 +371,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Tx Proof with wrong path', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -395,7 +395,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
     describe('Check Receipt Proof of Tx 0xafc3ab60059ed38e71c7f6bea036822abe16b2c02fcf770a4f4b5fffcbfe6e7e on Rinkeby', () => {
         it('Successful Check Receipt Proof', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -418,7 +418,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Receipt Proof with wrong receipt value', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -440,7 +440,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Receipt Proof with wrong receipt nodes', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -462,7 +462,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Receipt Proof with wrong path', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -486,7 +486,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
     describe('Check Roots Proof', () => {
         it('Successful Check Roots Proof', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -509,7 +509,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Roots Proof with wrong chain id', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -532,7 +532,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Roots Proof with wrong block hash', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -555,7 +555,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Roots Proof with wrong tx nodes', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -578,7 +578,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Roots Proof with wrong receipt nodes', async () => {
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -611,7 +611,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             const functionContract = await FunctionEvent.new(storage.address, verifier.address);
 
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -640,7 +640,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             const functionContract = await FunctionEvent.new(storage.address, verifier.address);
 
             await clique.register();
-            await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH);
+            await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
             const block = rinkeby.eth.getBlock(TESTBLOCK.number);
@@ -679,6 +679,32 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, TEST_PATH, TEST_TX_VALUE, TEST_TX_NODES, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TRIG_DEPLOYED_RINKEBY_ADDR).should.be.rejected;
         })
     })
+
+
+// The below succeeds but manual registering with the same values fail
+//  const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
+//
+//  const testid = "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177";
+//  const testval = ["0x42eb768f2244c8811c63729a21a3569731535f06", "0x6635f83421bf059cd8111f180f0727128685bae4", "0x7ffc57839b00206d1ad20c69a1981b489f772031", "0xb279182d99e65703f0076e4812653aab85fca0f0", "0xd6ae8250b8348c94847280928c79fb3b63ca453e", "0xda35dee8eddeaa556e4c26268463e26fb91ff74f", "0xfc18cbc391de84dbd87db83b20935d3e89f5dd91"];
+//  const testgen = "0x3f09591cb976beecd52d7dbe5fb869bbfc76b9022883c0cfbd5813a6eeec973e";
+//  const teststore = "0xec7601E406A998898DE9A784a634f68E038E19D2"
+//
+//  it('Rinkeby Register Chain', async () => {
+//    // Successfully add id of another chain
+//
+//    await clique.register();
+//    let tx = await clique.RegisterChain(testid, testval, testgen, storage.address);
+//    console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
+//    let chainExists = await clique.chains(testid);
+//
+//    assert(chainExists);
+//
+//    // Fail adding id of this chain
+//    await clique.RegisterChain(DEPLOYEDCHAINID, testval, testgen, teststore).should.be.rejected;
+//
+//    // Fail adding id of chain already initialised
+//    await clique.RegisterChain(testid, testval, testgen, teststore).should.be.rejected;
+//  })
 })
 
 async function verifyReceipts(eP, txHash) {

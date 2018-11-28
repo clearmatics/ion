@@ -83,17 +83,13 @@ contract Function {
         bytes _receipt,
         bytes _receiptNodes,
         bytes20 _expectedAddress
-    ) public returns (bool) {
+    ) public {
         assert( blockStore.CheckRootsProof(_chainId, _blockHash, _txNodes, _receiptNodes) );
         assert( blockStore.CheckTxProof(_chainId, _blockHash, _tx, _txNodes, _path) );
         assert( blockStore.CheckReceiptProof(_chainId, _blockHash, _receipt, _receiptNodes, _path) );
 
-        if (verifier.verify(_contractEmittedAddress, _receipt, _expectedAddress)) {
-            execute();
-            return true;
-        } else {
-            return false;
-        }
+        require( verifier.verify(_contractEmittedAddress, _receipt, _expectedAddress), "Event verification failed." );
+        execute();
     }
 }
 

@@ -97,7 +97,7 @@ contract('Clique.js', (accounts) => {
   describe('Register Chain', () => {
       it('Successful Register Chain', async () => {
         // Successfully add id of another chain
-        let tx = await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+        let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
         console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
         let chainExists = await clique.chains(TESTCHAINID);
 
@@ -107,12 +107,12 @@ contract('Clique.js', (accounts) => {
         await clique.RegisterChain(storage.address, DEPLOYEDCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
 
         // Fail adding id of chain already initialised
-        await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH).should.be.rejected;
+        await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address).should.be.rejected;
       })
 
       it('Check Validators', async () => {
         // Successfully add id of another chain
-        await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+        await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         let registeredValidators = await clique.getValidators.call(TESTCHAINID, GENESIS_HASH);
 
@@ -124,7 +124,7 @@ contract('Clique.js', (accounts) => {
 
       it('Check Genesis Hash', async () => {
         // Successfully add id of another chain
-        await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+        await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         let header = await clique.m_blockheaders(TESTCHAINID, GENESIS_HASH);
         let blockHeight = header[0];
@@ -135,7 +135,7 @@ contract('Clique.js', (accounts) => {
 
   describe('Submit Block', () => {
       it('Authentic Submission Happy Path', async () => {
-        await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+        await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         // Fetch block 1 from rinkeby
         const block = rinkeby.eth.getBlock(1);
@@ -167,7 +167,7 @@ contract('Clique.js', (accounts) => {
       // Here the block header is signed off chain but by a a non-whitelisted validator
       it('Fail Submit Block unkown validator - SubmitBlock()', async () => {
         // Successfully add id of another chain
-        await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+        await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         // Fetch block 1 from rinkeby
         const block = rinkeby.eth.getBlock(1);
@@ -225,7 +225,7 @@ contract('Clique.js', (accounts) => {
       })
 
       it('Fail Submit Block from unknown chain - SubmitBlock()', async () => {
-        await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+        await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         // Fetch block 1 from testrpc
         const block = web3.eth.getBlock(1);
@@ -238,9 +238,7 @@ contract('Clique.js', (accounts) => {
       })
 
       it('Fail Submit Block with wrong unsigned header - SubmitBlock()', async () => {
-
-
-        await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS, GENESIS_HASH);
+        await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         // Fetch block 1 from testrpc
         const block = rinkeby.eth.getBlock(1);
@@ -265,7 +263,7 @@ contract('Clique.js', (accounts) => {
     // Rinkeby adds its first non-genesis validator at block 873987 with the votes occuring at blocks 873983 and 873986
     // we will start following the chain from 873982 and then add blocks until the vote threshold, n/2 + 1, is passed.
     it('Add Validators Through Block Submission', async () => {
-      await clique.RegisterChain(storage.address, TESTCHAINID, VALIDATORS_START, ADD_VALIDATORS_GENESIS_HASH);
+      await clique.RegisterChain(TESTCHAINID, VALIDATORS_START, ADD_VALIDATORS_GENESIS_HASH, storage.address);
 
       let registeredValidators = await clique.getValidators.call(TESTCHAINID, ADD_VALIDATORS_GENESIS_HASH);
       let voteThreshold = Math.floor((registeredValidators.length/2) + 1);
