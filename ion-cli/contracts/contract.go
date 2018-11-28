@@ -25,6 +25,7 @@ import (
 type ContractInstance struct {
 	Contract *compiler.Contract
 	Abi *abi.ABI
+	Path string
 }
 
 // GENERIC UTIL FUNCTIONS
@@ -93,17 +94,14 @@ func signTx(tx *types.Transaction, userKey *ecdsa.PrivateKey) *types.Transaction
 	return signedTx
 }
 
-func CompileAndDeployContract(
+func DeployContract(
 	ctx context.Context,
 	backend bind.ContractBackend,
 	userKey *ecdsa.PrivateKey,
-	binStr string,
-	abiStr string,
+	payload []byte,
 	amount *big.Int,
 	gasLimit uint64,
-	constructorArgs ...interface{},
 ) (*types.Transaction, error){
-	payload := generateContractPayload(binStr, abiStr, constructorArgs...)
 	userAddr := crypto.PubkeyToAddress(userKey.PublicKey)
 	tx := newTx(ctx, backend, &userAddr, nil, amount, gasLimit, payload)
 	signedTx := signTx(tx, userKey)
@@ -113,6 +111,14 @@ func CompileAndDeployContract(
 	    return nil, err
 	}
 	return signedTx, nil
+}
+
+func CompilePayload(
+	binStr string,
+	abiStr string,
+	constructorArgs ...interface{},
+) ([]byte){
+	return generateContractPayload(binStr, abiStr, constructorArgs...)
 }
 
 // CallContract without changing the state
@@ -213,7 +219,7 @@ func CompileContract(contract string) (compiledContract *compiler.Contract, err 
 	basePath := os.Getenv("GOPATH") + "/src/github.com/clearmatics/ion/contracts/"
 	contractPath := basePath + contract + ".sol"
 
-	contracts, err := compiler.CompileSolidity("", contractPath)
+	contracts, err := compiler.CompileSolidity("", []string{}, contractPath)
 	if err != nil {
 	    return nil, err
 	}
@@ -231,7 +237,35 @@ func CompileContractAt(contractPath string) (compiledContract *compiler.Contract
 	i := strings.Index(contractPath, contractFolder)
 	remapping := fmt.Sprintf("../=%s", contractPath[:i])
 
-    contract, err := compiler.CompileSolidity("", remapping, contractPath)
+    contract, err := compiler.CompileSolidity("", []string{remapping}, contractPath)
+	if err != nil {
+	    return nil, err
+	}
+
+    compiledContract = contract[contractPath+":"+strings.Replace(contractName, ".sol", "", -1)]
+
+	return compiledContract, nil
+}
+
+func CompileContractWithLibraries(contractPath string, libraries map[string]common.Address) (compiledContract *compiler.Contract, err error) {
+	path := strings.Split(contractPath, "/")
+	contractName := path[len(path)-1]
+	contractFolder := path[len(path)-2]
+
+    args := []string{}
+
+    for name := range libraries {
+        address := libraries[name]
+
+        libraryArg := name + ":" + address.String()
+        args = append(args, fmt.Sprintf("--libraries=\"%s\"", libraryArg))
+    }
+
+	i := strings.Index(contractPath, contractFolder)
+	args = append(args, fmt.Sprintf("../=%s ", contractPath[:i]))
+    fmt.Println(args)
+
+    contract, err := compiler.CompileSolidity("", args, contractPath)
 	if err != nil {
 	    return nil, err
 	}

@@ -1,10 +1,47 @@
 # Ion Interoperability Framework
+The Ion Interoperability Framework is a library that provides an interface for the development of general cross-chain smart contracts.
+
+## Getting Started
+
+Clone the repository
+
+## Interoperate with Rinkeby!
+
+We've already deployed some contracts to the Rinkeby test network for you to play around with!
+
+Trigger: 0xA2e4a61a3D2ce626Ba9B3e927cfFDB0e4E0bd06d
+
+Procedure:
+./ion-cli
+>>> addContractInstance ion /path/to/Ion.sol
+>>> addContractInstance ethstore /path/to/EthereumStore.sol
+>>> addContractInstance clique /path/to/Clique.sol
+>>> addAccount name_of_your_account /path/to/keystore.json
+>>> connectToClient https://your.endpoint:port
+>>> deployContract ion name_of_your_account gaslimit
+>>> deployContract ethstore name_of_your_account gaslimit
+>>> deployContract clique name_of_your_account gaslimit
+
+## Develop on Ion
+
+
+## CLI
+
+
+## How it works
+
+
+# Contribute!
+
+
+
+
 The Ion Interoperability Framework provides a interface to perform interoperability across multiple turing-complete blockchains. Using the generalised framework specific use cases, such as atomic swaps, can be developed.
 
 In order to perform cross-chain interop the Ion framework verifies specific transactions executed on one blockchain A on another blockchain B. Being able to verify these transactions cross-chain requires submission of valid block headers, to the blockchain where a transaction is to be proven, and then performing a number of Patricia trie proofs of the transaction, receipts and logs. Smart contracts can then be built to execute only if the proof is verified, this is known as continuous execution.
 
 To facilitate this Ion has three main components:
-  * Ion Hub Contract
+  * Block Storage Contracts
   * Modular Validation Scheme
   * Ion Framework Contracts
 
