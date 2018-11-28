@@ -1,366 +1,136 @@
 # Ion Interoperability Framework
 The Ion Interoperability Framework is a library that provides an interface for the development of general cross-chain smart contracts.
 
+We strive towards a more interconnected fabric of systems, and to this end, methods for inter-system and cross-chain communications become paramount in facilitating this connected ecosystem. Ion is a system and function-agnostic framework for building cross-interacting smart contracts between blockchains and/or systems. It does not restrict itself to certain methods of interoperation and is not opinionated on what specific functions it should be built for and as such is an open protocol.
+
+Atomic swaps and decentralised exchanges can be built on Ion and facilitate the free movement of value across different blockchains. These are just two of the possible use-cases that can be developed on top of the Ion framework.
+
+Ideally we envision Ion to evolve to become a library of tools that developers can use on any system to build cross-chain smart contracts to interoperate with any other system.
+
+### Contents
+* [Getting Started](#getting-started)
+* [Interoperate with Rinkeby!](#interoperate-with-rinkeby-)
+* [Develop on Ion](#develop-on-ion)
+* [Ion CLI](#ion-cli)
+* [Contribute!](#contribute-)
+
 ## Getting Started
 
-Clone the repository
+Clone the repository and ensure that all the components work out of the box.
+
+Run:
+
+```
+$ npm install```
+```
+$ npm run testrpc```
+```
+$ npm run test```
+
+to test the full stack of contracts including our example flow.
+
+The tests should pass nicely. With that you've just interoperated your test RPC client with the Rinkeby testnet! Our repository includes some example contracts that show you how to build smart contracts that interoperate with another chain and what mechanism that looks like.
+
+We'll now use these example contracts to show you exactly how interoperation with Rinkeby looks like.
 
 ## Interoperate with Rinkeby!
 
+This is a quick tutorial using our example contracts included to be able to verify a state transition in a block and call a function that depends on it. We'll demonstrate that you can use the following instructions below to interoperate from any Ethereum chain with Rinkeby.
+
 We've already deployed some contracts to the Rinkeby test network for you to play around with!
 
-Trigger: 0xA2e4a61a3D2ce626Ba9B3e927cfFDB0e4E0bd06d
+Ion: `0xFEA947D9979c96d65CE7a514B3FeBbA67E54CD18`
+
+Clique: `0x9D94343187a5Fcd4e4552060874d4B1ad25c8c3D`
+
+Ethereum Block Store: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
+
+We will deploy our own instance of the `Function.sol` contract and pass proofs to verify a transaction that we will depend on in order to execute a function in the contract. If the proofs verify correctly then the function should emit an event to indicate that it has been executed.
 
 Procedure:
-./ion-cli
->>> addContractInstance ion /path/to/Ion.sol
->>> addContractInstance ethstore /path/to/EthereumStore.sol
->>> addContractInstance clique /path/to/Clique.sol
->>> addAccount name_of_your_account /path/to/keystore.json
->>> connectToClient https://your.endpoint:port
->>> deployContract ion name_of_your_account gaslimit
->>> deployContract ethstore name_of_your_account gaslimit
->>> deployContract clique name_of_your_account gaslimit
+1. `./ion-cli` Starts the CLI
+2. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
+3. `>>> addAccount me /keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is 'test'. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
+4. `>>> addContractInstance function ../contracts/functional/Function.sol` Add your functional contract instance which compiles your contract
+5. `>>> deployContract function me 1000000` Deploy your contract to Rinkeby! This will return an address that the contract is deployed at if successful. This contract has a constructor that requires two parameters to be supplied when prompted:
+    * `_storeAddr`: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
+    * `_verifierAddr`: `0xf973eB920fDB5897d79394F2e49430dCB9aA4ea1`
+6. `>>> transactionMessage function verifyAndExecute me <deployed_address> 0 gaslimit` Call the function. This requires you to supply the deployed contract instance address. Here you will need to supply the following data as an input to the function when prompted:
+    * `_chainId`: `0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177`
+    * `_blockHash`: `0xf88ef06bc1a9c60457d8a4b65c4020dae2ef7f3287076a4d2d481a1bcb8e3148`
+    * `_contractEmittedAddress`: `0x5dF43D6eaDc3EE940eCbf66a114486f3eF853da3`
+    * `_path`: `0x04`
+    * `_tx`: `0xf86808843b9aca00830186a0945df43d6eadc3ee940ecbf66a114486f3ef853da38084457094cc1ca08231f8f3c7c32c425d43418053eea8f3de09a64e40833329d8ca94d118498f72a00373c76a75251dc0da8f06658e3a261a31ec85759102266ee9110c022f9d45d5`
+    * `_txNodes`: `0xf90236f851a0c478a441c408d00ad410c89a76a635913325eb62a8650ccbc96e8998d50e36dc80808080808080a0edb4c44cbd3957a9226f30b982449d487ff09ff0e933a25f1c005d9df93289c38080808080808080f9017180a07ad13782edc2465b8d6c914d6a18368597b6c906b420d5e3a3dd5dbc408166fba0600296a0213fdce5c37d0520f8e23c32c90bad0e8d9163edb6357fe794546e09a05e5cdcbc193fe8a2966f8d5ecc6d94bd527c37b3f6ae0a3530c9f22cd8efc1b4a09fcfbbffd3fc9b6d7bfc57ec78811f425a24c3828d2ac203c06c7540dd382514a0a0b78e007d6cbcd9fd048ebc6397ca0d067397fb5d61f32fdc118377eaf1039ba032a122caf55ecfa596d4671830e058d6116902ada20591c72f43b299d6b0cb95a06c1f1b6f656336723110875d56d38470520fc82eea9939956ea7c77cd98de7e4a0bb2cffa7c59f46bfadcb40f32a8294ed45c991e6b6e858fc1a81c1ae8e546800a0916fe7ee83eed2a2864dcb5989522af36983674b9a89b8ab856f0e92236383a7a0fa44c96e10751887a97d8855c941805d5de5a7bbb31dfbcdb7100144d35ac4cca0c43a7ef5f5eb44ddd864b3fb9e7be9953e49c5ca089c034175d98b80e5f461718080808080f86d20b86af86808843b9aca00830186a0945df43d6eadc3ee940ecbf66a114486f3ef853da38084457094cc1ca08231f8f3c7c32c425d43418053eea8f3de09a64e40833329d8ca94d118498f72a00373c76a75251dc0da8f06658e3a261a31ec85759102266ee9110c022f9d45d5`
+    * `_receipt`: `0xf90164018311aac9b9010000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000100000000000000000000800000000000f85af858945df43d6eadc3ee940ecbf66a114486f3ef853da3e1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000b8844cf76df596e746f360957aa3af954ef51605`
+    * `_receiptNodes`: `0xf90335f851a08fbb95708b2169b98ca70955d2280ea41a4490918c7097b9fbb0dc02b6c1021d80808080808080a07e520e72a52d285315cad163ae68ff5f5b9d7b2efb8bf38488428249580b8aee8080808080808080f9017180a03f63d06b509ff798f0c456e58402326006f83b1dfbddf00ee61810754489817ca05f0c69a424cccf549fa2a1e460cab220f18238fac997214049480a1c48f320eaa0faee39d4012a0db36c610ac5f41306041dee4488d47bc41242afb40582e2b8ffa0d298be00622dc72ef2d1a2df8a259bcf769d36e4502ef8b1b2dbde2d19736c3ba04f78ffe7b29e2192dee6197eeeb19f56801dfe092c3fc485f8e2ca0141dddb1ca0e1c200d90941dbf37ac5d0f37e40479de4b2fe1a0a1b398c9f64cf80d6010eb0a034d7af644f909a94dc41bfa08ae9d0ea1c0d053e0c520378e8a5f2efd6422b62a068858e77fadd9ae975d9aff2e23e40b0f50dab934654a261930a40101ce370a0a068be4c01c98beead34d05516b5236e6196d85125b89e2632f23bdf16e7b16fe4a09f0c3ad7917f3f28a66d151270d2cd4ece50fecb2bd769c38512f1e9c5f9355ea05e1856c7908a4428edb582898261e563b2356fa3d1134357b47799a3e470bcc18080808080f9016b20b90167f90164018311aac9b9010000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000100000000000000000000800000000000f85af858945df43d6eadc3ee940ecbf66a114486f3ef853da3e1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000b8844cf76df596e746f360957aa3af954ef51605`
+    * `_expectedAddress`: `0xb8844cf76df596e746f360957aa3af954ef51605`
+7. Success! The transaction should have been created and sent. Check on [Etherscan](https://rinkeby.etherscan.io/address/0xb8844cf76df596e746f360957aa3af954ef51605) (or any other method) whether the transaction was successful or not. It should have succeeded!
+
+### Try out your own functions!
+
+Take a look at `Function.sol` and you'll find a very simple `execute()` function. Try adding your own logic or event emissions here and follow the same procedure above and you'll be able to execute your own arbitrary code with a dependence on a particular state transition.
+
+You can now also attempt to write your own functional smart contracts using the similar skeleton to the `Function.sol` contract.
+
+Note that all the data submitted as a proof to the function call is generated merkle patricia proofs for a particular transaction at `0xcd68852f99928ab11adbc72ec473ec6526dac3b1b976c852745c47900f6b8e30` that was also executed on the Rinkeby Testnet. This transaction emits a `Triggered` event which contains the address of the caller when emitted. The `Function.sol` contract simply consumes events of this type, verifies that the transaction occurred in a block, that the event parameters are as expected and then executes a function.
 
 ## Develop on Ion
 
+Develop your own cross-chain smart contracts using the Ion interface!
 
-## CLI
+### Core Concept
 
+The core of Ion revolves around the concept of dependence on state. As such, to create functional cross-chain smart contracts, the idea is to be able to make the execution of a smart contract function be dependent on some state transition to have occurred. Thus we create smart contracts that perform verification of state transitions before allowing the execution of code and this can be done many ways depending on the systems that intend to interoperate.
 
-## How it works
+### Ethereum-Ethereum
 
+With Ethereum, this is done via event consumption. Using the presence of an event in a transaction, we can verify if the expected computation was done and to only do something if the verification succeeds.
+
+To write a smart contract that depends on particular state transitions there are pre-requisites:
+* Event Verifier contracts
+
+For any event signature, a corresponding Event Verifier contract must be written which encodes the mechanism that extracts the relevant event to check expected parameters as part of the verification.
+
+`TriggerEventVerifier.sol` is a very simple event verifier:
+* Holds the event signature it decodes
+* Encodes a verification function that takes expected fields as input to check against that included in the event
+
+All Event Verifier contracts should perform the same way. The differences will simply be in the event signature and parameters checks of the event.
+
+`Function.sol` provides a very simple example of how an event-consuming contract is written. Changing the event to be consumed by referencing a different Event Verifier allows you to draw dependence on a different state transition.
+
+### Testing
+
+Test-driven development and unit-testing all individual components of your smart contracts are extremely important in developing cross-chain contracts. There are two main steps to testing:
+
+* Core functionality of smart contracts
+* Integration with Ion Interface
+
+Traditional tests that ensure that your smart contract is operating in the way that you intended is always required. However with the added use of the Ion interface, you'll need to write tests that make sure they both integrate well with the verification mechanisms and still behave in the expected way.
+
+Study the tests in the repository to discover how we've unit-tested the entire integrated stack of smart contracts.
+
+## Ion CLI
+
+The Command-Line Interface reference can be found [here]()
+
+## How Ion works
+
+Please see our Wiki for more detailed information about the design philosophy of Ion.
 
 # Contribute!
 
+Ion is not a finished project! We would love contributors to help evolve Ion into a universal framework for interoperability.
 
+Functional use-case smart contracts should not live in this repository. Please create use-cases in your own repositories and we'll include a link to them in our Ion-based contract catalogue.
 
+The repository is segmented into two main sections that require work:
+* Validation
+* Storage
 
-The Ion Interoperability Framework provides a interface to perform interoperability across multiple turing-complete blockchains. Using the generalised framework specific use cases, such as atomic swaps, can be developed.
+Each system requires a mechanism to be able to prove the correctness/validity of any data it holds, and this mechanism must be encoded by a Validation contract. Thus each method by which data could be validated must have its own contract that describes it. For example, to validate blocks from a proof-of-authority chain, we must replicate the verification mechanism of that specific implementation.
 
-In order to perform cross-chain interop the Ion framework verifies specific transactions executed on one blockchain A on another blockchain B. Being able to verify these transactions cross-chain requires submission of valid block headers, to the blockchain where a transaction is to be proven, and then performing a number of Patricia trie proofs of the transaction, receipts and logs. Smart contracts can then be built to execute only if the proof is verified, this is known as continuous execution.
+Each system holds its data in different formats, and subsequently proving that the data exists would be different. Thus a different storage contracts must be written that decode and store any arbitrary data formats for use on any other system. For example, proving a transaction exists in an Ethereum block is different from proving a UTXO in a Bitcoin block.
 
-To facilitate this Ion has three main components:
-  * Block Storage Contracts
-  * Modular Validation Scheme
-  * Ion Framework Contracts
-
-The Ion hub contract is the core component of the framework, the contract persists key data of all valid blocks submitted to the validation contracts required to verify a state transition. To prove a transaction has occurred on an external blockchain the Ion framework contract require (for EVM-based chains):
-
-* Block Header:
-  * Tx root hash
-  * Receipt root hash
-* Block Hash
-
-For other blockchains, different data will be required to prove state transitions and as such contracts must be written that adhere to those system-specific mechanisms.
-
-For each block submitted to the validation contracts this information is appended to the Ion hub contract, thus creating a generic interface for Ion framework contracts to receive valid block data. Ion provides a generalised interoperability framework and thus block validation is designed to be modular, in order to allow for interop between chains with any consensus mechanism.
-
-When external blockchains are registered with a specific validation contract, having its own consensus specific validation mechanism, the validation contract adds the chain to the Ion hub. Subsequently all blocks successfully submitted to the validation contract are added to the Ion hub.
-
-More details can be found in the [Ion Wiki](https://github.com/clearmatics/ion/wiki).
-
-## Running the Project
-A Clique PoA chain is launched and then the block headers are taken and updated to the validation contract which is deployed on a ganache chain. However in the javascript tests the contract is deployed on the PoA chain itself for sake of simplicity, this has no bearing on the functionality of the project.
-
-Running the project requires initialisation of the following components:
-  * Validation smart contract and tests
-  * Two separate blockchain: Clique _proof of authority_ network, Ganache test network
-  * Golang Ion CLI used to interact with the smart contract(s)
-
-In order to use the smart contracts and run the tests it is necessary to first initialise the test networks.
-
-**Note:** that as the contract searches for specific parts of the block header that only exist in Clique and IBFT, Ganache or Ethash chains cannot be used for the _root_ blockchain from which headers are extracted.
-
-### Requirements
-* golang version: 1.9.x
-
-### Installing Ion
-Having cloned and entered the repo:
-```
-$ git clone git@github.com:clearmatics/ion.git
-$ cd /path/to/ion
-```
-
-Now run the command:
-```
-$ tree -L 1
-```
-
-Which hopefully returns this:
-```
-.
-├── CODE_OF_CONDUCT.md
-├── contracts
-├── CONTRIBUTING.md
-├── docs
-├── ion-cli
-├── LICENSE
-├── Makefile
-├── migrations
-├── package.json
-├── package-lock.json
-├── README.md
-├── test
-└── truffle.js
-```
-
-### Testing Contracts
-In order to test the Solidity contracts using the Javascript tests a testrpc must be run. As the validation contract relies upon receiving signatures in the `extraData` field of the block header it is not sufficient to run an instance of ganache-cli, rather a Clique PoA chain must be initialised.
-
-Having launched a Clique PoA chain, hosted on `127.0.0.1:8501` (the first account on the `eth.accounts` array should be unlocked in the node), run the tests as follows:
-```
-$ npm install
-$ npm run test
-```
-
-### Ion Command Line Interface
-The Ion CLI is a tool for handling the passing of block headers between to blockchains written in Golang to leverage the extensive ethereum libraries. It is not a critical part of the Ion infrastructure rather is just an open utility that people can extend and use as they see fit.
-
-In its current form the Ion CLI allows the user to connect to two separate blockchains, via RPC, and submit block headers to a validation contract.
-
-#### Testing Ion CLI
-```
-$ cd ion-cli
-$ make build
-```
-In order to run the basic unit tests for the Ion CLI run,
-```
-$ make test
-```
-If the tests pass successfully then the CLI can be run.
-
-Additional integration tests can be run however it requires launching a Clique PoA chain as above. To run the integration tests launch command,
-```
-$ make integration-test
-```
-
-#### Running Ion CLI
-As mentioned in the project description this simple implementation of the validation contract is active only on a single blockchain, however the CLI is simulating the passing of the headers to and from as if it were between separate chains.
-
-Having followed the instructions on how to setup a Clique blockchain, which is hosted on `127.0.0.1:8501`, we run a ganache-cli in another terminal on `127.0.0.1:8545` and deploy the contract to the ganache blockchain,
-```
-$ npm run testrpc
-$ npm run deploy
-```
-
-Following this we can attach to the Ion Command Line Interface,
-```
-$ cd /path/to/ion/ion-cli
-$ make build
-$ make test
-```
-Assuming a successful build and passing of the tests a setup file which contains the connection of the separate blockchains, user accounts, account keystores, and the address of the deployed validation contract should be created. Change the default values in the example setup.json then run the `ion-cli` poiinting to the modified setup file.
-```
-$ ./ion-cli --config [/path/to/setup.json]
-===============================================================
-Ion Command Line Interface
-
-RPC Client [to]:
-	Listening on:		http://127.0.0.1:8501
-	User Account:		0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d
-	RPC ChainId:		0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075
-	Validation Contract:	0xb9fd43a71c076f02d1dbbf473c389f0eacec559f
-	Ion Contract:		0x6aa4444974f60bf3a0bf074d3c194f88ae4d4613
-	Function Contract:	0x49e71afdcaf62d7384f0b801c9e3c6e18d4a2597
-
-RPC Client [from]:
-	Listening on:		https://127.0.0.1:8545
-	User Account:		0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d
-	Trigger Contract:	0x61621bcf02914668f8404c1f860e92fc1893f74c
-===============================================================
->>>
-```
-running help displays the available commands.
-```
->>> help
-Commands:
-   checkBlockValidation         use:   checkBlockValidation
-                                       Enter Blockhash: [HASH]
-                                description: Returns true for validated blocks
-   clear                        clear the screen
-   exit                         exit the program
-   getBlock                     use:   getBlock [TO/FROM] [integer] 
-                                description: Returns block header specified from chain [TO/FROM]
-   help                         display help
-   latestBlock                  use:   latestBlock [TO/FROM] 
-                                description: Returns number of latest block mined/sealed from chain [TO/FROM]
-   latestValidatedBlock         use:   latestValidatedBlock 
-                                description: Returns hash of the last block submitted to the validation contract
-   registerChainValidation      use:   registerChainValidation
-                                       Enter Validators: [ADDRESS ADDRESS]
-                                       Enter Genesis Hash: [HASH] 
-                                description: Register new chain with validation contract
-   submitBlockValidation        use:   submitBlockValidation
-                                       Enter Block Number: [INTEGER]
-                                description: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract
-   triggerEvent                 use:   triggerEvent 
-                                description: Returns hash of the last block submitted to the validation contract
-   verifyAndExecute             use:   verifyAndExecute [Transaction Hash] 
-                                description: Returns the proof of a specific transaction held within a Patricia trie
-```
-
-#### Ion CLI Walkthrough
-A simple walkthrough of the Ion framework between a local testrpc and the Rinkeby test network is detailed. Users can trigger an event on Rinkeby with the account `0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d` and verify the transaction on the local testrpc where they deploy the event consuming contracts.
-
-A brief overview of the steps required are:
-* Launch Ion CLI
-* Register rinkeby with the validation contract
-* Trigger event on rinkeby test network - this tutorial will use the transaction `0x5da684940b4fd9dec708cc159dc504aa01e90d40bb76a2b73299aee13aa72098` - [check etherscan](https://rinkeby.etherscan.io/tx/0x5da684940b4fd9dec708cc159dc504aa01e90d40bb76a2b73299aee13aa72098)
-* Submit relevant rinkeby blocks to the validation contract
-* Verify event happened on testrpc and execute function
-
-##### Step 1. Launch Ion CLI
-Having followed the instructions to run and build the Ion CLI and testrpc, see [here](https://github.com/clearmatics/ion/tree/ion-stage-2#running-ion-cli), launch the CLI with the setup file `rinkeby.json`.
-```
-$ ./ion-cli --config rinkeby.json
-===============================================================
-Ion Command Line Interface
-
-RPC Client [to]:
-	Listening on:		http://127.0.0.1:8545
-	User Account:		0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d
-	RPC ChainId:		0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075
-	Validation Contract:	0xb9fd43a71c076f02d1dbbf473c389f0eacec559f
-	Ion Contract:		0x6aa4444974f60bf3a0bf074d3c194f88ae4d4613
-	Function Contract:	0x49e71afdcaf62d7384f0b801c9e3c6e18d4a2597
-
-RPC Client [from]:
-	Listening on:		https://rinkeby.infura.io
-	User Account:		0x2be5ab0e43b6dc2908d5321cf318f35b80d0c10d
-	Trigger Contract:	0x61621bcf02914668f8404c1f860e92fc1893f74c
-===============================================================
->>>
-```
-
-##### Step 2. Register Chain
-In order to validate blocks first the chain must be registered in the validation contract on the testrpc:
-```
->>> registerChainValidation
-Connecting to: http://127.0.0.1:8545
-Enter Validators: 0x42eb768f2244c8811c63729a21a3569731535f06 0x6635f83421bf059cd8111f180f0727128685bae4 0x7ffc57839b00206d1ad20c69a1981b489f772031 0xb279182d99e65703f0076e4812653aab85fca0f0 0xd6ae8250b8348c94847280928c79fb3b63ca453e 0xda35dee8eddeaa556e4c26268463e26fb91ff74f 0xfc18cbc391de84dbd87db83b20935d3e89f5dd91
-Enter Genesis Hash: 0x100dc525cdcb7933e09f10d4019c38d342253a0aa32889fbbdbc5f2406c7546c
-
-Returns:
-Transaction: 0xcd5f4405260a6935b048e9136d211df99e594359abe04dcf975c730e5cf0d708
-===============================================================
-```
-
-To see if it has successfully been registered we can check the the contract if this is a valid block:
-```
->>> checkBlockValidation
-Connecting to: http://127.0.0.1:8545
-Enter BlockHash: 0x100dc525cdcb7933e09f10d4019c38d342253a0aa32889fbbdbc5f2406c7546c
-Checking for valid block:
-ChainId:	ab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075
-BlockHash:	100dc525cdcb7933e09f10d4019c38d342253a0aa32889fbbdbc5f2406c7546c
-
-Returns:
-Valid:		true
-===============================================================
-```
-
-##### Step 3. Submit Block to Validation
-As our event happened in block 2776659 this block must be submitted to the validation contract prior to verification of our transaction.
-```
->>> submitBlockValidation
-Connecting to: http://127.0.0.1:8545
-Enter Block Number: 2776659
-RLP encode block:
-Number:		2776659
-Signed Block Header Prefix:
-f9025ca0100dc525cdcb7933e09f10d4019c38d342253a0aa32889fbbdbc5f2406c7546ca01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a0ad9b6d8c20a0631e2513968cdf3667dffabf9d2f6c1bf22a5990861192e1d266a053413d0e5fd5854665fab663ad8ffb0f5d06bf1907a5a0a3e45300de1ce23fcda0997750d465d96422e7692e281d16db709e6ff9c11c1d8229410340cf1598a8b6b9010000000000c0000010000000000000000000000000000000008000000000000000000000040000000000002004000000000000000002000000000000000004000000010000000008000000002800000002000000000004000000000001000001400000000002000000040000000000080080000000000000000000001000008000000000002000000000000000000000000000000000000000000002000000000000000000010000000010004000000000000020000000000000000000000000000200010300000000000005000040000000000004000000000000000042006000000000200000008000000000000000800000020400000000001080020080000001832a5e53836b33668349d003845b6ab5b9b861d68301080d846765746886676f312e3130856c696e75780000000000000000000cd4835e13d2204ad1fbc94d18a1a0373e92ffc63a021f8212a72dd1cff2e2057bded7534ed90df2492e60c7050db528715e3bc7734bef0a4c97542886cbc57c01a00000000000000000000000000000000000000000000000000000000000000000880000000000000000
-
-Unsigned Block Header Prefix:
-f9021aa0100dc525cdcb7933e09f10d4019c38d342253a0aa32889fbbdbc5f2406c7546ca01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a0ad9b6d8c20a0631e2513968cdf3667dffabf9d2f6c1bf22a5990861192e1d266a053413d0e5fd5854665fab663ad8ffb0f5d06bf1907a5a0a3e45300de1ce23fcda0997750d465d96422e7692e281d16db709e6ff9c11c1d8229410340cf1598a8b6b9010000000000c0000010000000000000000000000000000000008000000000000000000000040000000000002004000000000000000002000000000000000004000000010000000008000000002800000002000000000004000000000001000001400000000002000000040000000000080080000000000000000000001000008000000000002000000000000000000000000000000000000000000002000000000000000000010000000010004000000000000020000000000000000000000000000200010300000000000005000040000000000004000000000000000042006000000000200000008000000000000000800000020400000000001080020080000001832a5e53836b33668349d003845b6ab5b9a0d68301080d846765746886676f312e3130856c696e7578000000000000000000a00000000000000000000000000000000000000000000000000000000000000000880000000000000000
-
-Returns:
-Transaction Hash: 0x965da7ac02d7ef58417e32b427b33ff2717d3cd6bb213fd05853a2c8d0fd092e
-===============================================================
-```
-
-Again check that the block has successfully been validated:
-```
->>> checkBlockValidation
-Connecting to: http://127.0.0.1:8545
-Enter BlockHash: 0x74d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b046
-Checking for valid block:
-ChainId:	ab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075
-BlockHash:	74d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b046
-
-Returns:
-Valid:		true
-===============================================================
-```
-
-##### Step 4. Verify and Execute Event Consuming Contract
-Now the block that contains our event has been successfully submitted to the validation contract we can execute the contract which consumes the event:
-```
->>> verifyAndExecute
-Connecting to: http://127.0.0.1:8545
-Enter Transaction Hash: 0x5da684940b4fd9dec708cc159dc504aa01e90d40bb76a2b73299aee13aa72098
-Enter Block Hash: 0x74d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b046
-
-Returns:
-Transaction Hash: 0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb
-===============================================================
-```
-
-##### Step 5. Check Transaction Successfully Executed
-Attach to the geth client of the RPC TO chain and run:
-```
-> eth.getTransactionReceipt("0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15")
-{
-  blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
-  blockNumber: 11,
-  contractAddress: null,
-  cumulativeGasUsed: 352099,
-  gasUsed: 352099,
-  logs: [{
-      address: "0x9abefbe4cca994c5d1934dff50c6a863edcf5f52",
-      blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
-      blockNumber: 11,
-      data: "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac807574d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b0460000000000000000000000000000000000000000000000000000000000000002",
-      logIndex: 0,
-      topics: ["0xf0bc00f5b90f382e1bbca216713ca9e2e8e298f9d7717d30847905395f287046"],
-      transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
-      transactionIndex: 0,
-      type: "mined"
-  }, {
-      address: "0x9abefbe4cca994c5d1934dff50c6a863edcf5f52",
-      blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
-      blockNumber: 11,
-      data: "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac807574d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b0460000000000000000000000000000000000000000000000000000000000000000",
-      logIndex: 1,
-      topics: ["0xf0bc00f5b90f382e1bbca216713ca9e2e8e298f9d7717d30847905395f287046"],
-      transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
-      transactionIndex: 0,
-      type: "mined"
-  }, {
-      address: "0x9abefbe4cca994c5d1934dff50c6a863edcf5f52",
-      blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
-      blockNumber: 11,
-      data: "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac807574d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b0460000000000000000000000000000000000000000000000000000000000000001",
-      logIndex: 2,
-      topics: ["0xf0bc00f5b90f382e1bbca216713ca9e2e8e298f9d7717d30847905395f287046"],
-      transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
-      transactionIndex: 0,
-      type: "mined"
-  }, {
-      address: "0x93981af8db02c7ef40d0ed61caef2726a79eb903",
-      blockHash: "0x9da94ab127a05a81c5a8ec159e5e103efe44403c57685d53da1b0126880a47fb",
-      blockNumber: 11,
-      data: "0x00",
-      logIndex: 3,
-      topics: ["0x68f46c45a243a0e9065a97649faf9a5afe1692f2679e650c2f853b9cd734cc0e"],
-      transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
-      transactionIndex: 0,
-      type: "mined"
-  }],
-  logsBloom: "0x00000000000000000000000000000000000000000001000000080000000000000000000800000000000000000000000000000000000000010000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000100080000000000000000000000040000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000000",
-  status: "0x1",
-  transactionHash: "0x40538002f640c647bcf4feb922e31523c0cd2b46b38791dd7368e8cbe5bbba15",
-  transactionIndex: 0
-}
-``` 
-`status: "0x1"` shows the transaction executed successfully!
+With the above, we aim to expand our system-specific implementations for verification of both data validity and state transitions to allow the easier development of smart contracts using these interfaces.

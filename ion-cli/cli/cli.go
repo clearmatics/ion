@@ -10,13 +10,9 @@ import (
 	"errors"
 	"strings"
 	"reflect"
-	"os/exec"
-	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
-	//"github.com/ethereum/go-ethereum/common/compiler"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
@@ -28,11 +24,7 @@ import (
 )
 
 // Launch - definition of commands and creates the interface
-func Launch(
-	configuration config.Setup,
-	clientTo *rpc.Client,
-	clientFrom *rpc.Client,
-) {
+func Launch() {
 	// by default, new shell includes 'exit', 'help' and 'clear' commands.
 	shell := ishell.New()
 
@@ -72,7 +64,7 @@ func Launch(
 		Help: "use: \taddContractInstance [name] [path/to/solidity/contract]\n\t\t\t\tdescription: Compiles a contract for use",
 		Func: func(c *ishell.Context) {
 			if len(c.Args) != 2 {
-                c.Println("Usage: \taddContractInstances [name] [path/to/solidity/contract]\n")
+                c.Println("Usage: \taddContractInstance [name] [path/to/solidity/contract]\n")
 			} else {
                 err := addContractInstance(c.Args[1], c.Args[0], contracts)
                 if err != nil {
@@ -145,7 +137,7 @@ func Launch(
 			    }
                 contractInstance := contracts[c.Args[0]]
                 if contractInstance == nil {
-                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n", c.Args[0])
+                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstance [name] [path/to/solidity/contract]\n", c.Args[0])
                     c.Println(errStr)
 			        return
                 }
@@ -230,7 +222,7 @@ func Launch(
 			    }
                 contractInstance := contracts[c.Args[0]]
                 if contractInstance == nil {
-                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n", c.Args[0])
+                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstance [name] [path/to/solidity/contract] \n", c.Args[0])
                     c.Println(errStr)
 			        return
                 }
@@ -304,7 +296,7 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "transactionMessage",
-		Help: "use: \ttransactionMessage [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n\t\t\t\tdescription: Connects to an RPC client to be used",
+		Help: "use: \ttransactionMessage [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n\t\t\t\tdescription: Calls a contract function as a transaction.",
 		Func: func(c *ishell.Context) {
 			if len(c.Args) != 6 {
                 c.Println("Usage: \ttransactionMessage [contract name] [function name] [from account name] [deployed contract address] [amount] [gasLimit] \n")
@@ -320,7 +312,7 @@ func Launch(
                 contractDeployedAddress := common.HexToAddress(c.Args[3])
 
                 if instance == nil {
-                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n", c.Args[0])
+                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstance [name] [path/to/solidity/contract] \n", c.Args[0])
                     c.Println(errStr)
 			        return
                 }
@@ -373,28 +365,9 @@ func Launch(
                         return
                     }
                     c.Printf("Transaction hash: %s\n", receipt.TxHash.String())
-                    c.Printf("Mined in block: %s\n", receipt.TxHash.String())
                  }
 			}
 			c.Println("===============================================================")
-		},
-	})
-
-	shell.AddCmd(&ishell.Cmd{
-		Name: "test",
-		Help: "use: \ttest \n\t\t\t\tdescription: Connects to an RPC client to be used",
-		Func: func(c *ishell.Context) {
-	        var stderr, stdout bytes.Buffer
-
-            args := []string{"--combined-json", "bin,abi,userdoc,devdoc,metadata", "--optimize", "--libraries=ReallyExtremelyVeryIncrediblyObnoxiouslySurprisinglyLongLibraryName:0xe9215b0d0A66CeBd1A50F468dFACF748cB065165",  "--libraries=EvenMoreReallyExtremelyVeryIncrediblyObnoxiouslySurprisinglyLongLibraryName:0xe9215b0d0A66CeBd1A50F468dFACF748cB065165", "../=/home/cc/go/src/github.com/clearmatics/ion/contracts/", "/home/cc/go/src/github.com/clearmatics/ion/contracts/test/test.sol"}
-	        //cmd := exec.Command("solc", "--combined-json", "bin,abi,userdoc,devdoc,metadata", "--optimize", "--libraries=PatriciaTrie:0xe9215b0d0A66CeBd1A50F468dFACF748cB065165", "../=/home/cc/go/src/github.com/clearmatics/ion/contracts/", "/home/cc/go/src/github.com/clearmatics/ion/contracts/storage/EthereumStore.sol")
-	        cmd := exec.Command("solc", args...)
-	        cmd.Stderr = &stderr
-            cmd.Stdout = &stdout
-	        err := cmd.Run()
-	        c.Println(err)
-	        c.Printf("%s\n", stderr.Bytes())
-	        c.Printf("%s\n", stdout.Bytes())
 		},
 	})
 
@@ -462,7 +435,7 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getTransactionByHash",
-		Help: "use: \tgetTransactionByHash [optional rpc url] [hash]\n\t\t\t\tdescription: Returns transaction specified by hash",
+		Help: "use: \tgetTransactionByHash [optional rpc url] [hash]\n\t\t\t\tdescription: Returns transaction specified by hash from connected client or specified endpoint",
 		Func: func(c *ishell.Context) {
 		    var json []byte
 		    var err error
@@ -496,7 +469,7 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getBlockByNumber",
-		Help: "use: \tgetBlockByNumber [optional rpc url] [integer]\n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Help: "use: \tgetBlockByNumber [optional rpc url] [integer]\n\t\t\t\tdescription: Returns block header specified by height from connected client or from specified endpoint",
 		Func: func(c *ishell.Context) {
 		    var json []byte
 		    var err error
@@ -530,7 +503,7 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getBlockByHash",
-		Help: "use: \tgetBlockByNumber [optional rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Help: "use: \tgetBlockByHash [optional rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified by hash from connected client or from specific endpoint",
 		Func: func(c *ishell.Context) {
 		    var json []byte
 		    var err error
@@ -550,7 +523,7 @@ func Launch(
                 }
 			    _, json, err = getBlockByHash(client, c.Args[1])
             } else {
-                c.Println("Usage: \tgetBlockByNumber [optional rpc url] [hash] \n")
+                c.Println("Usage: \tgetBlockByHash [optional rpc url] [hash] \n")
                 return
             }
             if err != nil {
@@ -594,7 +567,7 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getBlockByNumber_Clique",
-		Help: "use: \tgetBlockByNumber_Clique [optional rpc url] [integer]\n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Help: "use: \tgetBlockByNumber_Clique [optional rpc url] [integer]\n\t\t\t\tdescription: Returns signed and unsigned RLP-encoded block headers by block number required for submission to Clique validation from connected client or specified endpoint",
 		Func: func(c *ishell.Context) {
             if len(c.Args) == 1 {
                 if ethClient != nil {
@@ -634,7 +607,7 @@ func Launch(
 
 	shell.AddCmd(&ishell.Cmd{
 		Name: "getBlockByHash_Clique",
-		Help: "use: \tgetBlockByHash_Clique [optional rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
+		Help: "use: \tgetBlockByHash_Clique [optional rpc url] [hash] \n\t\t\t\tdescription: Returns signed and unsigned RLP-encoded block headers by block hash required for submission to Clique validation from connected client or specified endpoint",
 		Func: func(c *ishell.Context) {
             if len(c.Args) == 1 {
                 if ethClient != nil {
@@ -672,274 +645,6 @@ func Launch(
 		},
 	})
 
-	shell.AddCmd(&ishell.Cmd{
-		Name: "getBlockByHash_Clique",
-		Help: "use: \tgetBlockByHash_Clique [optional rpc url] [hash] \n\t\t\t\tdescription: Returns block header specified from chain [TO/FROM]",
-		Func: func(c *ishell.Context) {
-            if len(c.Args) == 1 {
-                if ethClient != nil {
-			        block, _, err := getBlockByHash(ethClient, c.Args[0])
-                    if err != nil {
-                        c.Println(err)
-                        return
-                    }
-                    signedBlock, unsignedBlock := RlpEncode(block)
-                    c.Printf("Signed Block: 0x%+x\n", signedBlock)
-                    c.Printf("Unsigned Block: 0x%+x\n", unsignedBlock)
-                } else {
-			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
-			        return
-                }
-            } else if len(c.Args) == 2 {
-                client, err := getClient(c.Args[0])
-                if err != nil {
-                    c.Println(err)
-                    return
-                }
-			    block, _, err := getBlockByHash(client, c.Args[1])
-                if err != nil {
-                    c.Println(err)
-                    return
-                }
-                signedBlock, unsignedBlock := RlpEncode(block)
-                c.Printf("Signed Block:\n %+x\n", signedBlock)
-                c.Printf("Unsigned Block:\n %+x\n", unsignedBlock)
-            } else {
-                c.Println("Usage: \tgetBlockByHash_Clique [optional rpc url] [hash]\n")
-                return
-            }
-			c.Println("===============================================================")
-		},
-	})
-
-	/*
-	shell.AddCmd(&ishell.Cmd{
-		Name: "registerChainValidation",
-		Help: "use: \tregisterChainValidation\n \t\t\t\t\tEnter Validators: [ADDRESS ADDRESS]\n \t\t\t\t\tEnter Genesis Hash: [HASH] \n\t\t\t\tdescription: Register new chain with validation contract",
-		Func: func(c *ishell.Context) {
-			c.Println("Connecting to: " + configuration.AddrTo)
-			c.ShowPrompt(false)
-			defer c.ShowPrompt(true)
-
-			// Get the chainId
-			bytesChainId := common.HexToHash(configuration.ChainId)
-
-			// Get the validators array
-			c.Print("Enter Validators: ")
-			validatorString := c.ReadLine()
-			valArray := strings.Fields(validatorString)
-			// valArray := strings.Fields("0x42eb768f2244c8811c63729a21a3569731535f06 0x6635f83421bf059cd8111f180f0727128685bae4 0x7ffc57839b00206d1ad20c69a1981b489f772031 0xb279182d99e65703f0076e4812653aab85fca0f0 0xd6ae8250b8348c94847280928c79fb3b63ca453e 0xda35dee8eddeaa556e4c26268463e26fb91ff74f 0xfc18cbc391de84dbd87db83b20935d3e89f5dd91")
-			var validators []common.Address
-			for _, val := range valArray {
-				validators = append(validators, common.HexToAddress(val))
-			}
-
-			// Get genesis hash
-			c.Print("Enter Genesis Hash: ")
-			genesis := c.ReadLine()
-			bytesGenesis := common.HexToHash(genesis)
-			// bytesGenesis := common.HexToHash("0x100dc525cdcb7933e09f10d4019c38d342253a0aa32889fbbdbc5f2406c7546c")
-
-			tx := contract.RegisterChain(
-				ctx,
-				ethclientTo,
-				keyTo.PrivateKey,
-				Validation,
-				common.HexToAddress(configuration.Validation),
-				bytesChainId,
-				validators,
-				bytesGenesis,
-			)
-
-			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
-			c.Println("===============================================================")
-		},
-	})
-
-	shell.AddCmd(&ishell.Cmd{
-		Name: "submitBlockValidation",
-		Help: "use: \tsubmitBlockValidation\n \t\t\t\t\tEnter Block Number: [INTEGER]\n\t\t\t\tdescription: Returns the RLP block header, signed block prefix, extra data prefix and submits to validation contract",
-		Func: func(c *ishell.Context) {
-			c.Println("Connecting to: " + configuration.AddrTo)
-			c.ShowPrompt(false)
-			defer c.ShowPrompt(true) // yes, revert after login.
-
-			// Get the chainId
-			bytesChainId, err := utils.StringToBytes32(configuration.ChainId)
-			if err != nil {
-				c.Printf("Error: %s", err)
-				return
-			}
-
-			// Get the block number
-			c.Print("Enter Block Number: ")
-			blockNum := c.ReadLine()
-			c.Printf("RLP encode block:\nNumber:\t\t%s", blockNum)
-
-			signedBlock, unsignedBlock := calculateRlpEncoding(ethclientFrom, blockNum)
-			tx := contract.SubmitBlock(
-				ctx,
-				ethclientTo,
-				keyTo.PrivateKey,
-				Validation,
-				common.HexToAddress(configuration.Validation),
-				bytesChainId,
-				unsignedBlock,
-				signedBlock,
-			)
-
-			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
-			c.Println("===============================================================")
-		},
-	})
-
-	shell.AddCmd(&ishell.Cmd{
-		Name: "checkBlockValidation",
-		Help: "use: \tcheckBlockValidation\n \t\t\t\t\tEnter Blockhash: [HASH]\n\t\t\t\tdescription: Returns true for validated blocks",
-		Func: func(c *ishell.Context) {
-			c.Println("Connecting to: " + configuration.AddrTo)
-			c.ShowPrompt(false)
-			defer c.ShowPrompt(true) // yes, revert after login.
-
-			// Get the chainId
-			bytesChainId, err := utils.StringToBytes32(configuration.ChainId)
-			if err != nil {
-				c.Printf("Error: %s", err)
-				return
-			}
-
-			// Get the blockHash
-			c.Print("Enter BlockHash: ")
-			blockHash := c.ReadLine()
-			bytesBlockHash, err := utils.StringToBytes32(blockHash)
-			if err != nil {
-				c.Printf("Error: %s", err)
-				return
-			}
-
-			result := contract.ValidBlock(
-				ctx,
-				ethclientTo,
-				Validation,
-				common.HexToAddress(configuration.AddrTo),
-				common.HexToAddress(configuration.Validation),
-				bytesChainId,
-				bytesBlockHash,
-			)
-
-			c.Println("Checking for valid block:")
-			c.Printf("ChainId:\t%x\nBlockHash:\t%x\nValid:\t\t%v\n", bytesChainId, bytesBlockHash, result)
-			c.Println("===============================================================")
-		},
-	})
-
-	shell.AddCmd(&ishell.Cmd{
-		Name: "latestValidatedBlock",
-		Help: "use: \tlatestValidatedBlock \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
-		Func: func(c *ishell.Context) {
-			c.Println("Connecting to: " + configuration.AddrTo)
-			// Get the chainId
-			bytesChainId := common.HexToHash(configuration.ChainId)
-
-			result := contract.LatestValidBlock(
-				ctx,
-				ethclientTo,
-				Validation,
-				common.HexToAddress(configuration.AddrTo),
-				common.HexToAddress(configuration.Validation),
-				bytesChainId,
-			)
-
-			c.Println("Checking for latest valid block:")
-			c.Printf("\nBlockHash:\t0x%x\nChainId:\t%s\n", result, configuration.ChainId)
-			c.Println("===============================================================")
-		},
-	})*/
-
-	//---------------------------------------------------------------------------------------------
-	// 	Trigger Specific Commands
-	//---------------------------------------------------------------------------------------------
-	/*
-	shell.AddCmd(&ishell.Cmd{
-		Name: "triggerEvent",
-		Help: "use: \ttriggerEvent \n\t\t\t\tdescription: Returns hash of the last block submitted to the validation contract",
-		Func: func(c *ishell.Context) {
-			c.Println("Connecting to: " + configuration.AddrFrom)
-
-			tx := contract.Fire(
-				ctx,
-				ethclientFrom,
-				keyFrom.PrivateKey,
-				Trigger,
-				common.HexToAddress(configuration.Trigger),
-			)
-
-			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
-			c.Println("===============================================================")
-		},
-	})
-*/
-
-	//---------------------------------------------------------------------------------------------
-	// 	Function Specific Commands
-	//---------------------------------------------------------------------------------------------
-	/*
-	shell.AddCmd(&ishell.Cmd{
-		Name: "verifyAndExecute",
-		Help: "use: \tverifyAndExecute [Transaction Hash] \n\t\t\t\tdescription: Returns the proof of a specific transaction held within a Patricia trie",
-		Func: func(c *ishell.Context) {
-			c.Println("Connecting to: " + configuration.AddrTo + " and " + configuration.AddrFrom)
-			c.ShowPrompt(false)
-			defer c.ShowPrompt(true) // yes, revert after login.
-
-			// Get the chainId
-			bytesChainId := common.HexToHash(configuration.ChainId)
-
-			// Get the transaction hash
-			c.Print("Enter Transaction Hash: ")
-			txHash := c.ReadLine()
-			bytesTxHash := common.HexToHash(txHash)
-			// bytesTxHash := common.HexToHash("0x5da684940b4fd9dec708cc159dc504aa01e90d40bb76a2b73299aee13aa72098")
-
-			// Get the blockHash
-			c.Print("Enter Block Hash: ")
-			blockHash := c.ReadLine()
-			bytesBlockHash := common.HexToHash(blockHash)
-			// bytesBlockHash := common.HexToHash("0x74d37aa3c96bc98903451d0baf051b87550191aa0d92032f7406a4984610b046")
-
-			// Generate the proof
-			txPath, txValue, txNodes, receiptValue, receiptNodes := utils.GenerateProof(
-				ctx,
-				clientFrom,
-				bytesTxHash,
-			)
-
-			// Execute
-			tx := contract.VerifyExecute(
-				ctx,
-				ethclientTo,
-				keyFrom.PrivateKey,
-				Function,
-				common.HexToAddress(configuration.Function),
-				bytesChainId,
-				bytesBlockHash,
-				common.HexToAddress(configuration.Trigger), // TRIG_DEPLOYED_RINKEBY_ADDR,
-				txPath,                                 // TEST_PATH,
-				txValue,                                // TEST_TX_VALUE,
-				txNodes,                                // TEST_TX_NODES,
-				receiptValue,                           // TEST_RECEIPT_VALUE,
-				receiptNodes,                           // TEST_RECEIPT_NODES,
-				common.HexToAddress(configuration.AccountFrom), // TRIG_CALLED_BY,
-				nil,
-			)
-
-			c.Printf("Transaction Hash:\n0x%x\n", tx.Hash())
-			c.Println("===============================================================")
-		},
-	})
-
-    */
-	// run shell
 	shell.Run()
 }
 
