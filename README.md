@@ -9,10 +9,10 @@ Ideally we envision Ion to evolve to become a library of tools that developers c
 
 ### Contents
 * [Getting Started](#getting-started)
-* [Interoperate with Rinkeby!](#interoperate-with-rinkeby-)
+* [Interoperate with Rinkeby!](#interoperate-with-rinkeby)
 * [Develop on Ion](#develop-on-ion)
 * [Ion CLI](#ion-cli)
-* [Contribute!](#contribute-)
+* [Contribute!](#contribute)
 
 ## Getting Started
 
@@ -116,7 +116,7 @@ Study the tests in the repository to discover how we've unit-tested the entire i
 
 ## Ion CLI
 
-The Command-Line Interface reference can be found [here]()
+The Command-Line Interface reference can be found [here](./ion-cli)
 
 ## How Ion works
 
