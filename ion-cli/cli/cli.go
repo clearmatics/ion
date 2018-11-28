@@ -10,9 +10,11 @@ import (
 	"errors"
 	"strings"
 	"reflect"
+	"os/exec"
+	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/common/compiler"
+	//"github.com/ethereum/go-ethereum/common/compiler"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -168,15 +170,34 @@ func Launch(
                     return
                 }
 
-                tx, err := contract.CompileAndDeployContract(
+                /*gasLimit = gasLimit
+                constructorInputs = constructorInputs
+
+                c.Printf("Contract Info: %s\n\n", contractInstance.Contract.Info)
+                contractInfo := make(map[string]*compiler.ContractInfo)
+                str, err := json.Marshal(contractInstance.Contract.Info)
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                err = json.Unmarshal([]byte(str), &contractInfo)
+
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                c.Printf("Unmarshalled: %+v\n\n", contractInfo)*/
+
+
+                payload := contract.CompilePayload(binStr, abiStr, constructorInputs...)
+
+                tx, err := contract.DeployContract(
                     ctx,
                     ethClient.client,
                     account.Key.PrivateKey,
-                    binStr,
-                    abiStr,
+                    payload,
                     nil,
                     gasLimit,
-                    constructorInputs...
                 )
                 if err != nil {
                     c.Println(err)
@@ -190,6 +211,99 @@ func Launch(
                     return
                 }
                 c.Printf("Deployed contract at: %s\n", addr.String())
+            }
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "linkAndDeployContract",
+		Help: "use: \tdeployContract [contract name] [account name] [gas limit]\n\t\t\t\tdescription: Deploys specified contract instance to connected client",
+		Func: func(c *ishell.Context) {
+            if len(c.Args) != 3 {
+                c.Println("Usage: \tdeployContract [contract name] [account name] [gas limit] \n")
+            } else {
+			    if ethClient == nil {
+			        c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+			        return
+			    }
+                contractInstance := contracts[c.Args[0]]
+                if contractInstance == nil {
+                    errStr := fmt.Sprintf("Contract instance %s not found.\nUse \taddContractInstances [name] [path/to/solidity/contract] [deployed address] \n", c.Args[0])
+                    c.Println(errStr)
+			        return
+                }
+
+                c.ShowPrompt(false)
+                defer c.ShowPrompt(true)
+                c.Println("Please provide comma separated list of libraries to link in the form <LibraryName>:<DeployedAddress> e.g. RLP:0x123456789")
+                input := c.ReadLine()
+                libraries := strings.Split(input, ",")
+                library := make(map[string]common.Address)
+
+                for _, lib := range libraries {
+                    name := strings.Split(lib, ":")[0]
+                    address := common.HexToAddress(strings.Split(lib, ":")[1])
+                    library[name] = address
+                }
+
+                fmt.Printf("Library data: %s\n", library)
+
+                compiledContract, err := contract.CompileContractWithLibraries(contractInstance.Path, library)
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+
+                c.Printf("Compiled Contract: %s\n", compiledContract)
+
+                /*
+                binStr, abiStr := contract.GetContractBytecodeAndABI(compiledContract)
+
+                c.Printf("Binary string: %s\n", binStr)
+
+                account := accounts[c.Args[1]]
+                if account == nil {
+                    errStr := fmt.Sprintf("Account %s not found.\nUse \taddAccount [name] [path/to/keystore] \n", c.Args[1])
+			        c.Println(errStr)
+			        return
+                }
+
+                gasLimit, err := strconv.ParseUint(c.Args[2], 10, 64)
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+
+                constructorInputs, err := parseMethodParameters(c, contractInstance.Abi, "")
+                if err != nil {
+                    c.Printf("Error parsing constructor parameters: %s\n", err)
+                    return
+                }
+
+
+                payload := contract.CompilePayload(binStr, abiStr, constructorInputs...)
+
+                tx, err := contract.DeployContract(
+                    ctx,
+                    ethClient.client,
+                    account.Key.PrivateKey,
+                    payload,
+                    nil,
+                    gasLimit,
+                )
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+
+                c.Println("Waiting for contract to be deployed")
+                addr, err := bind.WaitDeployed(ctx, ethClient.client, tx)
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                c.Printf("Deployed contract at: %s\n", addr.String())*/
             }
 			c.Println("===============================================================")
 		},
@@ -270,6 +384,24 @@ func Launch(
                  }
 			}
 			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "test",
+		Help: "use: \ttest \n\t\t\t\tdescription: Connects to an RPC client to be used",
+		Func: func(c *ishell.Context) {
+	        var stderr, stdout bytes.Buffer
+
+            args := []string{"--combined-json", "bin,abi,userdoc,devdoc,metadata", "--optimize", "--libraries=ReallyExtremelyVeryIncrediblyObnoxiouslySurprisinglyLongLibraryName:0xe9215b0d0A66CeBd1A50F468dFACF748cB065165",  "--libraries=EvenMoreReallyExtremelyVeryIncrediblyObnoxiouslySurprisinglyLongLibraryName:0xe9215b0d0A66CeBd1A50F468dFACF748cB065165", "../=/home/cc/go/src/github.com/clearmatics/ion/contracts/", "/home/cc/go/src/github.com/clearmatics/ion/contracts/test/test.sol"}
+	        //cmd := exec.Command("solc", "--combined-json", "bin,abi,userdoc,devdoc,metadata", "--optimize", "--libraries=PatriciaTrie:0xe9215b0d0A66CeBd1A50F468dFACF748cB065165", "../=/home/cc/go/src/github.com/clearmatics/ion/contracts/", "/home/cc/go/src/github.com/clearmatics/ion/contracts/storage/EthereumStore.sol")
+	        cmd := exec.Command("solc", args...)
+	        cmd.Stderr = &stderr
+            cmd.Stdout = &stdout
+	        err := cmd.Run()
+	        c.Println(err)
+	        c.Printf("%s\n", stderr.Bytes())
+	        c.Printf("%s\n", stdout.Bytes())
 		},
 	})
 
@@ -1281,7 +1413,7 @@ func addContractInstance(pathToContract string, contractName string, contracts m
     if err != nil {
         return err
     }
-    contracts[contractName] = &contract.ContractInstance{Contract: compiledContract, Abi: &abistruct}
+    contracts[contractName] = &contract.ContractInstance{Contract: compiledContract, Abi: &abistruct, Path: pathToContract}
     return nil
 }
 
