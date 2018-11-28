@@ -1,16 +1,12 @@
 const Ion = artifacts.require("Ion");
 const Clique = artifacts.require("Clique");
 const EthereumStore = artifacts.require("EthereumStore");
-const PatriciaTrie = artifacts.require("PatriciaTrie");
 const EventFunction = artifacts.require("Function");
 const EventVerifier = artifacts.require("TriggerEventVerifier");
 
 module.exports = async (deployer) => {
   try {
-      deployer.deploy(PatriciaTrie)
-      .then(() => PatriciaTrie.deployed)
-      .then(() => deployer.link(PatriciaTrie, EthereumStore))
-      .then(() => deployer.deploy(Ion, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177"))
+      deployer.deploy(Ion, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
       .then(() => Ion.deployed)
       .then(() => deployer.deploy(EthereumStore, Ion.address))
       .then(() => EthereumStore.deployed)

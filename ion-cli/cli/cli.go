@@ -79,6 +79,7 @@ func Launch(
                     c.Println(err)
                     return
                 }
+                c.Println("Added!")
 			}
 			c.Println("===============================================================")
 		},
@@ -247,20 +248,13 @@ func Launch(
                     library[name] = address
                 }
 
-                fmt.Printf("Library data: %s\n", library)
-
                 compiledContract, err := contract.CompileContractWithLibraries(contractInstance.Path, library)
                 if err != nil {
                     c.Println(err)
                     return
                 }
 
-                c.Printf("Compiled Contract: %s\n", compiledContract)
-
-                /*
                 binStr, abiStr := contract.GetContractBytecodeAndABI(compiledContract)
-
-                c.Printf("Binary string: %s\n", binStr)
 
                 account := accounts[c.Args[1]]
                 if account == nil {
@@ -280,7 +274,6 @@ func Launch(
                     c.Printf("Error parsing constructor parameters: %s\n", err)
                     return
                 }
-
 
                 payload := contract.CompilePayload(binStr, abiStr, constructorInputs...)
 
@@ -303,7 +296,7 @@ func Launch(
                     c.Println(err)
                     return
                 }
-                c.Printf("Deployed contract at: %s\n", addr.String())*/
+                c.Printf("Deployed contract at: %s\n", addr.String())
             }
 			c.Println("===============================================================")
 		},
@@ -1404,6 +1397,7 @@ func checkClientExists(client *EthClient) bool {
 }
 
 func addContractInstance(pathToContract string, contractName string, contracts map[string]*contract.ContractInstance) (error) {
+    fmt.Println("Compiling contract...")
     compiledContract, err := contract.CompileContractAt(pathToContract)
     if err != nil {
         return err
@@ -1413,6 +1407,7 @@ func addContractInstance(pathToContract string, contractName string, contracts m
     if err != nil {
         return err
     }
+    fmt.Println("Creating contract instance...")
     contracts[contractName] = &contract.ContractInstance{Contract: compiledContract, Abi: &abistruct, Path: pathToContract}
     return nil
 }

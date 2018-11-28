@@ -258,12 +258,11 @@ func CompileContractWithLibraries(contractPath string, libraries map[string]comm
         address := libraries[name]
 
         libraryArg := name + ":" + address.String()
-        args = append(args, fmt.Sprintf("--libraries=\"%s\"", libraryArg))
+        args = append(args, fmt.Sprintf("--libraries=%s", libraryArg))
     }
 
 	i := strings.Index(contractPath, contractFolder)
 	args = append(args, fmt.Sprintf("../=%s ", contractPath[:i]))
-    fmt.Println(args)
 
     contract, err := compiler.CompileSolidity("", args, contractPath)
 	if err != nil {
