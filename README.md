@@ -35,7 +35,24 @@ $ npm run test
 
 to test the full stack of contracts including our example flow.
 
-The tests should pass nicely. With that you've just interoperated your test RPC client with the Rinkeby testnet! Our repository includes some example contracts that show you how to build smart contracts that interoperate with another chain and what mechanism that looks like.
+The tests should pass as below:
+```
+    ...
+
+    Check Roots Proof
+	Gas used to submit check roots proof = 124536 gas
+      ✓ Successful Check Roots Proof (138ms)
+      ✓ Fail Roots Proof with wrong chain id (106ms)
+      ✓ Fail Roots Proof with wrong block hash (100ms)
+      ✓ Fail Roots Proof with wrong tx nodes (192ms)
+      ✓ Fail Roots Proof with wrong receipt nodes (132ms)
+
+
+  69 passing (43s)
+
+```
+
+With that you've just interoperated your test RPC client with the Rinkeby testnet! Our repository includes some example contracts that show you how to build smart contracts that interoperate with another chain and what mechanism that looks like.
 
 We'll now use these example contracts to show you exactly how interoperation with Rinkeby looks like.
 
@@ -54,14 +71,15 @@ Ethereum Block Store: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
 We will deploy our own instance of the `Function.sol` contract and pass proofs to verify a transaction that we will depend on in order to execute a function in the contract. If the proofs verify correctly then the function should emit an event to indicate that it has been executed.
 
 Procedure:
-1. `./ion-cli` Starts the CLI
-2. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
-3. `>>> addAccount me /keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is 'test'. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
-4. `>>> addContractInstance function ../contracts/functional/Function.sol` Add your functional contract instance which compiles your contract
-5. `>>> deployContract function me 1000000` Deploy your contract to Rinkeby! This will return an address that the contract is deployed at if successful. This contract has a constructor that requires two parameters to be supplied when prompted:
+1. `cd ion-cli && make` to build the CLI
+2. `./ion-cli` Starts the CLI
+3. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
+4. `>>> addAccount me /keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is 'test'. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
+5. `>>> addContractInstance function ../contracts/functional/Function.sol` Add your functional contract instance which compiles your contract
+6. `>>> deployContract function me 1000000` Deploy your contract to Rinkeby! This will return an address that the contract is deployed at if successful. This contract has a constructor that requires two parameters to be supplied when prompted:
     * `_storeAddr`: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
     * `_verifierAddr`: `0xf973eB920fDB5897d79394F2e49430dCB9aA4ea1`
-6. `>>> transactionMessage function verifyAndExecute me <deployed_address> 0 gaslimit` Call the function. This requires you to supply the deployed contract instance address. Here you will need to supply the following data as an input to the function when prompted:
+7. `>>> transactionMessage function verifyAndExecute me <deployed_address> 0 gaslimit` Call the function. This requires you to supply the deployed contract instance address. Here you will need to supply the following data as an input to the function when prompted:
     * `_chainId`: `0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177`
     * `_blockHash`: `0xf88ef06bc1a9c60457d8a4b65c4020dae2ef7f3287076a4d2d481a1bcb8e3148`
     * `_contractEmittedAddress`: `0x5dF43D6eaDc3EE940eCbf66a114486f3eF853da3`
@@ -71,7 +89,7 @@ Procedure:
     * `_receipt`: `0xf90164018311aac9b9010000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000100000000000000000000800000000000f85af858945df43d6eadc3ee940ecbf66a114486f3ef853da3e1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000b8844cf76df596e746f360957aa3af954ef51605`
     * `_receiptNodes`: `0xf90335f851a08fbb95708b2169b98ca70955d2280ea41a4490918c7097b9fbb0dc02b6c1021d80808080808080a07e520e72a52d285315cad163ae68ff5f5b9d7b2efb8bf38488428249580b8aee8080808080808080f9017180a03f63d06b509ff798f0c456e58402326006f83b1dfbddf00ee61810754489817ca05f0c69a424cccf549fa2a1e460cab220f18238fac997214049480a1c48f320eaa0faee39d4012a0db36c610ac5f41306041dee4488d47bc41242afb40582e2b8ffa0d298be00622dc72ef2d1a2df8a259bcf769d36e4502ef8b1b2dbde2d19736c3ba04f78ffe7b29e2192dee6197eeeb19f56801dfe092c3fc485f8e2ca0141dddb1ca0e1c200d90941dbf37ac5d0f37e40479de4b2fe1a0a1b398c9f64cf80d6010eb0a034d7af644f909a94dc41bfa08ae9d0ea1c0d053e0c520378e8a5f2efd6422b62a068858e77fadd9ae975d9aff2e23e40b0f50dab934654a261930a40101ce370a0a068be4c01c98beead34d05516b5236e6196d85125b89e2632f23bdf16e7b16fe4a09f0c3ad7917f3f28a66d151270d2cd4ece50fecb2bd769c38512f1e9c5f9355ea05e1856c7908a4428edb582898261e563b2356fa3d1134357b47799a3e470bcc18080808080f9016b20b90167f90164018311aac9b9010000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000100000000000000000000800000000000f85af858945df43d6eadc3ee940ecbf66a114486f3ef853da3e1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000b8844cf76df596e746f360957aa3af954ef51605`
     * `_expectedAddress`: `0xb8844cf76df596e746f360957aa3af954ef51605`
-7. Success! The transaction should have been created and sent. Check on [Etherscan](https://rinkeby.etherscan.io/address/0xb8844cf76df596e746f360957aa3af954ef51605) (or any other method) whether the transaction was successful or not. It should have succeeded!
+8. Success! The transaction should have been created and sent. Check on [Etherscan](https://rinkeby.etherscan.io/address/0xb8844cf76df596e746f360957aa3af954ef51605) (or any other method) whether the transaction was successful or not. It should have succeeded!
 
 ### Try out your own functions!
 
@@ -93,6 +111,8 @@ This results in a framework that should provide a simple interface to make proof
 * State Validation
 * State Transition Verification
 
+The two core layers of the Ion framework will need different implementations for each method/mechanism by which validation and verification can be achieved across two interoperating systems. The two layers, validation and state verification, are analogous to the functions of current systems, consensus and state transition respectively. Thus the Ion framework aims to provide interfaces to make interoperation between any ledger governed by any consensus mechanism with another through the development of such interfaces.
+
 #### State Validation
 
 In order for two systems or chains to interoperate there must be some notion of the passing of state between the systems. The passing of this state ideally must be trustless and thus the State Validation layer handles this. It's purpose is to provide a mechanism by which passed state is checked for validity and correctness. Since we draw dependence on the state of another system to trigger arbitrary code execution we must ensure that any state that is passed is indeed correct.
@@ -103,11 +123,8 @@ Once state has been passed from one system to another it can be used as a depend
 
 The State Transition Verification layer should provide a mechanism to allow checks to be made against the stored state from another system. These checks should involve discerning and/or confirming a certain piece of data or event in the state of another chain and using the successful verification to trigger the execution of code.
 
-<br/>
 
-The two core layers of the Ion framework will need different implementations for each method/mechanism by which validation and verification can be achieved across two interoperating systems. The two layers, validation and state verification, are analogous to the functions of current systems, consensus and state transition respectively. Thus the Ion framework aims to provide interfaces to make interoperation between any ledger governed by any consensus mechanism with another through the development of such interfaces.
-
-### Ethereum-Ethereum
+### Interoperating Betweeen Ethereum Chains
 
 With Ethereum, interoperation between chains is mainly a question of validation as they share the EVM. We currently have made an implementation of the Clique proof-of-authority consensus mechanism used by the Rinkeby Testnet for validation. We achieve state verifications via event consumption. Using the presence of an event in a transaction, we can verify if the expected computation was done and to only do something if the verification succeeds.
 
@@ -143,11 +160,11 @@ The Command-Line Interface reference can be found [here](./ion-cli)
 
 ## How Ion works
 
-Please see our Wiki for more detailed information about the design philosophy of Ion.
+Please see our [wiki](https://github.com/clearmatics/ion/wiki) for more detailed information about the design philosophy of Ion.
 
 # Contribute!
 
-Ion is not a finished project! We would love contributors to help evolve Ion into a universal framework for interoperability.
+We would love contributors to help evolve Ion into a universal framework for interoperability.
 
 Functional use-case smart contracts should not live in this repository. Please create use-cases in your own repositories and we'll include a link to them in our Ion-based contract catalogue.
 
