@@ -1,11 +1,14 @@
 # Ion Interoperability Framework
 The Ion Interoperability Framework is a library that provides an interface for the development of general cross-chain smart contracts.
 
-We strive towards a more interconnected fabric of systems, and to this end, methods for inter-system and cross-chain communications become paramount in facilitating this connected ecosystem. Ion is a system and function-agnostic framework for building cross-interacting smart contracts between blockchains and/or systems. It does not restrict itself to certain methods of interoperation and is not opinionated on what specific functions it should be built for and as such is an open protocol.
+## Introduction
 
+We strive towards a more interconnected fabric of systems, and to this end, methods for inter-system and cross-chain communications become paramount in facilitating this fluid ecosystem.
+
+Ion is a system and function-agnostic framework for building cross-interacting smart contracts between blockchains and/or systems. It does not restrict itself to certain methods of interoperation and is not opinionated on what specific functions it should be built for and as such is an open protocol.
 Atomic swaps and decentralised exchanges can be built on Ion and facilitate the free movement of value across different blockchains. These are just two of the possible use-cases that can be developed on top of the Ion framework.
 
-Ideally we envision Ion to evolve to become a library of tools that developers can use on any system to build cross-chain smart contracts to interoperate with any other system.
+We envision Ion to evolve to become a library of tools that developers can use on any system to build cross-chain smart contracts to interoperate with any other system.
 
 ### Contents
 * [Getting Started](#getting-started)
@@ -86,9 +89,27 @@ Develop your own cross-chain smart contracts using the Ion interface!
 
 The core of Ion revolves around the concept of dependence on state. As such, to create functional cross-chain smart contracts, the idea is to be able to make the execution of a smart contract function be dependent on some state transition to have occurred. Thus we create smart contracts that perform verification of state transitions before allowing the execution of code and this can be done many ways depending on the systems that intend to interoperate.
 
+This results in a framework that should provide a simple interface to make proofs of state and as such is comprised of two core components:
+* State Validation
+* State Transition Verification
+
+#### State Validation
+
+In order for two systems or chains to interoperate there must be some notion of the passing of state between the systems. The passing of this state ideally must be trustless and thus the State Validation layer handles this. It's purpose is to provide a mechanism by which passed state is checked for validity and correctness. Since we draw dependence on the state of another system to trigger arbitrary code execution we must ensure that any state that is passed is indeed correct.
+
+#### State Transition Verification
+
+Once state has been passed from one system to another it can be used as a dependency for code execution. This code execution should have conditions to be contingent on a certain piece of data from another system/chain. In practice this could be checking the balance of an account on another chain or asserting that some transaction has been fulfilled.
+
+The State Transition Verification layer should provide a mechanism to allow checks to be made against the stored state from another system. These checks should involve discerning and/or confirming a certain piece of data or event in the state of another chain and using the successful verification to trigger the execution of code.
+
+<br/>
+
+The two core layers of the Ion framework will need different implementations for each method/mechanism by which validation and verification can be achieved across two interoperating systems. The two layers, validation and state verification, are analogous to the functions of current systems, consensus and state transition respectively. Thus the Ion framework aims to provide interfaces to make interoperation between any ledger governed by any consensus mechanism with another through the development of such interfaces.
+
 ### Ethereum-Ethereum
 
-With Ethereum, this is done via event consumption. Using the presence of an event in a transaction, we can verify if the expected computation was done and to only do something if the verification succeeds.
+With Ethereum, interoperation between chains is mainly a question of validation as they share the EVM. We currently have made an implementation of the Clique proof-of-authority consensus mechanism used by the Rinkeby Testnet for validation. We achieve state verifications via event consumption. Using the presence of an event in a transaction, we can verify if the expected computation was done and to only do something if the verification succeeds.
 
 To write a smart contract that depends on particular state transitions there are pre-requisites:
 * Event Verifier contracts
@@ -116,6 +137,8 @@ Study the tests in the repository to discover how we've unit-tested the entire i
 
 ## Ion CLI
 
+The Ion Command-Line Interface is a tool built in Golang to provide functions to facilitate the use of the Ion framework.
+
 The Command-Line Interface reference can be found [here](./ion-cli)
 
 ## How Ion works
@@ -128,12 +151,31 @@ Ion is not a finished project! We would love contributors to help evolve Ion int
 
 Functional use-case smart contracts should not live in this repository. Please create use-cases in your own repositories and we'll include a link to them in our Ion-based contract catalogue.
 
-The repository is segmented into two main sections that require work:
+The repository is segmented into three main sections that require work:
 * Validation
 * Storage
+* CLI
+
+#### Validation
 
 Each system requires a mechanism to be able to prove the correctness/validity of any data it holds, and this mechanism must be encoded by a Validation contract. Thus each method by which data could be validated must have its own contract that describes it. For example, to validate blocks from a proof-of-authority chain, we must replicate the verification mechanism of that specific implementation.
 
+Validation contracts for the consensus mechanism of an interoperating chain would be required in order to interact with it.
+
+These should live in the `contracts/validation/` directory.
+
+#### Storage
+
 Each system holds its data in different formats, and subsequently proving that the data exists would be different. Thus a different storage contracts must be written that decode and store any arbitrary data formats for use on any other system. For example, proving a transaction exists in an Ethereum block is different from proving a UTXO in a Bitcoin block.
+
+Storage contracts for the data format and state verification mechanisms of an interoperating chain would be required in order to interact with it.
+
+These should live in the `contracts/storage/` directory.
+
+#### CLI
+
+As the developments of the above two layers progress, there may be requirements to extend the CLI to ease the use of those functions i.e. block retrieval methods, data formatting etc. With that we encourage that the CLI is extended in tandem with additions contributed to the validation or storage sections for processes that may be more cumbersome to perform manually.
+
+
 
 With the above, we aim to expand our system-specific implementations for verification of both data validity and state transitions to allow the easier development of smart contracts using these interfaces.
