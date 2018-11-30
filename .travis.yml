@@ -6,10 +6,12 @@ matrix:
     - name: "Javascript Contract Tests"
       services:
         - docker
-
-      script:
+        
+      before_script:
         - npm install
-        - npm run testrpc
+        - npm run testrpc &
+        
+      script:
         - npm run test
 
       before_install:
