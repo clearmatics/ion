@@ -34,8 +34,8 @@
   version = "1.8.13"
 
 [[constraint]]
-  branch = "solidity-compiler-addargs"
-  name = "github.com/clearmatics/autonity"
+  branch = "solidity-compiler-args"
+  name = "github.com/Shirikatsu/go-ethereum"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
