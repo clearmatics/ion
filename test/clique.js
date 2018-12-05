@@ -73,11 +73,11 @@ contract('Clique.js', (accounts) => {
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
 
-  // Fetch genesis from testrpc
-  const genesisBlock = rinkeby.eth.getBlock(0);
-  const VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
-  const GENESIS_HASH = genesisBlock.hash;
-  
+  // Fetch genesis from rinkeby
+  let genesisBlock;
+  let VALIDATORS;
+  let GENESIS_HASH;
+
   let ion;
   let clique;
   let storage;
@@ -86,6 +86,10 @@ contract('Clique.js', (accounts) => {
     ion = await MockIon.new(DEPLOYEDCHAINID);
     clique = await Clique.new(ion.address);
     storage = await MockStorage.new(ion.address);
+
+    genesisBlock = await await rinkeby.eth.getBlock(0);
+    VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
+    GENESIS_HASH = genesisBlock.hash;
   })
 
   it('Deploy Contract', async () => {
@@ -138,7 +142,7 @@ contract('Clique.js', (accounts) => {
         await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         // Fetch block 1 from rinkeby
-        const block = rinkeby.eth.getBlock(1);
+        const block = await rinkeby.eth.getBlock(1);
 
         const rlpHeaders = encoder.encodeBlockHeader(block);
         const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -170,7 +174,7 @@ contract('Clique.js', (accounts) => {
         await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         // Fetch block 1 from rinkeby
-        const block = rinkeby.eth.getBlock(1);
+        const block = await rinkeby.eth.getBlock(1);
 
         // Alter txHashin the unsigned header concatenation
         const rlpHeaders = encoder.encodeBlockHeader(block);
@@ -228,7 +232,7 @@ contract('Clique.js', (accounts) => {
         await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         // Fetch block 1 from testrpc
-        const block = web3.eth.getBlock(1);
+        const block = await rinkeby.eth.getBlock(1);
 
         const rlpHeaders = encoder.encodeBlockHeader(block);
 
@@ -241,7 +245,7 @@ contract('Clique.js', (accounts) => {
         await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
         // Fetch block 1 from testrpc
-        const block = rinkeby.eth.getBlock(1);
+        const block = await rinkeby.eth.getBlock(1);
 
         const rlpHeaders = encoder.encodeBlockHeader(block);
 
@@ -273,7 +277,7 @@ contract('Clique.js', (accounts) => {
       assert.equal(voteProposal, 0);
 
       // Fetch block 873982 from rinkeby
-      let block = rinkeby.eth.getBlock(873982);
+      let block = await rinkeby.eth.getBlock(873982);
       let rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
@@ -281,7 +285,7 @@ contract('Clique.js', (accounts) => {
       console.log("\tGas used to submit block 873982 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
 
       // Fetch block 873983 from rinkeby
-      block = rinkeby.eth.getBlock(873983);
+      block = await rinkeby.eth.getBlock(873983);
       rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
@@ -295,7 +299,7 @@ contract('Clique.js', (accounts) => {
       assert.equal(voteProposal, 1);
 
       // Fetch block 873984 from rinkeby
-      block = rinkeby.eth.getBlock(873984);
+      block = await rinkeby.eth.getBlock(873984);
       rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
@@ -303,7 +307,7 @@ contract('Clique.js', (accounts) => {
       console.log("\tGas used to submit block 873984 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
 
       // Fetch block 873985 from rinkeby
-      block = rinkeby.eth.getBlock(873985);
+      block = await rinkeby.eth.getBlock(873985);
       rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
@@ -311,7 +315,7 @@ contract('Clique.js', (accounts) => {
       console.log("\tGas used to submit block 873985 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
 
       // Fetch block 873986 from rinkeby
-      block = rinkeby.eth.getBlock(873986);
+      block = await rinkeby.eth.getBlock(873986);
       rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed

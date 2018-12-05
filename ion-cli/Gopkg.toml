@@ -34,7 +34,7 @@
   version = "1.8.13"
 
 [[constraint]]
-  branch = "solidity-compiler-addargs"
+  branch = "solidity-compiler-args"
   name = "github.com/Shirikatsu/go-ethereum"
 
 [[constraint]]

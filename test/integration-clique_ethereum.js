@@ -159,9 +159,9 @@ const TRIG_GENESIS_HASH = TESTBLOCK.parentHash;
 
 
 contract('Clique-Ethereum Integration', (accounts) => {
-    const genesisBlock = rinkeby.eth.getBlock(0);
-    const VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
-    const GENESIS_HASH = genesisBlock.hash;
+    let genesisBlock;
+    let VALIDATORS;
+    let GENESIS_HASH;
 
     let ion;
     let clique;
@@ -171,6 +171,10 @@ contract('Clique-Ethereum Integration', (accounts) => {
         ion = await Ion.new(DEPLOYEDCHAINID);
         clique = await Clique.new(ion.address);
         storage = await EthereumStore.new(ion.address);
+
+        genesisBlock = await rinkeby.eth.getBlock(0);
+        VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
+        GENESIS_HASH = genesisBlock.hash;
     })
 
     describe('Register Clique Module', () => {
@@ -223,7 +227,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
             // Fetch block 1 from rinkeby
-            const block = rinkeby.eth.getBlock(1);
+            const block = await rinkeby.eth.getBlock(1);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -244,7 +248,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -265,7 +269,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 //            await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
             // Fetch block 1 from rinkeby
-            const block = rinkeby.eth.getBlock(1);
+            const block = await rinkeby.eth.getBlock(1);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -279,7 +283,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
 
             // Fetch block 2 from rinkeby instead of block 1
-            const block = rinkeby.eth.getBlock(2);
+            const block = await rinkeby.eth.getBlock(2);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -290,7 +294,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
         it('Fail Add Block from non-clique', async () => {
             // Fetch block 1 from rinkeby
-            const block = rinkeby.eth.getBlock(1);
+            const block = await rinkeby.eth.getBlock(1);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -307,7 +311,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -330,7 +334,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -352,7 +356,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -374,7 +378,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -398,7 +402,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -421,7 +425,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -443,7 +447,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -465,7 +469,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -489,7 +493,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -512,7 +516,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -535,7 +539,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -558,7 +562,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -581,7 +585,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -614,7 +618,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
@@ -643,7 +647,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
             // Fetch block 2657422 from rinkeby
-            const block = rinkeby.eth.getBlock(TESTBLOCK.number);
+            const block = await rinkeby.eth.getBlock(TESTBLOCK.number);
 
             const rlpHeaders = encoder.encodeBlockHeader(block);
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
