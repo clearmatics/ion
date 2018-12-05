@@ -35,7 +35,7 @@
 
 [[constraint]]
   branch = "solidity-compiler-addargs"
-  name = "github.com/clearmatics/autonity"
+  name = "github.com/Shirikatsu/go-ethereum"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
