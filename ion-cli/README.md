@@ -4,7 +4,11 @@ The Command-Line Interface reference.
 
 ## Building the CLI
 
-Clean the directory: `make clean`
+Clean the directory: `make clean`.
+
+### Requirements
+
+* [`solc`](https://github.com/ethereum/solidity/releases)
 
 Run `make build` to fetch sources and compile the binary. This will error if attempted to be built outside of your `GOPATH`.
 
