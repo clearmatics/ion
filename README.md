@@ -21,6 +21,8 @@ We envision Ion to evolve to become a library of tools that developers can use o
 
 Clone the repository and ensure that all the components work out of the box.
 
+You will need [`nodejs`](https://nodejs.org/en/) and [`golang`](https://golang.org/) installed.
+
 Run:
 
 ```
