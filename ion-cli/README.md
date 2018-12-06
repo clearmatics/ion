@@ -4,7 +4,9 @@ The Command-Line Interface reference.
 
 ## Building the CLI
 
-Run `make build` to fetch sources and compile the binary.
+Clean the directory: `make clean`
+
+Run `make build` to fetch sources and compile the binary. This will error if attempted to be built outside of your `GOPATH`.
 
 ## Usage
 
