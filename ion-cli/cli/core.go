@@ -217,7 +217,7 @@ func parseMethodParameters(c *ishell.Context, abiStruct *abi.ABI, methodName str
                         copy(byteArray[:], bytes[:32])
                         args = append(args, byteArray)
                     default:
-                        errStr := fmt.Sprintf("Error parsing fixed size byte array. Array of size %i incompatible", argument.Type.Size)
+                        errStr := fmt.Sprintf("Error parsing fixed size byte array. Array of size %d incompatible", argument.Type.Size)
                         return nil, errors.New(errStr)
                     }
                     continue

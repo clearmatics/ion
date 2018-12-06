@@ -179,7 +179,7 @@ func ConvertAndAppend(c *ishell.Context, input string, argument *abi.Argument, o
                     copy(byteArray[:], bytes[:32])
                     output = append(output, byteArray)
                 default:
-                    errStr := fmt.Sprintf("Error parsing fixed size byte array. Array of size %i incompatible", argument.Type.Size)
+                    errStr := fmt.Sprintf("Error parsing fixed size byte array. Array of size %d incompatible", argument.Type.Size)
                     return nil, errors.New(errStr)
                 }
                 return output, nil
