@@ -73,7 +73,7 @@ Ethereum Block Store: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
 We will deploy our own instance of the `Function.sol` contract and pass proofs to verify a transaction that we will depend on in order to execute a function in the contract. If the proofs verify correctly then the function should emit an event to indicate that it has been executed.
 
 Procedure:
-1. `cd ion-cli && make` to build the CLI
+1. We'll need the CLI here, [build the CLI](./ion-cli/).
 2. `./ion-cli` Starts the CLI
 3. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
 4. `>>> addAccount me ./keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is 'test'. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
