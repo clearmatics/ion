@@ -1,4 +1,4 @@
-requests==2.18.4
+requests==2.20.0
 eth-abi==1.0.0
 eth-hash==0.1.0
 eth-utils==1.0.1
