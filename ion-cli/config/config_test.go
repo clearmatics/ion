@@ -40,7 +40,7 @@ func Test_InitUser(t *testing.T) {
 	expectedFrom := common.HexToAddress("2be5ab0e43b6dc2908d5321cf318f35b80d0c10d")
 	expectedPrivateKey := "e176c157b5ae6413726c23094bb82198eb283030409624965231606ec0fbe65b"
 
-	auth, userkey := config.InitUser(keystore, password)
+	auth, userkey, err := config.InitUser(keystore, password)
 
 	assert.Equal(t, auth.From, expectedFrom)
 	privateKey := fmt.Sprintf("%x", crypto.FromECDSA(userkey.PrivateKey))
