@@ -76,7 +76,7 @@ Procedure:
 1. `cd ion-cli && make` to build the CLI
 2. `./ion-cli` Starts the CLI
 3. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
-4. `>>> addAccount me /keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is 'test'. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
+4. `>>> addAccount me ./keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is 'test'. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
 5. `>>> addContractInstance function ../contracts/functional/Function.sol` Add your functional contract instance which compiles your contract
 6. `>>> deployContract function me 1000000` Deploy your contract to Rinkeby! This will return an address that the contract is deployed at if successful. This contract has a constructor that requires two parameters to be supplied when prompted:
     * `_storeAddr`: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
