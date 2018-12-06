@@ -41,7 +41,7 @@ func Test_InitUser(t *testing.T) {
 	expectedPrivateKey := "e176c157b5ae6413726c23094bb82198eb283030409624965231606ec0fbe65b"
 
 	auth, userkey, err := config.InitUser(keystore, password)
-	assert.Equal(err, nil)
+	assert.Equal(t, err, nil)
 
 	assert.Equal(t, auth.From, expectedFrom)
 	privateKey := fmt.Sprintf("%x", crypto.FromECDSA(userkey.PrivateKey))
