@@ -8,7 +8,7 @@ Clean the directory: `make clean`.
 
 ### Requirements
 
-* [`solc`](https://github.com/ethereum/solidity/releases)
+* [`solc`](https://github.com/ethereum/solidity/releases) ensure matching compiler version with target solidity code as 0.4.x will not be compatible with solc 0.5
 
 Run `make build` to fetch sources and compile the binary. This will error if attempted to be built outside of your `GOPATH`.
 
