@@ -8,7 +8,7 @@ contract IonCompatible {
         blocks have been submitted to the Ion contract. */
     Ion internal ion;
 
-    constructor(address ionAddr) public {
-        ion = Ion(ionAddr);
+    constructor(address _ionAddr) public {
+        ion = Ion(_ionAddr);
     }
 }

@@ -1,17 +1,12 @@
 pragma solidity ^0.4.23;
 
 import "truffle/Assert.sol";
-import "truffle/DeployedAddresses.sol";
 import "../contracts/libraries/PatriciaTrie.sol";
 
 contract PatriciaTrieTest {
-    PatriciaTrie instance;
+    constructor() public {}
 
-    constructor() public {
-        instance = PatriciaTrie(DeployedAddresses.PatriciaTrie());
-    }
-
-    function testVerifyNestedNodes() returns (bool) {
+    function testSucceedVerifyNestedNodes() returns (bool) {
         bytes32 rootHash = 0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c;
 
         bytes memory path = hex"61";
@@ -45,11 +40,11 @@ contract PatriciaTrieTest {
         Assert.isTrue( PatriciaTrie.verifyProof(value, nodes, path, rootHash), "PatriciaTrie verify failed" );
     }
 
-    function FailVerifyNestedNodes() returns (bool) {
+    function testFailVerifyNestedNodes() returns (bool) {
         bytes32 rootHash = 0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c;
 
-        bytes memory path = hex"62";
-        bytes memory value = hex"857465737431";
+        bytes memory path = hex"61";
+        bytes memory value = hex"857465737432";
         bytes memory nodes = hex"f83bf839808080808080c8318685746573743180a0207947cf85c03bd3d9f9ff5119267616318dcef0e12de2f8ca02ff2cdc720a978080808080808080";
 
         Assert.isFalse( PatriciaTrie.verifyProof(value, nodes, path, rootHash), "PatriciaTrie verify failed" );

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.23;
 
-import "./IonCompatible.sol";
+import "../storage/EthereumStore.sol";
 
 contract TriggerEventVerifier {
     function verify(bytes20 _contractEmittedAddress, bytes _rlpReceipt, bytes20 _expectedAddress) public returns (bool);
@@ -23,7 +23,8 @@ contract TriggerEventVerifier {
     This would also bloat the local scope which is prone to 'stack too deep' issues which would require custom
     workarounds.
 */
-contract Function is IonCompatible {
+contract Function {
+    EthereumStore blockStore;
 
     /*  The event verifier for the specific event being consumed. Each event would require a different event verifier to
         be deployed and each consumer would reference the relevant verifier to prove logs. */
@@ -34,7 +35,8 @@ contract Function is IonCompatible {
 
     /*  Constructor. Requires Ion contract address and all used event verifier contract addresses. In this case we only
         use one verifier. */
-    constructor(address _ionAddr, address _verifierAddr) IonCompatible(_ionAddr) public {
+    constructor(address _storeAddr, address _verifierAddr) public {
+        blockStore = EthereumStore(_storeAddr);
         verifier = TriggerEventVerifier(_verifierAddr);
     }
 
@@ -81,17 +83,13 @@ contract Function is IonCompatible {
         bytes _receipt,
         bytes _receiptNodes,
         bytes20 _expectedAddress
-    ) public returns (bool) {
-        assert( ion.CheckRootsProof(_chainId, _blockHash, _txNodes, _receiptNodes) );
-        assert( ion.CheckTxProof(_chainId, _blockHash, _tx, _txNodes, _path) );
-        assert( ion.CheckReceiptProof(_chainId, _blockHash, _receipt, _receiptNodes, _path) );
+    ) public {
+        assert( blockStore.CheckRootsProof(_chainId, _blockHash, _txNodes, _receiptNodes) );
+        assert( blockStore.CheckTxProof(_chainId, _blockHash, _tx, _txNodes, _path) );
+        assert( blockStore.CheckReceiptProof(_chainId, _blockHash, _receipt, _receiptNodes, _path) );
 
-        if (verifier.verify(_contractEmittedAddress, _receipt, _expectedAddress)) {
-            execute();
-            return true;
-        } else {
-            return false;
-        }
+        require( verifier.verify(_contractEmittedAddress, _receipt, _expectedAddress), "Event verification failed." );
+        execute();
     }
 }
 

@@ -10,8 +10,11 @@ import (
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/clearmatics/ion/ion-cli/utils"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // Header used to marshall blocks into a string based struct
@@ -33,9 +36,15 @@ type header struct {
 	Nonce       string `json:"nonce"`
 }
 
-func latestBlock(client *ethclient.Client) (lastBlock *types.Header) {
+type EthClient struct {
+    client *ethclient.Client
+    rpcClient *rpc.Client
+    url string
+}
+
+func latestBlock(eth *EthClient) (lastBlock *types.Header) {
 	// var lastBlock Block
-	lastBlock, err := client.HeaderByNumber(context.Background(), nil)
+	lastBlock, err := eth.client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
 		fmt.Println("can't get latest block:", err)
 		return nil
@@ -44,50 +53,82 @@ func latestBlock(client *ethclient.Client) (lastBlock *types.Header) {
 	return
 }
 
-func getBlock(client *ethclient.Client, block string) {
+func getBlockByNumber(eth *EthClient, number string) (*types.Header, []byte, error) {
 	// var blockHeader header
 	blockNum := new(big.Int)
-	blockNum.SetString(block, 10)
+	blockNum.SetString(number, 10)
 
-	lastBlock, err := client.HeaderByNumber(context.Background(), blockNum)
+	block, err := eth.client.HeaderByNumber(context.Background(), blockNum)
 	if err != nil {
-		fmt.Println("can't get requested block:", err)
-		return
+		return nil, nil, err
 	}
 	// Marshal into a JSON
-	b, err := json.MarshalIndent(lastBlock, "", " ")
+	b, err := json.MarshalIndent(block, "", " ")
 	if err != nil {
-		fmt.Printf("Error: %s", err)
-		return
+		return nil, nil, err
 	}
-	fmt.Println("Block:", block)
-	fmt.Println(string(b))
+	return block, b, nil
 }
 
-// func calculateRlpEncoding(client *ethclient.Client, block string) {
-func calculateRlpEncoding(client *ethclient.Client, block string) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
-	// var blockHeader header
-	blockNum := new(big.Int)
-	blockNum.SetString(block, 10)
+func getBlockByHash(eth *EthClient, hash string) (*types.Header, []byte, error) {
+	blockHash := common.HexToHash(hash)
 
-	lastBlock, err := client.HeaderByNumber(context.Background(), blockNum)
+	block, err := eth.client.HeaderByHash(context.Background(), blockHash)
 	if err != nil {
-		fmt.Println("can't get requested block:", err)
-		return
+		return nil, nil, err
 	}
+	// Marshal into a JSON
+	b, err := json.MarshalIndent(block, "", " ")
+	if err != nil {
+		return nil, nil, err
+	}
+	return block, b, nil
+}
 
+func getTransactionByHash(eth *EthClient, hash string) (*types.Transaction, []byte, error) {
+	txHash := common.HexToHash(hash)
+
+	tx, _, err := eth.client.TransactionByHash(context.Background(), txHash)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Marshal into a JSON
+	t, err := json.MarshalIndent(tx, "", " ")
+	if err != nil {
+		return nil, nil, err
+	}
+	return tx, t, nil
+}
+
+func getProof(eth *EthClient, transactionHash string) {
+    // Get the transaction hash
+    bytesTxHash := common.HexToHash(transactionHash)
+
+    // Generate the proof
+    txPath, txValue, txNodes, receiptValue, receiptNodes := utils.GenerateProof(
+        context.Background(),
+        eth.rpcClient,
+        bytesTxHash,
+    )
+
+    fmt.Printf( "Path:           0x%x\n" +
+                "TxValue:        0x%x\n" +
+                "TxNodes:        0x%x\n" +
+                "ReceiptValue:   0x%x\n" +
+                "ReceiptNodes:   0x%x\n", txPath, txValue, txNodes, receiptValue, receiptNodes)
+}
+
+func RlpEncode(blockHeader *types.Header) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
 	// Encode the orginal block header
-	_, err = rlp.EncodeToBytes(&lastBlock)
+	_, err := rlp.EncodeToBytes(&blockHeader)
 	if err != nil {
 		fmt.Println("can't RLP encode requested block:", err)
 		return
 	}
 
 	// Generate an interface to encode the blockheader without the signature in the extraData
-	rlpSignedBlock = encodeSignedBlock(lastBlock)
-	fmt.Printf("\nSigned Block Header Prefix:\n%+x\n", rlpSignedBlock)
-	rlpUnsignedBlock = encodeUnsignedBlock(lastBlock)
-	fmt.Printf("\nUnsigned Block Header Prefix:\n%+x\n", rlpUnsignedBlock)
+	rlpSignedBlock = encodeSignedBlock(blockHeader)
+	rlpUnsignedBlock = encodeUnsignedBlock(blockHeader)
 
 	return rlpSignedBlock, rlpUnsignedBlock
 
