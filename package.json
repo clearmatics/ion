@@ -8,13 +8,21 @@
   "license": "LGPL-3.0+",
   "dependencies": {
     "babel-preset-node6": "^11.0.0",
-    "solc": "^0.4.24"
+    "bignumber.js": "^8.0.1",
+    "ethereumjs-block": "^2.0.0",
+    "ethereumjs-tx": "^1.3.5",
+    "merkle-patricia-tree": "^2.3.1",
+    "node-gyp": "^3.8.0",
+    "rlp": "^2.0.0",
+    "solc": "^0.4.25",
+    "solhint": "^1.1.10",
+    "truffle-assertions": "^0.6.3",
+    "web3-eth-accounts": "^1.0.0-beta.34"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-env": "^1.6.1",
     "babel-register": "^6.26.0",
     "bluebird": "^3.5.1",
     "chai": "^4.1.2",
@@ -22,22 +30,22 @@
     "chai-bignumber": "^2.0.2",
     "ganache-cli": "^6.1.3",
     "json-bigint-string": "^1.0.0",
-    "solidity-coverage": "^0.5.4",
-    "solhint": "^1.1.10",
-    "truffle": "^4.1.11",
-    "web3-eth-abi": "^1.0.0-beta.34",
-    "web3-utils": "^1.0.0-beta.34"
+    "solidity-coverage": "^0.5.0",
+    "truffle": "^4.1.7",
+    "web3": "^1.0.0-beta.33",
+    "web3-eth-abi": "^1.0.0-beta.33",
+    "web3-utils": "^1.0.0-beta.33"
   },
   "scripts": {
-    "testrpc": "ganache-cli --gasLimit 0xFFFFFFF --gasPrice 1 --network-id 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
-    "testrpca": "ganache-cli --port 8545 --gasLimit 0xFFFFFFF --gasPrice 1 --networkId 1234 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
-    "testrpcb": "ganache-cli --port 8546 --gasLimit 0xFFFFFFF --gasPrice 1 --networkId 5678 --deterministic grape crisp enroll avoid satoshi picnic term dice gown grocery situate depart",
+    "testrpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
+    "clirpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "compile": "truffle compile",
     "deploy": "truffle deploy",
-    "deploya": "truffle deploy --network testrpca",
-    "deployb": "truffle deploy --network testrpcb",
     "test": "truffle test",
+    "debug": "truffle debug",
     "coverage": "solidity-coverage",
-    "lint": "solhint contracts/**/*.sol"
+    "lint": "solhint contracts/**/*.sol",
+    "genbin": "solc --overwrite --bin ./contracts/*.sol -o abi",
+    "genabi": "solc --overwrite --abi ./contracts/*.sol -o abi"
   }
 }

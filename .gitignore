@@ -1,4 +1,5 @@
 /build
+/abi
 /dist
 /chaindata
 /node_modules

@@ -3,27 +3,41 @@
 
 const crypto = require('crypto')
 
-// Format required for sending bytes through eth client:
-//  - hex string representation
-//  - prefixed with 0x
-const bufToStr = b => '0x' + b.toString('hex')
+const utils = {};
+  // Format required for sending bytes through eth client:
+  //  - hex string representation
+  //  - prefixed with 0x
+utils.bufToStr = b => '0x' + b.toString('hex')
 
-const gasPrice = 100000000000 // truffle fixed gas price
-const joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('')
-const oneFinney = web3.toWei(1, 'finney')
+utils.gasPrice = 100000000000 // truffle fixed gas price
+utils.joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('')
+utils.oneFinney = web3.toWei(1, 'finney')
 
+utils.hexToBytes = (hex) => {
+  for (var bytes = [], c = 0; c < hex.length; c += 2)
+  bytes.push(parseInt(hex.substr(c, 2), 16));
+  return bytes;
+}
 
-const sha256 = x =>
+utils.bytesToHex = (bytes) => {
+  for (var hex = [], i = 0; i < bytes.length; i++) {
+      hex.push((bytes[i] >>> 4).toString(16));
+      hex.push((bytes[i] & 0xF).toString(16));
+  }
+  return hex.join("");
+}
+
+utils.sha256 = x =>
   crypto
     .createHash('sha256')
     .update(x)
     .digest()
 
-const random32 = () => crypto.randomBytes(32)
+utils.random32 = () => crypto.randomBytes(32)
 
-const randomHex = () => crypto.randomBytes(32).toString('hex');
+utils.randomHex = () => crypto.randomBytes(32).toString('hex');
 
-const randomArr = () => {
+utils.randomArr = () => {
   const result = []
   const size =(Math.floor(Math.random() * 10) + 1);
   for(let i = size; 0 < i; i-- )
@@ -31,7 +45,7 @@ const randomArr = () => {
   return result
 }
 
-const isSha256Hash = hashStr => /^0x[0-9a-f]{64}$/i.test(hashStr)
+utils.isSha256Hash = hashStr => /^0x[0-9a-f]{64}$/i.test(hashStr)
 
 const newSecretHashPair = () => {
   const secret = random32()
@@ -42,12 +56,12 @@ const newSecretHashPair = () => {
   }
 }
 
-const sleep = ms => {
+utils.sleep = ms => {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
-const txLoggedArgs = txReceipt => txReceipt.logs[0].args
-const txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
+utils.txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
+utils.txLoggedArgs = txReceipt => txReceipt.logs[0].args
+utils.txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
 
-module.exports = {bufToStr, joinHex, newSecretHashPair, oneFinney, random32, randomArr, randomHex, sha256, sleep, txGas, txLoggedArgs}
+module.exports = utils;
