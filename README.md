@@ -81,7 +81,7 @@ Procedure:
 6. `>>> deployContract function me 1000000` Deploy your contract to Rinkeby! This will return an address that the contract is deployed at if successful. This contract has a constructor that requires two parameters to be supplied when prompted:
     * `_storeAddr`: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
     * `_verifierAddr`: `0xf973eB920fDB5897d79394F2e49430dCB9aA4ea1`
-7. `>>> transactionMessage function verifyAndExecute me <deployed_address> 0 100000` Call the function. This requires you to supply the deployed contract instance address. Here you will need to supply the following data as an input to the function when prompted:
+7. `>>> transactionMessage function verifyAndExecute me <deployed_address> 0 1000000` Call the function. This requires you to supply the deployed contract instance address. Here you will need to supply the following data as an input to the function when prompted:
     * `_chainId`: `0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177`
     * `_blockHash`: `0xf88ef06bc1a9c60457d8a4b65c4020dae2ef7f3287076a4d2d481a1bcb8e3148`
     * `_contractEmittedAddress`: `0x5dF43D6eaDc3EE940eCbf66a114486f3eF853da3`
