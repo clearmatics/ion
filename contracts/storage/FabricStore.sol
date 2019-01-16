@@ -18,8 +18,7 @@ contract FabricStore is BlockStore {
         string dataHash;
         uint timestamp_s;
         uint timestamp_nanos;
-        mapping (string => bool) transactions;
-        mapping (string => Transaction) m_transactions;
+        string[] transactions;
     }
 
     struct Transaction {
@@ -51,14 +50,17 @@ contract FabricStore is BlockStore {
 
     mapping (string => string) internal m_ledgerState;
     mapping (string => Channel) internal m_channels;
+    mapping (string => Transaction) internal m_transactions;
+    mapping (string => bool) internal m_transactions_exist;
 
     constructor(address _ionAddr) BlockStore(_ionAddr) public {}
 
+    // Function name is inaccurate for Fabric due to blocks being a sub-structure to a channel
+    // Will need refactoring
     function addBlock(bytes32 _chainId, bytes32 _blockHash, bytes _blockBlob)
         onlyIon
         onlyRegisteredChains(_chainId)
     {
-        require(!m_blockhashes[_blockHash], "Block already exists" );
         RLP.RLPItem[] memory data = _blockBlob.toRLPItem().toList();
 
         // Iterate all channel objects in the data structure
@@ -69,7 +71,7 @@ contract FabricStore is BlockStore {
         emit BlockAdded(_chainId, _blockHash);
     }
 
-    function decodeAndAddChannelObject(bytes _channelRLP) internal {
+    function decodeChannelObject(bytes _channelRLP) internal {
         RLP.RLPItem[] memory channelRLP = _channelRLP.toRLPItem().toList();
 
         string channelId = channelRLP[0].toAscii();
@@ -84,18 +86,19 @@ contract FabricStore is BlockStore {
 
         // Iterate all blocks in the channel structure.
         for (uint i = 0; i < blocksRLP.length; i++) {
-            decodeAndAddBlockObject(channel, blocksRLP[i]);
+            Block memory block = decodeBlockObject(channelId, blocksRLP[i]);
+            require(!channel.blocks[block.hash], "Block with identical hash already exists");
+            channel.blocks[block.hash] = true;
+            channel.m_blocks[block.hash] = block;
         }
     }
 
-    function decodeAndAddBlockObject(Channel storage _channel, bytes _blockRLP) internal {
+    function decodeBlockObject(string _channelId, bytes _blockRLP) internal returns (Block memory){
         RLP.RLPItem[] memory blockRLP = _blockRLP.toRLPItem().toList();
 
         string blockHash = blockRLP[0].toAscii();
 
-        require(!_channel.blocks[blockHash], "Block hash already exists");
-        _channel.blocks[blockHash] = true;
-        Block storage block = _channel.m_blocks[blockHash];
+        Block memory block;
 
         block.number = blockRLP[1].toUint();
         block.hash = blockHash;
@@ -106,67 +109,79 @@ contract FabricStore is BlockStore {
 
         RLP.RLPItem[] memory txnsRLP = blockRLP[6].toRLPItem().toList();
 
+        block.transactions = new string[](txnsRLP.length);
+
         // Iterate all transactions in the block
         for (uint i = 0; i < txnsRLP.length; i++) {
-            decodeAndAddTxObject(block, txnsRLP[i]);
+            block.transactions[i] = decodeTxObject(_channelId, blockHash, txnsRLP[i]);
         }
+
+        return block;
     }
 
-    function decodeAndAddTxObject(Block storage _block, bytes _txRLP) internal {
+    function decodeTxObject(bytes _txRLP) internal returns (string) {
         RLP.RLPItem[] memory txRLP = _txRLP.toRLPItem().toList();
 
         string txId = txRLP[0].toAscii();
 
-        require(!_block.transactions[txId], "Transaction ID already exists");
-        _block.transactions[txId] = true;
+        require(!m_transactions_exist[txId], "Transaction ID already exists");
+        m_transactions_exist[txId] = true;
 
-        Transaction storage tx = _block.transactions[txId];
+        Transaction storage tx = m_transactions[txId];
         tx.id = txId;
 
         RLP.RLPItem[] memory namespacesRLP = txRLP[0].toRLPItem().toList();
 
         // Iterate all namespace rwsets in the transaction
         for (uint i = 0; i < namespacesRLP.length; i++) {
-            decodeAndAddNamespaceRW(tx, namespacesRLP[i]);
+            Namespace memory namespace = decodeNamespaceRW(namespacesRLP[i]);
+            tx.m_nsrw[namespace.namespace] = namespace;
         }
+
+        return txId;
     }
 
-    function decodeAndAddNamespaceRW(Transaction storage _tx, bytes _nsrwRLP) internal {
+    function decodeNamespaceRW(bytes _nsrwRLP) internal returns (Namespace memory) {
         RLP.RLPItem[] memory nsrwRLP = _nsrwRLP.toRLPItem().toList();
 
         string namespace = nsrwRLP[0].toAscii();
 
-        Namespace storage ns = _tx.m_nsrw[namespace];
-        ns.namespace = namespace;
-
         // Iterate all read sets in the namespace
         RLP.RLPItem[] memory readsetsRLP = nsrwRLP[1].toRLPItem().toList();
+        ReadSet[] memory readsets = new ReadSet[](readsetsRLP.length);
         for (uint i = 0; i < readsetsRLP.length; i++) {
-            ns.reads.push(decodeReadset(readsetsRLP[i]));
+            readsets[i] = decodeReadset(readsetsRLP[i]);
         }
 
         // Iterate all write sets in the namespace
         RLP.RLPItem[] memory writesetsRLP = nsrwRLP[2].toRLPItem().toList();
+        WriteSet[] memory writesets = new Writeset[](writesetsRLP.length);
         for (uint j = 0; j < writesetsRLP.length; j++) {
-            ns.writes.push(decodeAndAddWriteset(ns, writesetsRLP[i]));
+            writesets[i] = decodeWriteset(writesetsRLP[i]);
         }
+
+        return Namespace(namespace, readsets, writesets);
     }
 
-    function decodeAndAddReadset(bytes _readsetRLP) internal returns (ReadSet storage) {
+    function decodeReadset(bytes _readsetRLP) internal returns (ReadSet memory) {
         RLP.RLPItem[] memory readsetRLP = _readsetRLP.toRLPItem().toList();
 
         string key = readsetRLP[0].toAscii();
 
-        RLP.RLPItem[] storage rsv = readsetRLP[1].toRLPItem().toList();
+        RLP.RLPItem[] memory rsv = readsetRLP[1].toRLPItem().toList();
 
         uint blockNo = rsv[0].toUint();
-        uint txNo = rsv[1].toUint();
-        RSVersion storage version = RSVersion(blockNo, txNo);
+        uint txNo = 0;
+
+        if (rsv.length > 1) {
+            txNo = rsv[1].toUint();
+        }
+        RSVersion memory version = RSVersion(blockNo, txNo);
 
         return Readset(key, version);
     }
 
-    function decodeAndAddWriteset(Namespace storage _ns, bytes _writesetRLP) internal returns (WriteSet storage){
+    function decodeWriteset(bytes _writesetRLP) internal returns (WriteSet memory){
         RLP.RLPItem[] memory writesetRLP = _writesetRLP.toRLPItem().toList();
 
         string key = writesetRLP[0].toAscii();
