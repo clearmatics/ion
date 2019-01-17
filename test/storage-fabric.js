@@ -25,7 +25,7 @@ const web3 = new Web3();
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
 const MockIon = artifacts.require("MockIon");
-const EthereumStore = artifacts.require("FabricStore");
+const FabricStore = artifacts.require("FabricStore");
 
 require('chai')
  .use(require('chai-as-promised'))
