@@ -40,38 +40,50 @@ TESTRPC TEST DATA
 const block = web3.eth.getBlock(1);
 
 const TESTDATA = [{
-    channelId: "ch1",
+    channelId: "orgchannel",
     blocks: [{
-        hash: "bTBvR22HJGYhxAiBb4HQapVmuQ2YhDfnvxP20T3rgA==",
-        number: 1,
-        prevHash: "fyBPC7a86s4JuL+4fBv9Px71ypvHzHxauc/RsBu8aDc=",
-        dataHash: "BaC3tFqz0blHsA9vH9vFLvexSUehf+7ocWUNEw/ygVo=",
-        timestampS: 1494408444,
-        timestampN: 903695991,
+        hash: "ZWRtvD5Qw-qpV_Ss3TJIpjS-oc-Eh9vCzYRETHZLdIg",
+        number: 4,
+        prevHash: "Z2_xbMXvb6GmgwbVPjATH8-OmTExmro_qZgR7HR7ZwQ",
+        dataHash: "honzEasuVR5cQx756QISDvADD2lgeov6k8WAx5WJ0iU",
+        timestampS: 1547722778,
+        timestampN: 111393784,
         transactions: [{
-            txId: "2a087008a13eb1341d5e921fded1e122b271be038443e65b5f40c6b34d6fa481",
+            txId: "b19cbdf267a5b41a6889cff3f3577aefb9da80ac597f7c25af482e47dc9d6eb0",
             nsrw: [{
-                namespace: "cc1",
+                namespace: "ExampleCC",
                 readsets: [{
-                    key: "key1",
+                    key: "A",
                     version: {
-                        blockNumber: 0,
-                        txNumber: 1
+                        blockNumber: 3,
+                        txNumber: 0
                     }
                 }, {
-                   key: "key2",
+                   key: "B",
                    version: {
-                       blockNumber: 0,
-                       txNumber: 1
+                       blockNumber: 3,
+                       txNumber: 0
                    }
                 }],
                 writesets: [{
-                    key: "key1",
-                    value: "Hello"
+                    key: "A",
+                    isDelete: "false",
+                    value: "0"
                 }, {
-                    key: "key2",
-                    value: "World"
+                    key: "B",
+                    isDelete: "false",
+                    value: "3"
                 }]
+            }, {
+                namespace: "lscc",
+                readsets: [{
+                    key: "ExampleCC",
+                    version: {
+                        blockNumber: 3,
+                        txNumber: 0
+                    }
+                }],
+                writesets: []
             }]
         }]
     }]
@@ -105,11 +117,23 @@ const formattedData = [[
                 ]],
                 [[
                    TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].key,
+                   TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].isDelete,
                    TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].value
                 ],[
                    TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].key,
+                   TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].isDelete,
                    TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].value
                 ]]
+             ], [
+                TESTDATA[0].blocks[0].transactions[0].nsrw[0].namespace,
+                [[
+                   TESTDATA[0].blocks[0].transactions[0].nsrw[0].readsets[0].key,
+                   [
+                        TESTDATA[0].blocks[0].transactions[0].nsrw[0].readsets[0].version.blockNumber,
+                        TESTDATA[0].blocks[0].transactions[0].nsrw[0].readsets[0].version.txNumber
+                   ]
+                ]],
+                []
              ]]
         ]]
     ]
@@ -155,9 +179,11 @@ contract('FabricStore.sol', (accounts) => {
             // Successfully add id of another chain
             await ion.addChain(storage.address, TESTCHAINID);
 
-            console.log(formattedData);
+            let rlpEncodedBlock = "0x" + rlp.encode(formattedData).toString('hex');
 
-//            await ion.storeBlock(storage.address, TESTCHAINID, TESTDATA[0].blocks[0].hash, TESTRLPENCODING);
+            await ion.storeBlock(storage.address, TESTCHAINID, "0x0", rlpEncodedBlock);
+
+
         })
     })
 })

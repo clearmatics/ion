@@ -232,8 +232,10 @@ library RLP {
         uint rStartPos;
         uint len;
         (rStartPos, len) = _decode(self);
-        if (len > 32 || len == 0)
+        if (len > 32)
             revert();
+        else if (len == 0)
+            return 0;
         assembly {
             data := div(mload(rStartPos), exp(256, sub(32, len)))
         }
