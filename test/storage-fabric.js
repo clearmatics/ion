@@ -183,7 +183,13 @@ contract('FabricStore.sol', (accounts) => {
 
             await ion.storeBlock(storage.address, TESTCHAINID, "0x0", rlpEncodedBlock);
 
+            let block = await storage.getBlock.call(TESTCHAINID, TESTDATA[0].channelId, TESTDATA[0].blocks[0].hash);
+            console.log(block);
 
+            let tx = await storage.getTransaction.call(TESTCHAINID, TESTDATA[0].channelId, TESTDATA[0].blocks[0].transactions[0].txId);
+            console.log(tx);
+
+//            assert.equal(chainId, TESTCHAINID);
         })
     })
 })
