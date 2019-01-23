@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./BlockStore.sol";
 import "../libraries/RLP.sol";
+import "../libraries/SolidityUtils.sol";
 
 contract FabricStore is BlockStore {
     using RLP for RLP.RLPItem;
@@ -79,9 +80,6 @@ contract FabricStore is BlockStore {
         Chain storage chain = m_networks[_chainId];
         chain.id = _chainId;
 
-        Channel storage channel = m_networks[_chainId].m_channels["c"];
-        channel.id = "c";
-
         return true;
     }
 
@@ -114,7 +112,7 @@ contract FabricStore is BlockStore {
 //
 //        // Iterate all blocks in the channel structure. Currently not used as we only focus on parsing single blocks
 //        for (uint i = 0; i < blocksRLP.length; i++) {
-//            Block memory block = decodeBlockObject(channelId, blocksRLP[i].toBytes());
+//            Block memory block = decodeBlockObject(_chainId, channelId, channelRLP[1].toBytes());
 //            require(!channel.blocks[block.hash], "Block with identical hash already exists");
 //            channel.blocks[block.hash] = true;
 //            channel.m_blocks[block.hash] = block;
@@ -150,18 +148,21 @@ contract FabricStore is BlockStore {
 
         // Iterate all transactions in the block
         for (uint i = 0; i < txnsRLP.length; i++) {
-            block.transactions[i] = decodeTxObject(txnsRLP[i].toBytes(), _chainId, _channelId, block.hash);
+            string memory txId = decodeTxObject(txnsRLP[i].toBytes(), _chainId, _channelId);
+            require(!isTransactionExists(_chainId, _channelId, txId), "Transaction already exists");
+            block.transactions[i] = txId;
+            injectBlockHashToTx(_chainId, _channelId, txId, blockHash);
+            flagTx(_chainId, _channelId, txId);
         }
 
         return block;
     }
 
-    function decodeTxObject(bytes _txRLP, bytes32 _chainId, string _channelId, string _blockHash) internal returns (string) {
+    function decodeTxObject(bytes _txRLP, bytes32 _chainId, string _channelId) internal returns (string) {
         RLP.RLPItem[] memory txRLP = _txRLP.toRLPItem().toList();
 
         Transaction storage tx = m_networks[_chainId].m_channels[_channelId].m_transactions[txRLP[0].toAscii()];
         tx.id = txRLP[0].toAscii();
-        tx.blockHash = _blockHash;
 
         RLP.RLPItem[] memory namespacesRLP = txRLP[1].toList();
 
@@ -187,6 +188,15 @@ contract FabricStore is BlockStore {
         }
 
         return txRLP[0].toAscii();
+    }
+
+    function injectBlockHashToTx(bytes32 _chainId, string _channelId, string _txId, string _blockHash) internal {
+        Transaction storage tx = m_networks[_chainId].m_channels[_channelId].m_transactions[_txId];
+        tx.blockHash = _blockHash;
+    }
+
+    function flagTx(bytes32 _chainId, string _channelId, string _txId) internal {
+        m_networks[_chainId].m_channels[_channelId].m_transactions_exist[_txId] = true;
     }
 
     function decodeReadset(bytes _readsetRLP) internal returns (ReadSet memory) {
@@ -244,5 +254,26 @@ contract FabricStore is BlockStore {
         }
 
         return (tx.blockHash, ns);
+    }
+
+    function isTransactionExists(bytes32 _chainId, string _channelId, string _txId) public returns (bool) {
+        return m_networks[_chainId].m_channels[_channelId].m_transactions_exist[_txId];
+    }
+
+    function getNSRW(bytes32 _chainId, string _channelId, string _txId, string _namespace) public returns (string, string) {
+        Namespace storage ns = m_networks[_chainId].m_channels[_channelId].m_transactions[_txId].m_nsrw[_namespace];
+
+        string memory reads;
+        for (uint i = 0; i < ns.reads.length; i++) {
+            RSVersion version = ns.reads[i].version;
+            reads = string(abi.encodePacked(reads, "{ key: ", ns.reads[i].key, ", version: { blockNo: ", SolUtils.UintToString(ns.reads[i].version.blockNo), ", txNo: ", SolUtils.UintToString(ns.reads[i].version.txNo), " } } "));
+        }
+
+        string memory writes;
+        for (uint j = 0; j < ns.writes.length; j++) {
+            writes = string(abi.encodePacked(writes, "{ key: ", ns.writes[j].key, ", isDelete: ", SolUtils.BoolToString(ns.writes[j].isDelete), ", value: ", ns.writes[j].value, " } "));
+        }
+
+        return (reads, writes);
     }
 }

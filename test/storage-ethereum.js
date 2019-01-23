@@ -202,33 +202,28 @@ contract('EthereumStore.js', (accounts) => {
         })
 
         it('Fail Add Block from unregistered chain', async () => {
-            // Successfully add id of another chain
             await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING).should.be.rejected;
         })
 
         it('Fail Add Block from non-ion', async () => {
-            // Successfully add id of another chain
             await ion.addChain(storage.address, TESTCHAINID);
 
             await storage.addBlock(TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING).should.be.rejected;
         })
 
         it('Fail Add Block with malformed data', async () => {
-            // Successfully add id of another chain
             await ion.addChain(storage.address, TESTCHAINID);
 
             await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE).should.be.rejected;
         })
 
         it('Fail Add Block with incorrect block hash', async () => {
-            // Successfully add id of another chain
             await ion.addChain(storage.address, TESTCHAINID);
 
             await ion.storeBlock(storage.address, TESTCHAINID, unsignedHeaderHash, TESTRLPENCODING).should.be.rejected;
         })
 
         it('Fail Add Same Block Twice', async () => {
-            // Successfully add id of another chain
             await ion.addChain(storage.address, TESTCHAINID);
 
             await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
@@ -262,7 +257,7 @@ contract('EthereumStore.js', (accounts) => {
 
             await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
 
-            // Fail with wrong chain ID
+            // Fail with wrong tx value
             await storage.CheckTxProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_TX_NODES, TEST_PATH).should.be.rejected;
         })
 
