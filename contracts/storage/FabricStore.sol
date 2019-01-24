@@ -334,6 +334,8 @@ contract FabricStore is BlockStore {
     function getState(bytes32 _chainId, string _channelId, string _key) public returns (uint, uint, string) {
         State storage state = m_networks[_chainId].m_channels[_channelId].m_state[_key];
 
+        require(keccak256(state.key) != keccak256(""), "Key unrecognised.");
+
         return (state.version.blockNo, state.version.txNo, state.value);
     }
 }
