@@ -35,11 +35,6 @@ require('chai')
 const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
 const TESTCHAINID = "0x22b55e8a4f7c03e1689da845dd463b09299cb3a574e64c68eafc4e99077a7254"
 
-/*
-TESTRPC TEST DATA
-*/
-const block = web3.eth.getBlock(1);
-
 const TESTDATA = [{
     channelId: "orgchannel",
     blocks: [{
@@ -243,6 +238,17 @@ contract('FabricStore.sol', (accounts) => {
             expectedWriteset = "";
             assert.equal(expectedWriteset, nsrw[1]);
 
+            let state = await storage.getState.call(TESTCHAINID, TESTDATA[0].channelId, TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].key);
+
+            assert.equal(state[0], TESTDATA[0].blocks[0].number);
+            assert.equal(state[1], 0);
+            assert.equal(state[2], TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].value);
+
+            state = await storage.getState.call(TESTCHAINID, TESTDATA[0].channelId, TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].key);
+
+            assert.equal(state[0], TESTDATA[0].blocks[0].number);
+            assert.equal(state[1], 0);
+            assert.equal(state[2], TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].value);
         })
 
         it('Fail Add Block from unregistered chain', async () => {

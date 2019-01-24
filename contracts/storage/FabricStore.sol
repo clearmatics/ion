@@ -122,6 +122,9 @@ contract FabricStore is BlockStore {
 
         Block memory block = decodeBlockObject(_chainId, channelId, channelRLP[1].toBytes());
         require(!channel.blocks[block.hash], "Block with identical hash already exists");
+
+        mutateState(_chainId, channelId, block);
+
         channel.blocks[block.hash] = true;
         channel.m_blocks[block.hash] = block;
 
@@ -190,6 +193,34 @@ contract FabricStore is BlockStore {
         return txRLP[0].toAscii();
     }
 
+    function mutateState(bytes32 _chainId, string _channelId, Block memory block) internal {
+        string[] memory txIds = block.transactions;
+
+        // Iterate across all transactions
+        for (uint i = 0; i < txIds.length; i++) {
+            Transaction storage tx = m_networks[_chainId].m_channels[_channelId].m_transactions[txIds[i]];
+
+            // Iterate across all namespaces
+            for (uint j = 0; j < tx.namespaces.length; j++) {
+                string namespace = tx.namespaces[j];
+
+                // Iterate across all writesets and check readset version of each write key against stored version
+                for (uint k = 0; k < tx.m_nsrw[namespace].writes.length; k++) {
+                    State storage state = m_networks[_chainId].m_channels[_channelId].m_state[tx.m_nsrw[namespace].writes[k].key];
+
+                    if (keccak256(state.key) == keccak256(tx.m_nsrw[namespace].writes[k].key)) {
+                        if (!isExpectedReadVersion(tx.m_nsrw[namespace], state.version, state.key))
+                            continue;
+                    }
+
+                    state.key = tx.m_nsrw[namespace].writes[k].key;
+                    state.version = RSVersion(block.number, i);
+                    state.value = tx.m_nsrw[namespace].writes[k].value;
+                }
+            }
+        }
+    }
+
     function injectBlockHashToTx(bytes32 _chainId, string _channelId, string _txId, string _blockHash) internal {
         Transaction storage tx = m_networks[_chainId].m_channels[_channelId].m_transactions[_txId];
         tx.blockHash = _blockHash;
@@ -230,6 +261,29 @@ contract FabricStore is BlockStore {
         }
 
         return WriteSet(key, isDelete, value);
+    }
+
+    function isExpectedReadVersion(Namespace memory _namespace, RSVersion memory _version, string _key) internal returns (bool) {
+        ReadSet[] memory reads = _namespace.reads;
+
+        for (uint i = 0; i < reads.length; i++) {
+            ReadSet memory readset = reads[i];
+
+            if (keccak256(readset.key) == keccak256(_key))
+                return isSameVersion(readset.version, _version);
+        }
+
+        return false;
+    }
+
+    function isSameVersion(RSVersion memory _v1, RSVersion memory _v2) internal returns (bool) {
+        if (_v1.blockNo != _v2.blockNo)
+            return false;
+
+        if (_v1.txNo != _v2.txNo)
+            return false;
+
+        return true;
     }
 
     function getBlock(bytes32 _chainId, string _channelId, string _blockHash) public returns (uint, string, string, string, uint, uint, string) {
@@ -275,5 +329,11 @@ contract FabricStore is BlockStore {
         }
 
         return (reads, writes);
+    }
+
+    function getState(bytes32 _chainId, string _channelId, string _key) public returns (uint, uint, string) {
+        State storage state = m_networks[_chainId].m_channels[_channelId].m_state[_key];
+
+        return (state.version.blockNo, state.version.txNo, state.value);
     }
 }
