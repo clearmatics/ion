@@ -13,9 +13,14 @@ We envision Ion to evolve to become a library of tools that developers can use o
 ### Contents
 * [Getting Started](#getting-started)
 * [Interoperate with Rinkeby!](#interoperate-with-rinkeby)
+    * [Ethereum to Rinkeby](#ethereum-to-rinkeby)
+    * [Hyperledger Fabric to Rinkeby](#hyperledger-fabric-to-rinkeby)
 * [Develop on Ion](#develop-on-ion)
+    * [Ethereum to Ethereum Interface](#ethereum-to-ethereum-interface)
+    * [Hyperledger Fabric to Ethereum Interface](#hyperledger-fabric-to-ethereum-interface)
 * [Ion CLI](#ion-cli)
 * [Contribute!](#contribute)
+* [Ionosphere](#ionosphere)
 
 ## Getting Started
 
@@ -60,15 +65,21 @@ We'll now use these example contracts to show you exactly how interoperation wit
 
 ## Interoperate with Rinkeby!
 
-This is a quick tutorial using our example contracts included to be able to verify a state transition in a block and call a function that depends on it. We'll demonstrate that you can use the following instructions below to interoperate from any Ethereum chain with Rinkeby.
+This is a quick tutorial using our example contracts included to be able to verify a state transition in a block and call a function that depends on it. We'll demonstrate that you can use the following instructions below to interoperate from the listed systems with Rinkeby.
+
+### Ethereum to Rinkeby
 
 We've already deployed some contracts to the Rinkeby test network for you to play around with!
 
-Ion: `0xFEA947D9979c96d65CE7a514B3FeBbA67E54CD18`
+Ion: `0x9d6E5614E2a9714e5dC66d9704338b189cc60829`
 
-Clique: `0x9D94343187a5Fcd4e4552060874d4B1ad25c8c3D`
+Clique: `0x4453E9980b55ccf9c0Bf7DCeA5cA95098c59B473`
 
-Ethereum Block Store: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
+Base Validation: `0x4E377dE05cA963B4b1f735Ca499C07eFED371760`
+
+Ethereum Block Store: `0x820b05784BDFbA088831bCde20458226B2Db05DC`
+
+Fabric Block Store: `0x1cc3c07Bbeea94d0224878AfaB53514f1C7F99C0`
 
 We will deploy our own instance of the `Function.sol` contract and pass proofs to verify a transaction that we will depend on in order to execute a function in the contract. If the proofs verify correctly then the function should emit an event to indicate that it has been executed.
 
@@ -79,7 +90,7 @@ Procedure:
 4. `>>> addAccount me ./keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is `test`. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
 5. `>>> addContractInstance function /absolute/path/to/contracts/functional/Function.sol` Add your functional contract instance which compiles your contract. Must be passed an absolute path.
 6. `>>> deployContract function me 1000000` Deploy your contract to Rinkeby! This will return an address that the contract is deployed at if successful. This contract has a constructor that requires two parameters to be supplied when prompted:
-    * `_storeAddr`: `0x2d8B459E4b331c53a4C30Ff34fd129E890BaAF57`
+    * `_storeAddr`: `0x820b05784BDFbA088831bCde20458226B2Db05DC`
     * `_verifierAddr`: `0xf973eB920fDB5897d79394F2e49430dCB9aA4ea1`
 7. `>>> transactionMessage function verifyAndExecute me <deployed_address> 0 1000000` Call the function. This requires you to supply the deployed contract instance address. Here you will need to supply the following data as an input to the function when prompted:
     * `_chainId`: `0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177`
@@ -102,13 +113,45 @@ Procedure:
     * `_expectedAddress`: `0xb8844cf76df596e746f360957aa3af954ef51605`
 8. Success! The transaction should have been created and sent. Check on [Etherscan](https://rinkeby.etherscan.io/address/0xb8844cf76df596e746f360957aa3af954ef51605) (or any other method) whether the transaction was successful or not. It should have succeeded!
 
-### Try out your own functions!
+#### Try out your own functions!
 
 Take a look at `Function.sol` and you'll find a very simple `execute()` function. Try adding your own logic or event emissions here and follow the same procedure above and you'll be able to execute your own arbitrary code with a dependence on a particular state transition.
 
 You can now also attempt to write your own functional smart contracts using the similar skeleton to the `Function.sol` contract.
 
 Note that all the data submitted as a proof to the function call is generated merkle patricia proofs for a particular transaction at `0xcd68852f99928ab11adbc72ec473ec6526dac3b1b976c852745c47900f6b8e30` that was also executed on the Rinkeby Testnet. This transaction emits a `Triggered` event which contains the address of the caller when emitted. The `Function.sol` contract simply consumes events of this type, verifies that the transaction occurred in a block, that the event parameters are as expected and then executes a function.
+
+### Hyperledger Fabric to Rinkeby
+
+Once again we've already deployed some contracts to the Rinkeby test network for you to play around with!
+
+Ion: `0x9d6E5614E2a9714e5dC66d9704338b189cc60829`
+
+Base Validation: `0x4E377dE05cA963B4b1f735Ca499C07eFED371760`
+
+Fabric Block Store: `0x1cc3c07Bbeea94d0224878AfaB53514f1C7F99C0`
+
+We will deploy our own instance of the `FabricFunction.sol` contract and retrieve data from a submitted fabric block to use in an Ethereum contract function call. The Fabric block submitted contains two key-value pairs currently, `A: 0` and `B: 3`. We'll show that we can retrieve the value of `B` and emit this in an event thus demonstrating usage of Fabric block state in an Ethereum transaction.
+
+Procedure:
+1. We'll need the CLI here, [build the CLI](./ion-cli/).
+2. `./ion-cli` Starts the CLI
+3. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
+4. `>>> addAccount me ./keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is `test`. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
+5. `>>> addContractInstance fabfunc /absolute/path/to/contracts/functional/FabricFunction.sol` Add your functional contract instance which compiles your contract. Must be passed an absolute path.
+6. `>>> deployContract fabfunc me 4000000` Deploy your contract to Rinkeby! This will return an address that the contract is deployed at if successful. This contract has a constructor that requires a parameter to be supplied when prompted:
+    * `_storeAddr`: `0x1cc3c07Bbeea94d0224878AfaB53514f1C7F99C0`
+7. `>>> transactionMessage fabfunc retrieveAndExecute me <deployed_address> 0 1000000` Call the function. This requires you to supply the deployed contract instance address. Here you will need to supply the following data as an input to the function when prompted:
+    * `_chainId`: `0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177`
+    * `_channelId`: `0xf88ef06bc1a9c60457d8a4b65c4020dae2ef7f3287076a4d2d481a1bcb8e3148`
+    * `_key`: `0x5dF43D6eaDc3EE940eCbf66a114486f3eF853da3`
+8. Success! The transaction should have been created and sent. Check on [Etherscan](https://rinkeby.etherscan.io/address/0xb8844cf76df596e746f360957aa3af954ef51605) (or any other method) whether the transaction was successful or not. It should have succeeded!
+
+The function executed queries the `FabricStore.sol` contract deployed to Rinkeby at `0x1cc3c07Bbeea94d0224878AfaB53514f1C7F99C0` and retrieves the value at key `B` in channel `orgchannel`. It then emits an event including the block number, transaction number and the value as parameters.
+
+#### Try out your own functions!
+
+Take a look at `FabricFunction.sol` and you'll find a very simple `execute()` function. This function currently simply takes data and emits it. However you can use this state in however you choose. Try replacing the `execute` function body with your own logic to perform a transaction using Fabric block state. It's important to note that chaincode, the smart contract equivalent in Fabric, writes values as raw strings which means the stored data is arbitrary. This means that your functional contracts should be knowledgeable of these data formats to be able to use them effectively in your smart contracts on Ethereum.
 
 ## Develop on Ion
 
@@ -120,7 +163,7 @@ The core of Ion revolves around the concept of dependence on state. As such, to 
 
 This results in a framework that should provide a simple interface to make proofs of state and as such is comprised of two core components:
 * State Validation
-* State Transition Verification
+* State Transition
 
 The two core layers of the Ion framework will need different implementations for each method/mechanism by which validation and verification can be achieved across two interoperating systems. The two layers, validation and state verification, are analogous to the functions of current systems, consensus and state transition respectively. Thus the Ion framework aims to provide interfaces to make interoperation between any ledger governed by any consensus mechanism with another through the development of such interfaces.
 
@@ -128,14 +171,14 @@ The two core layers of the Ion framework will need different implementations for
 
 In order for two systems or chains to interoperate there must be some notion of the passing of state between the systems. The passing of this state ideally must be trustless and thus the State Validation layer handles this. It's purpose is to provide a mechanism by which passed state is checked for validity and correctness. Since we draw dependence on the state of another system to trigger arbitrary code execution we must ensure that any state that is passed is indeed correct.
 
-#### State Transition Verification
+#### State Transition
 
 Once state has been passed from one system to another it can be used as a dependency for code execution. This code execution should have conditions to be contingent on a certain piece of data from another system/chain. In practice this could be checking the balance of an account on another chain or asserting that some transaction has been fulfilled.
 
-The State Transition Verification layer should provide a mechanism to allow checks to be made against the stored state from another system. These checks should involve discerning and/or confirming a certain piece of data or event in the state of another chain and using the successful verification to trigger the execution of code.
+The State Transition layer should provide a mechanism to allow checks to be made against the stored state from another system. These checks should involve discerning and/or confirming a certain piece of data or event in the state of another chain and using the successful verification to trigger the execution of code.
 
 
-### Interoperating Betweeen Ethereum Chains
+### Ethereum to Ethereum Interface
 
 With Ethereum, interoperation between chains is mainly a question of validation as they share the EVM. We currently have made an implementation of the Clique proof-of-authority consensus mechanism used by the Rinkeby Testnet for validation. We achieve state verifications via event consumption. Using the presence of an event in a transaction, we can verify if the expected computation was done and to only do something if the verification succeeds.
 
@@ -144,13 +187,30 @@ To write a smart contract that depends on particular state transitions there are
 
 For any event signature, a corresponding Event Verifier contract must be written which encodes the mechanism that extracts the relevant event to check expected parameters as part of the verification.
 
-`TriggerEventVerifier.sol` is a very simple event verifier:
+[`TriggerEventVerifier.sol`](./contracts/functional/TriggerEventVerifier.sol) is a very simple event verifier:
 * Holds the event signature it decodes
 * Encodes a verification function that takes expected fields as input to check against that included in the event
 
 All Event Verifier contracts should perform the same way. The differences will simply be in the event signature and parameters checks of the event.
 
-`Function.sol` provides a very simple example of how an event-consuming contract is written. Changing the event to be consumed by referencing a different Event Verifier allows you to draw dependence on a different state transition.
+[`Function.sol`](./contracts/functional/Function.sol) provides a very simple example of how an event-consuming contract is written. Changing the event to be consumed by referencing a different Event Verifier allows you to draw dependence on a different state transition.
+
+### Hyperledger Fabric to Ethereum Interface
+
+Fabric state is written as key-value pairs. When Fabric blocks are submitted to an Ethereum chain we store a lot of data about the block. There are two types of information we store that can be used in Etheruem transactions:
+
+* Ledger State
+* Past transitions
+
+Since the only data stored in a Fabric block is a state transition from past value to new value for a given key from a specific chaincode, it is hard to access state directly and only storing this simply allows us to check the presence of an expected transaction in the past.
+
+As such we keep both a copy of the ledger and the entire list of state transitions. This allows us two different accessors of Fabric state:
+
+* Query the current value of a key
+* Verify that a transaction has happened at a given time/block
+
+With this we can build use-case smart contracts in Ethereum to be able to query state from a Fabric block for usage, or when passed with expected data, verify if a transaction in a specified block mutated the ledger in an expected way. The example [`FabricFunction.sol`](./contracts/functional/FabricFunction.sol) shows how you would query the storage contract to make use of current Fabric ledger state.
+
 
 ### Testing
 
@@ -167,11 +227,139 @@ Study the tests in the repository to discover how we've unit-tested the entire i
 
 The Ion Command-Line Interface is a tool built in Golang to provide functions to facilitate the use of the Ion framework.
 
+We have a current work-in-progress for a [CLI for Hyperledger Fabric](https://github.com/Shirikatsu/fabric-examples/tree/format-block/fabric-cli) forked from another project.
+
 The Command-Line Interface reference can be found [here](./ion-cli)
 
 ## How Ion works
 
 Please see our [wiki](https://github.com/clearmatics/ion/wiki) for more detailed information about the design philosophy of Ion.
+
+### Setting up an environment
+
+To start developing on Ion, you'll need access to at least two different networks.
+
+* [Set up an Ethereum network]()
+* [Set up a Hyperledger Fabric network]()
+
+### Deploy the Ion stack
+
+Use to CLI to deploy the Ion stack to your own chain.
+
+1. Deploy `Ion.sol`.
+2. Deploy storage and validation contracts.
+
+First use the CLI to connect to a client and connect an account to submit transaction from:
+
+```bash
+$ ./ion_cli
+===============================================================
+Ion Command Line Interface
+
+Use 'help' to list commands
+===============================================================
+>>> connectToClient <your_rpc_endpoint>
+Connecting to client...
+
+Connected!
+===============================================================
+>>> addAccount <given_account_name> <path/to/keystore>
+Please provide your key decryption password.
+
+Account added succesfully.
+```
+
+Deploy `Ion.sol`:
+
+```bash
+>>> addContractInstance ion </absolute/path/to/Ion.sol>
+Compiling contract...
+Creating contract instance...
+Added!
+===============================================================
+
+>>> deployContract ion <account_name> <gas_limit>
+Enter input data for parameter _id:
+<unique_id_for_chain_being_deployed_to>
+
+Waiting for contract to be deployed
+Deployed contract at: 0x...
+===============================================================
+```
+
+Deploy storage contract, in this example we deploy the Ethereum block store contract:
+
+```bash
+>>> addContractInstance ethstore </absolute/path/to/EthereumStore.sol>
+Compiling contract...
+Creating contract instance...
+Added!
+
+===============================================================
+>>> deployContract ethstore <account_name> <gas_limit>
+Enter input data for parameter _ionAddr:
+<deployed_ion_address>
+
+Waiting for contract to be deployed
+Deployed contract at: 0x...
+===============================================================
+```
+
+Deploy validation and register contract, in this example we deploy the Ethereum Clique validation contract:
+
+```bash
+>>> addContractInstance clique </absolute/path/to/Clique.sol>
+Compiling contract...
+Creating contract instance...
+Added!
+===============================================================
+
+>>> deployContract clique <account_name> <gas_limit>
+Enter input data for parameter _ionAddr:
+<deployed_ion_address>
+
+Waiting for contract to be deployed
+Deployed contract at: 0x...
+===============================================================
+
+>>> transactionMessage clique register me <deployed_clique_address> 0 4000000
+Marshalling ABI
+JSONify ABI
+Packing Args to ABI
+Retrieving public key
+Creating transaction
+Signing transaction
+SENDING TRANSACTION
+Waiting for transaction to be mined...
+Transaction hash: 0x...
+===============================================================
+>>> transactionMessage clique RegisterChain <account_name> <deployed_clique_address> 0 <gas_limit>
+Enter input data for parameter _chainId:
+<unique_id_of_interoperating_chain>
+
+Enter input data for parameter _validators:
+<comma_separated_list_of_validator_addresses>
+
+Enter input data for parameter _genesisBlockHash:
+<genesis_block_hash>
+
+Enter input data for parameter _storeAddr:
+<deployed_block_store_address>
+
+Marshalling ABI
+JSONify ABI
+Packing Args to ABI
+Retrieving public key
+Creating transaction
+Signing transaction
+SENDING TRANSACTION
+Waiting for transaction to be mined...
+Transaction hash: 0x...
+===============================================================
+```
+
+Deployment of other validation/storage contracts would be performed similarly.
+
 
 # Contribute!
 
@@ -207,3 +395,11 @@ As the developments of the above two layers progress, there may be requirements 
 
 
 With the above, we aim to expand our system-specific implementations for verification of both data validity and state transitions to allow the easier development of smart contracts using these interfaces.
+
+# Ionosphere
+
+All Ion-extensions or applications built on Ion are part of the Ionosphere! If you have built a cross-chain smart contract use-case please add a reference to your project here.
+
+## Applications
+
+* [Transact-Ion](https://github.com/Shirikatsu/Transact-Ion), an atomic swap contract built on Ion.
