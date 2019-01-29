@@ -85,7 +85,7 @@ contract FabricStore is BlockStore {
 
     // Function name is inaccurate for Fabric due to blocks being a sub-structure to a channel
     // Will need refactoring
-    function addBlock(bytes32 _chainId, bytes32 _blockHash, bytes _blockBlob)
+    function addBlock(bytes32 _chainId, bytes _blockBlob)
         onlyIon
         onlyRegisteredChains(_chainId)
     {
@@ -289,6 +289,8 @@ contract FabricStore is BlockStore {
     function getBlock(bytes32 _chainId, string _channelId, string _blockHash) public returns (uint, string, string, string, uint, uint, string) {
         Block storage block = m_networks[_chainId].m_channels[_channelId].m_blocks[_blockHash];
 
+        require(keccak256(block.hash) != keccak256(""), "Block does not exist.");
+
         string memory txs = block.transactions[0];
 
         for (uint i = 1; i < block.transactions.length; i++) {
@@ -300,6 +302,8 @@ contract FabricStore is BlockStore {
 
     function getTransaction(bytes32 _chainId, string _channelId, string _txId) public returns (string, string) {
         Transaction storage tx = m_networks[_chainId].m_channels[_channelId].m_transactions[_txId];
+
+        require(isTransactionExists(_chainId, _channelId, _txId), "Transaction does not exist.");
 
         string memory ns = tx.namespaces[0];
 
@@ -316,6 +320,8 @@ contract FabricStore is BlockStore {
 
     function getNSRW(bytes32 _chainId, string _channelId, string _txId, string _namespace) public returns (string, string) {
         Namespace storage ns = m_networks[_chainId].m_channels[_channelId].m_transactions[_txId].m_nsrw[_namespace];
+
+        require(keccak256(ns.namespace) != keccak256(""), "Namespace does not exist.");
 
         string memory reads;
         for (uint i = 0; i < ns.reads.length; i++) {
