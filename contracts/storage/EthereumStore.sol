@@ -50,21 +50,21 @@ contract EthereumStore is BlockStore {
     * @param _blockHash     Block hash of the block being added
     * @param _blockBlob     Bytes blob of the RLP-encoded block header being added
     */
-    function addBlock(bytes32 _chainId, bytes32 _blockHash, bytes _blockBlob)
+    function addBlock(bytes32 _chainId, bytes _blockBlob)
         onlyIon
         onlyRegisteredChains(_chainId)
     {
-        require(!m_blockhashes[_blockHash], "Block already exists" );
+        bytes32 blockHash = keccak256(_blockBlob);
+        require(!m_blockhashes[blockHash], "Block already exists" );
+
         RLP.RLPItem[] memory header = _blockBlob.toRLPItem().toList();
+        require(header.length == 15, "Block Header parameter mismatch");
 
-        bytes32 hashedHeader = keccak256(_blockBlob);
-        require(hashedHeader == _blockHash, "Hashed header does not match submitted block hash!");
+        m_blockhashes[blockHash] = true;
+        m_blockheaders[blockHash].txRootHash = header[4].toBytes32();
+        m_blockheaders[blockHash].receiptRootHash = header[5].toBytes32();
 
-        m_blockhashes[_blockHash] = true;
-        m_blockheaders[_blockHash].txRootHash = header[4].toBytes32();
-        m_blockheaders[_blockHash].receiptRootHash = header[5].toBytes32();
-
-        emit BlockAdded(_chainId, _blockHash);
+        emit BlockAdded(_chainId, blockHash);
     }
 
     /*

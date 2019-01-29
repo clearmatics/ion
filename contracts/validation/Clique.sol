@@ -291,7 +291,7 @@ contract Clique is IonCompatible {
         header.receiptRootHash = _receiptRootHash;
 
         // Add block to Ion
-        ion.storeBlock(_storageAddr, _chainId, _hash, _rlpBlockHeader);
+        ion.storeBlock(_storageAddr, _chainId, _rlpBlockHeader);
     }
 
     /*

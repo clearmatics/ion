@@ -20,8 +20,8 @@ contract MockIon is Ion {
         store.addChain(_chainId);
     }
 
-    function storeBlock(address _storageAddress, bytes32 _chainId, bytes32 _blockHash, bytes _blockBlob) public {
+    function storeBlock(address _storageAddress, bytes32 _chainId, bytes _blockBlob) public {
         BlockStore store = BlockStore(_storageAddress);
-        store.addBlock(_chainId, _blockHash, _blockBlob);
+        store.addBlock(_chainId, _blockBlob);
     }
 }

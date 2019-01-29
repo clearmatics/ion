@@ -18,8 +18,8 @@ contract MockStorage is BlockStore {
 
     constructor(address _ionAddr) BlockStore(_ionAddr) public {}
 
-    event AddedBlock(bytes32 blockHash);
-    function addBlock(bytes32 _chainId, bytes32 _blockHash, bytes _blockBlob) {
-        emit AddedBlock(_blockHash);
+    event AddedBlock();
+    function addBlock(bytes32 _chainId, bytes _blockBlob) {
+        emit AddedBlock();
     }
 }

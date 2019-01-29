@@ -52,5 +52,5 @@ contract BlockStore is IonCompatible {
         return true;
     }
 
-    function addBlock(bytes32 _chainId, bytes32 _blockHash, bytes _blockBlob) onlyIon onlyRegisteredChains(_chainId);
+    function addBlock(bytes32 _chainId, bytes _blockBlob) onlyIon onlyRegisteredChains(_chainId);
 }
