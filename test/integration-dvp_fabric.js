@@ -70,7 +70,7 @@ let TRANSFER_DATA = [{
     }]
 }]
    
-
+// Create a formatted block from the example block
 createData = (DATA) => {
     const formattedData = [[
         DATA[0].channelId,
@@ -135,76 +135,10 @@ contract.only('Base-Fabric Integration', (accounts) => {
     })
 
 
-    describe('Add Block', () => {
-        it('Successful Add SimpleShares Block', async () => {
-            await validation.register();
-
-            let tx = await validation.RegisterChain(TESTCHAINID, storage.address);
-
-            let receipt = await validation.SubmitBlock(TESTCHAINID, rlpEncodedBlock, storage.address);
-            console.log("Gas used to store fabric block: %d", receipt.receipt.gasUsed);
-
-            let block = await storage.getBlock.call(TESTCHAINID, TRANSFER_DATA[0].channelId, TRANSFER_DATA[0].blocks[0].hash);
-
-            assert.equal(block[0], TRANSFER_DATA[0].blocks[0].number);
-            assert.equal(block[1], TRANSFER_DATA[0].blocks[0].hash);
-            assert.equal(block[2], TRANSFER_DATA[0].blocks[0].prevHash);
-            assert.equal(block[3], TRANSFER_DATA[0].blocks[0].dataHash);
-            assert.equal(block[4], TRANSFER_DATA[0].blocks[0].timestampS);
-            assert.equal(block[5], TRANSFER_DATA[0].blocks[0].timestampN);
-            assert.equal(block[6], TRANSFER_DATA[0].blocks[0].transactions[0].txId);
-
-            tx = await storage.getTransaction.call(TESTCHAINID, TRANSFER_DATA[0].channelId, TRANSFER_DATA[0].blocks[0].transactions[0].txId);
-
-            assert.equal(tx[0], TRANSFER_DATA[0].blocks[0].hash);
-            assert.equal(tx[1], TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].namespace + "," + TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[1].namespace);
-
-            let txExists = await storage.isTransactionExists.call(TESTCHAINID, TRANSFER_DATA[0].channelId, TRANSFER_DATA[0].blocks[0].transactions[0].txId);
-
-            assert(txExists);
-
-            let nsrw = await storage.getNSRW.call(TESTCHAINID, TRANSFER_DATA[0].channelId, TRANSFER_DATA[0].blocks[0].transactions[0].txId, TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].namespace);
-
-            let expectedReadset = util.format("{ key: %s, version: { blockNo: %d, txNo: %d } } ",
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].readsets[0].key,
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].readsets[0].version.blockNumber,
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].readsets[0].version.txNumber
-            )
-
-            assert.equal(expectedReadset, nsrw[0]);
-
-            let expectedWriteset = util.format("{ key: %s, isDelete: %s, value: %s } ",
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].key,
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].isDelete,
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].value
-            )
-
-            assert.equal(expectedWriteset, nsrw[1]);
-
-            nsrw = await storage.getNSRW.call(TESTCHAINID, TRANSFER_DATA[0].channelId, TRANSFER_DATA[0].blocks[0].transactions[0].txId, TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[1].namespace);
-
-            expectedReadset = util.format("{ key: %s, version: { blockNo: %d, txNo: %d } } ",
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[1].readsets[0].key,
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[1].readsets[0].version.blockNumber,
-                TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[1].readsets[0].version.txNumber
-            )
-
-            assert.equal(expectedReadset, nsrw[0]);
-
-            expectedWriteset = "";
-            assert.equal(expectedWriteset, nsrw[1]);
-
-        })
-
-    })
-
-    describe.only('Chaincode usage Contract', () => {
+    describe('Chaincode usage Contract', () => {
         const Barclays = accounts[0]
         const LBBW = accounts[1]
 
-        // it('Deploy Function Contract', async () => {
-        //     const functionContract = await FabricFunction.new(storage.address);
-        // })
 
         it('Submit Block, retrieve state and execute', async () => {
             await validation.register();
@@ -214,9 +148,6 @@ contract.only('Base-Fabric Integration', (accounts) => {
             const value = 5;
             const price = 100;
             const reference = Web3Utils.sha3('uniqueRef');
-            
-            
-            const formattedData = createData(TRANSFER_DATA);
 
             // Mint ERC223 tokens, funding LBBW
             await token.mint(value*price, {from: LBBW});
@@ -254,32 +185,12 @@ contract.only('Base-Fabric Integration', (accounts) => {
             assert.equal(value*price, balance)
             
             tx = await shareSettle.retrieveAndExecute(TESTCHAINID, TRANSFER_DATA[0].channelId, TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].key);
-            // event = tx.logs.some(l => { return l.event == "test" });
-            // assert.ok(event, "Executed event not emitted");
-
-            console.log(tx.logs)
-            console.log(TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].value)
-
-            var decoded = rlp.decode(TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].value)
-            console.log(decoded)
-
-            // log = tx.logs.find(l => l.event == "State");
-            // console.log("\tGas used to fetch data and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
-
-            // assert.equal(log.args.blockNo, TRANSFER_DATA[0].blocks[0].number);
-            // assert.equal(log.args.txNo, 0);
-            // assert.equal(log.args.value, TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].value);
-
-            // tx = await functionContract.retrieveAndExecute(TESTCHAINID, TRANSFER_DATA[0].channelId, TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].key);
-            // event = tx.logs.some(l => { return l.event == "State" });
-            // assert.ok(event, "Executed event not emitted");
-
-            // log = tx.logs.find(l => l.event == "State");
-            // console.log("\tGas used to fetch data and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
-
-            // assert.equal(log.args.blockNo, TRANSFER_DATA[0].blocks[0].number);
-            // assert.equal(log.args.txNo, 0);
-            // assert.equal(log.args.value, TRANSFER_DATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].value);
+            console.log("\tGas used to retrieve and execute: " + tx.receipt.gasUsed.toString());
+            
+            assert.equal(500, await token.balanceOf(Barclays));
+            assert.equal(0, await token.balanceOf(LBBW));
+            assert.equal(0, await token.balanceOf(shareSettle.address));
+            
         })
 
     })
