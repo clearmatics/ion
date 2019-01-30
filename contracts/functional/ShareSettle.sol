@@ -59,8 +59,9 @@ contract ShareSettle is ERC223ReceivingContract {
 */
 
     /**
-    * Creates a new trade agreement for a cross-chain PvP payment between two counterparties
+    * Creates a new trade agreement for a cross-chain DvP payment between two counterparties
     *
+    * @param _org Name of shares being traded
     * @param _recv Intended recipient
     * @param _amount Amount of tokens msg.sender will pay
     * @param _price Amount of tokens msg.sender will receive
@@ -116,6 +117,14 @@ contract ShareSettle is ERC223ReceivingContract {
 ========================================================================================================================
 */
 
+    /**
+    * When called transfers the escrowed token for a specific trade agreement to designated receiver
+    * if the trade has been fulfilled on the Fabric ledger
+    *
+    * @param _chainId Identifier of the fabric chain on which the trigger has occured
+    * @param _channelId specific channel of Fabric chain in which tx should have occured
+    * @param _key Key in ledger that contains details of tx
+    */
     function retrieveAndExecute(bytes32 _chainId, string _channelId, string _key) public {
         uint blockVersion;
         uint txVersion;
