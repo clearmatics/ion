@@ -2,7 +2,7 @@
 ![Ion Version](https://img.shields.io/badge/ion-v2.1.0-brightgreen.svg)
 [![Build Status](https://travis-ci.org/clearmatics/ion.svg?branch=master)](https://travis-ci.org/clearmatics/ion)
 ![Solidity Version](https://img.shields.io/badge/solidity-v0.4.24-blue.svg)
-[![LGPLv3](https://img.shields.io/badge/license-LGPL%20v3-brightgreen.svg)](./LICENSE)
+[![LGPLv3](https://img.shields.io/badge/license-LGPL%20v3-brightgreen.svg)(./LICENSE)
 [![Gitter](https://img.shields.io/badge/%E2%8A%AA%20GITTER%20-JOIN%20CHAT%20%E2%86%92-orange.svg)](https://gitter.im/clearmatics/ion)
 
 The Ion Interoperability Framework is a library that provides an interface for the development of general cross-chain smart contracts.
