@@ -105,17 +105,23 @@ func getProof(eth *EthClient, transactionHash string) {
     bytesTxHash := common.HexToHash(transactionHash)
 
     // Generate the proof
-    txPath, txValue, txNodes, receiptValue, receiptNodes := utils.GenerateProof(
+    proof, err := utils.GenerateProof(
         context.Background(),
         eth.rpcClient,
         bytesTxHash,
     )
 
-    fmt.Printf( "Path:           0x%x\n" +
-                "TxValue:        0x%x\n" +
-                "TxNodes:        0x%x\n" +
-                "ReceiptValue:   0x%x\n" +
-                "ReceiptNodes:   0x%x\n", txPath, txValue, txNodes, receiptValue, receiptNodes)
+    if err != nil {
+        panic(err)
+    }
+
+    //fmt.Printf( "Path:           0x%x\n" +
+    //            "TxValue:        0x%x\n" +
+    //            "TxNodes:        0x%x\n" +
+    //            "ReceiptValue:   0x%x\n" +
+    //            "ReceiptNodes:   0x%x\n", txPath, txValue, txNodes, receiptValue, receiptNodes)
+
+    fmt.Printf("Proof: 0x%x\n", proof)
 }
 
 func RlpEncode(blockHeader *types.Header) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
