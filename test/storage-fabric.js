@@ -10,14 +10,8 @@
     Tests Fabric block structure decoding and verification of state transitions.
 */
 
-const Web3Utils = require('web3-utils');
-const utils = require('./helpers/utils.js');
-const BN = require('bignumber.js')
-const encoder = require('./helpers/encoder.js')
 const rlp = require('rlp');
 const async = require('async')
-const levelup = require('levelup');
-const sha3 = require('js-sha3').keccak_256
 const util = require('util');
 
 // Connect to the Test RPC running

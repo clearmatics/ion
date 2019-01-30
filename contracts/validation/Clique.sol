@@ -90,7 +90,7 @@ contract Clique is IonCompatible {
             ion.addChain(_storeAddr, _chainId);
         }
 
-        addGenesisBlock(_chainId, _validators, _genesisBlockHash, _storeAddr);
+        addGenesisBlock(_chainId, _validators, _genesisBlockHash);
     }
 
 	/*
@@ -103,8 +103,8 @@ contract Clique is IonCompatible {
     * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
     * and if valid the block is persisted as BlockHeader structs defined above.
     */
-    function SubmitBlock(bytes32 _chainId, bytes _rlpBlockHeader, bytes _rlpSignedBlockHeader, address _storageAddr) onlyRegisteredChains(_chainId) public {
-        RLP.RLPItem[] memory header = _rlpBlockHeader.toRLPItem().toList();
+    function SubmitBlock(bytes32 _chainId, bytes _rlpUnsignedBlockHeader, bytes _rlpSignedBlockHeader, address _storageAddr) onlyRegisteredChains(_chainId) public {
+        RLP.RLPItem[] memory header = _rlpUnsignedBlockHeader.toRLPItem().toList();
         RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
         require( header.length == signedHeader.length, "Header properties length mismatch" );
 
@@ -125,7 +125,7 @@ contract Clique is IonCompatible {
         // Check the parent hash is the same as the previous block submitted
 		bytes32 parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
 		require( m_blockhashes[_chainId][parentBlockHash], "Not child of previous block!" );
-        require( checkSignature(_chainId, signedHeader[12].toBytes(), _rlpBlockHeader, parentBlockHash), "Signer is not validator" );
+        require( checkSignature(_chainId, signedHeader[12].toBytes(), _rlpUnsignedBlockHeader, parentBlockHash), "Signer is not validator" );
 
         // Append the new block to the struct
         addProposal(_chainId, SolUtils.BytesToAddress(header[2].toBytes(), 1), keccak256(_rlpSignedBlockHeader), parentBlockHash);
@@ -148,11 +148,10 @@ contract Clique is IonCompatible {
     * param: _chainId (bytes32) Unique id of another chain to interoperate with
     * param: _validators (address[]) Array containing the validators at the genesis block
     * param: _genesisHash (bytes32) Hash of the genesis block for the chain being registered with Ion
-    * param: _storeAddr (address) Address of block store contract to register chain to
     *
     * Adds a genesis block with the validators and other metadata for this genesis block
     */
-    function addGenesisBlock(bytes32 _chainId, address[] _validators, bytes32 _genesisBlockHash, address _storeAddr) internal {
+    function addGenesisBlock(bytes32 _chainId, address[] _validators, bytes32 _genesisBlockHash) internal {
         BlockHeader storage header = m_blockheaders[_chainId][_genesisBlockHash];
         header.blockNumber = 0;
         header.blockHash = _genesisBlockHash;
@@ -182,7 +181,7 @@ contract Clique is IonCompatible {
     * Checks that the submitted block has actually been signed, recovers the signer and checks if they are validator in
     * parent block
     */
-    function checkSignature(bytes32 _chainId, bytes _extraData, bytes _rlpBlockHeader, bytes32 _parentBlockHash) internal returns (bool) {
+    function checkSignature(bytes32 _chainId, bytes _extraData, bytes _rlpBlockHeader, bytes32 _parentBlockHash) internal view returns (bool) {
         bytes memory extraDataSig = new bytes(65);
         uint256 length = _extraData.length;
         SolUtils.BytesToBytes(extraDataSig, _extraData, length-65);
@@ -323,11 +322,11 @@ contract Clique is IonCompatible {
         chainHeads.push(_childHash);
     }
 
-    function getValidators(bytes32 _chainId, bytes32 _blockHash) constant returns (address[]) {
+    function getValidators(bytes32 _chainId, bytes32 _blockHash) public view returns (address[]) {
         return m_blockmetadata[_chainId][_blockHash].validators;
     }
 
-    function getProposal(bytes32 _chainId, bytes32 _blockHash, address _candidate) constant returns (uint256) {
+    function getProposal(bytes32 _chainId, bytes32 _blockHash, address _candidate) public view returns (uint256) {
         return m_blockmetadata[_chainId][_blockHash].m_proposals[_candidate];
     }
 }

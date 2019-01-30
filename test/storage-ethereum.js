@@ -16,7 +16,6 @@ const BN = require('bignumber.js')
 const encoder = require('./helpers/encoder.js')
 const rlp = require('rlp');
 const async = require('async')
-const levelup = require('levelup');
 const sha3 = require('js-sha3').keccak_256
 
 // Connect to the Test RPC running

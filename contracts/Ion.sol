@@ -39,7 +39,7 @@ contract Ion {
     }
 
     // Pseudo-modifier returns boolean, used with different 'require's to input custom revert messages
-    function isContract(address _addr) internal returns (bool) {
+    function isContract(address _addr) internal view returns (bool) {
         uint size;
         assembly { size := extcodesize(_addr) }
         return (size > 0);

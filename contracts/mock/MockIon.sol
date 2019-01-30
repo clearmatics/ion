@@ -5,7 +5,7 @@ import "../storage/BlockStore.sol";
 
 contract MockIon is Ion {
 
-    constructor(bytes32 _id) Ion(_id) {}
+    constructor(bytes32 _id) public Ion(_id) {}
 
     function registerValidationModule() public {
         require( isContract(msg.sender), "Caller address is not a valid contract. Please inherit the BlockStore contract for proper usage." );
@@ -15,7 +15,7 @@ contract MockIon is Ion {
         validation_modules.push(msg.sender);
     }
 
-    function addChain(address _storageAddress, bytes32 _chainId) {
+    function addChain(address _storageAddress, bytes32 _chainId) public {
         BlockStore store = BlockStore(_storageAddress);
         store.addChain(_chainId);
     }

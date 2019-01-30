@@ -51,6 +51,7 @@ contract EthereumStore is BlockStore {
     * @param _blockBlob     Bytes blob of the RLP-encoded block header being added
     */
     function addBlock(bytes32 _chainId, bytes _blockBlob)
+        public
         onlyIon
         onlyRegisteredChains(_chainId)
     {
@@ -183,7 +184,7 @@ contract EthereumStore is BlockStore {
         return true;
     }
 
-    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _hash) {
+    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _hash) internal {
         assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, _hash) );
     }
 
@@ -200,7 +201,7 @@ contract EthereumStore is BlockStore {
 	* @param _rlpNodes  RLP encoded trie
 	* @returns          root hash
 	*/
-    function getRootNodeHash(bytes _rlpNodes) private returns (bytes32) {
+    function getRootNodeHash(bytes _rlpNodes) private view returns (bytes32) {
         RLP.RLPItem[] memory nodeList = _rlpNodes.toRLPItem().toList();
 
         bytes memory b_nodeRoot = RLP.toBytes(nodeList[0]);

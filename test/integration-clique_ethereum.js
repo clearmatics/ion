@@ -7,7 +7,6 @@ const BN = require('bignumber.js')
 const encoder = require('./helpers/encoder.js')
 const rlp = require('rlp');
 const async = require('async')
-const levelup = require('levelup');
 const sha3 = require('js-sha3').keccak_256
 
 // Connect to the Test RPC running
@@ -314,7 +313,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
     })
 
     describe('Check All Proofs of Tx 0xafc3ab60059ed38e71c7f6bea036822abe16b2c02fcf770a4f4b5fffcbfe6e7e on Rinkeby', () => {
-        it('Successful Check Tx Proof', async () => {
+        it('Successful Check Proofs', async () => {
             await clique.register();
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
@@ -336,10 +335,10 @@ contract('Clique-Ethereum Integration', (accounts) => {
             compressedProof = generateProof();
 
             tx = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
-            console.log("\tGas used to submit check tx proof = " + tx.receipt.gasUsed.toString() + " gas");
+            console.log("\tGas used to submit check proofs = " + tx.receipt.gasUsed.toString() + " gas");
         })
 
-        it('Fail Tx Proof with wrong proofs value', async () => {
+        it('Fail Proofs with wrong proofs value', async () => {
             await clique.register();
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
@@ -363,7 +362,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex')).should.be.rejected;
         })
 
-        it('Fail Tx Proof with malformed proof', async () => {
+        it('Fail Proofs with malformed proof', async () => {
             await clique.register();
             await clique.RegisterChain(TESTCHAINID, VALIDATORS_B2657422, TRIG_GENESIS_HASH, storage.address);
 
