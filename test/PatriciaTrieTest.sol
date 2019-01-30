@@ -1,15 +1,10 @@
 pragma solidity ^0.4.23;
 
 import "truffle/Assert.sol";
-import "truffle/DeployedAddresses.sol";
 import "../contracts/libraries/PatriciaTrie.sol";
 
 contract PatriciaTrieTest {
-    PatriciaTrie instance;
-
-    constructor() public {
-        instance = PatriciaTrie(DeployedAddresses.PatriciaTrie());
-    }
+    constructor() public {}
 
     function testSucceedVerifyNestedNodes() returns (bool) {
         bytes32 rootHash = 0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c;

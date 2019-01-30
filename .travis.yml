@@ -1,14 +1,17 @@
 os: linux
-dist: trusty
+dist: 1:0.5.1-0ubuntu1~trusty
 
 matrix:
  include:
     - name: "Javascript Contract Tests"
       services:
         - docker
-
-      script:
+        
+      before_script:
         - npm install
+        - npm run testrpc &
+        
+      script:
         - npm run test
 
       before_install:
@@ -16,7 +19,7 @@ matrix:
         - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
         - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
 
-    - name: "Golang Ion-CLI Tests"
+    - name: "Ion-CLI Tests"
       language: go
       go: 1.9.x
       script:
@@ -32,7 +35,6 @@ matrix:
         - sudo add-apt-repository ppa:ethereum/ethereum -y
         - sudo apt-get update
         - sudo apt-get install solc -y
-
 
 
 notifications:

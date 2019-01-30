@@ -16,7 +16,7 @@ func main() {
 func printWelcome() {
 	// display welcome info.
 	fmt.Println("===============================================================")
-	fmt.Println("Ion Command Line Interface\n")
+	fmt.Print("Ion Command Line Interface\n\n")
 	fmt.Println("Use 'help' to list commands")
 	fmt.Println("===============================================================")
 }
