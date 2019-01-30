@@ -21,7 +21,7 @@ contract FabricFunction {
         string memory value;
 
         (blockVersion, txVersion, value) = blockStore.getState(_chainId, _channelId, _key);
-
+    
         execute(blockVersion, txVersion, value);
     }
 }
