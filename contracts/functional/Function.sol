@@ -77,18 +77,12 @@ contract Function {
         bytes32 _chainId,
         bytes32 _blockHash,
         bytes20 _contractEmittedAddress,
-        bytes _path,
-        bytes _tx,
-        bytes _txNodes,
-        bytes _receipt,
-        bytes _receiptNodes,
+        bytes _proof,
         bytes20 _expectedAddress
     ) public {
-        assert( blockStore.CheckRootsProof(_chainId, _blockHash, _txNodes, _receiptNodes) );
-        assert( blockStore.CheckTxProof(_chainId, _blockHash, _tx, _txNodes, _path) );
-        assert( blockStore.CheckReceiptProof(_chainId, _blockHash, _receipt, _receiptNodes, _path) );
+        bytes memory receipt =  blockStore.CheckProofs(_chainId, _blockHash, _proof);
 
-        require( verifier.verify(_contractEmittedAddress, _receipt, _expectedAddress), "Event verification failed." );
+        require( verifier.verify(_contractEmittedAddress, receipt, _expectedAddress), "Event verification failed." );
         execute();
     }
 }

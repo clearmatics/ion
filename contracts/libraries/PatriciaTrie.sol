@@ -79,7 +79,12 @@ library PatriciaTrie {
         return (currentNodeKey, _traversedNibbles);
     }
 
-    function processExtensionLeafNode(RLP.RLPItem[] memory _currentNode, uint _traversedNibbles, bytes memory _path, bytes _value) private returns (bytes32, uint) {
+    function processExtensionLeafNode(
+        RLP.RLPItem[] memory _currentNode,
+        uint _traversedNibbles,
+        bytes memory _path,
+        bytes _value
+    ) private view returns (bytes32, uint) {
         bytes memory nextPathNibbles = RLP.toData(_currentNode[0]);
         _traversedNibbles += toNibbleArray(nextPathNibbles, true).length;
 
@@ -111,7 +116,7 @@ library PatriciaTrie {
         }
     }
 
-    function checkNodeValue(bytes _expected, bytes _nodeValue) private returns (bool) {
+    function checkNodeValue(bytes _expected, bytes _nodeValue) private pure returns (bool) {
         return keccak256(_expected) == keccak256(_nodeValue);
     }
 
