@@ -150,7 +150,7 @@ contract('Clique.js', (accounts) => {
 
         // Submit block should succeed
         const validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-        let event = validationReceipt.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        let event = validationReceipt.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock(bytes32)") });
         assert.ok(event, "Stored event not emitted");
 
         const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
@@ -331,7 +331,7 @@ contract('Clique.js', (accounts) => {
       // Check all validators exist
       registeredValidators = await clique.getValidators.call(TESTCHAINID, blockHash);
       for (let i = 0; i < VALIDATORS_FINISH.length; i++) {
-          let validatorExists = registeredValidators.some(v => { return v == VALIDATORS_FINISH[i] });
+          let validatorExists = registeredValidators.some(v => { return v == VALIDATORS_FINISH[i] });;
           assert(validatorExists);
       }
 

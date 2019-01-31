@@ -32,7 +32,7 @@ contract EventVerifier {
         submission of proper data.
     */
     function retrieveLog(bytes32 _eventSignature, bytes20 _contractEmittedAddress, bytes _rlpReceipt)
-        internal view returns (RLP.RLPItem[])
+        internal returns (RLP.RLPItem[])
     {
         /*  Decode the receipt into it's consituents and grab the logs with it's known position in the receipt
             object and proceed to decode the logs also.
