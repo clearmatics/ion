@@ -37,8 +37,8 @@
     "web3-utils": "^1.0.0-beta.33"
   },
   "scripts": {
-    "testrpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
-    "clirpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
+    "testrpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 0xFFFFFFFFFFF --networkId 1234",
+    "clirpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 0xFFFFFFFFFFF --networkId 1234",
     "compile": "truffle compile",
     "deploy": "truffle deploy",
     "test": "truffle test",

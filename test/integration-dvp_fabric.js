@@ -21,7 +21,6 @@ const ShareSettle = artifacts.require("ShareSettle");
 const Token = artifacts.require("Token");
 const FabricStore = artifacts.require("FabricStore");
 const BaseValidation = artifacts.require("Base");
-const FabricFunction = artifacts.require("FabricFunction");
 
 require('chai')
  .use(require('chai-as-promised'))
@@ -114,7 +113,7 @@ createData = (DATA) => {
     return formattedData;
   }
 
-contract.only('Base-Fabric Integration', (accounts) => {
+contract('Base-Fabric Integration', (accounts) => {
     let ion;
     let validation;
     let storage;
