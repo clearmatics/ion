@@ -6,7 +6,7 @@ import "../contracts/libraries/PatriciaTrie.sol";
 contract PatriciaTrieTest {
     constructor() public {}
 
-    function testSucceedVerifyNestedNodes() public returns (bool) {
+    function testSucceedVerifyNestedNodes() returns (bool) {
         bytes32 rootHash = 0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c;
 
         bytes memory path = hex"61";
@@ -40,7 +40,7 @@ contract PatriciaTrieTest {
         Assert.isTrue( PatriciaTrie.verifyProof(value, nodes, path, rootHash), "PatriciaTrie verify failed" );
     }
 
-    function testFailVerifyNestedNodes() public returns (bool) {
+    function testFailVerifyNestedNodes() returns (bool) {
         bytes32 rootHash = 0xda2e968e25198a0a41e4dcdc6fcb03b9d49274b3d44cb35d921e4ebe3fb5c54c;
 
         bytes memory path = hex"61";
