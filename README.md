@@ -31,13 +31,6 @@ We envision Ion to evolve to become a library of tools that developers can use o
 
 ## Getting Started
 
-### Prerequisites
-
-The following versions of `node` and `golang` are required.
-
-* node v10.15.0
-* golang 1.8
-
 Clone the repository and ensure that all the components work out of the box.
 
 ### With docker
@@ -52,7 +45,12 @@ docker exec -ti ion /bin/bash
 
 ### Without docker
 
-You will need [`nodejs`](https://nodejs.org/en/) and [`golang`](https://golang.org/) installed.
+The following minimum versions of `node` and `golang` are required.
+
+* [`nodejs`](https://nodejs.org/en/) v10.15.0
+* [`golang`](https://golang.org/) 1.8
+
+---
 
 Run:
 
@@ -104,7 +102,7 @@ Ethereum Block Store: `0xe812064CCA52B42F6C1D5345Bc40fb0683eAfF15`
 We will deploy our own instance of the `Function.sol` contract and pass proofs to verify a transaction that we will depend on in order to execute a function in the contract. If the proofs verify correctly then the function should emit an event to indicate that it has been executed.
 
 Procedure:
-1. We'll need the CLI here, [build the CLI](./ion-cli/).
+1. We'll need the CLI here, if you are using the docker container build the CLI with `cd ion-cli/ && make build` else follow instructions to build the CLI [here](./ion-cli/).
 2. `./ion-cli` Starts the CLI
 3. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
 4. `>>> addAccount me ./keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is `test`. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
@@ -145,7 +143,7 @@ Fabric Block Store: `0x7cc9155EB4a12783bE5aBa9dcaA698d695D19A7D`
 We will deploy our own instance of the `FabricFunction.sol` contract and retrieve data from a submitted fabric block to use in an Ethereum contract function call. The Fabric block submitted contains two key-value pairs currently, `A: 0` and `B: 3`. We'll show that we can retrieve the value of `B` and emit this in an event thus demonstrating usage of Fabric block state in an Ethereum transaction.
 
 Procedure:
-1. We'll need the CLI here, [build the CLI](./ion-cli/).
+1. We'll need the CLI here, if you are using the docker container build the CLI with `cd ion-cli/ && make build` else follow instructions to build the CLI [here](./ion-cli/)..
 2. `./ion-cli` Starts the CLI
 3. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
 4. `>>> addAccount me ./keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is `test`. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
