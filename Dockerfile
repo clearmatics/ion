@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y \
 RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo bash - && sudo apt-get install -y nodejs
 RUN npm install -g truffle ganache-cli
 
-COPY . /go/src/github.com/Clearmatics/ion
+COPY . /go/src/github.com/clearmatics/ion
 
-WORKDIR /go/src/github.com/Clearmatics/ion
+WORKDIR /go/src/github.com/clearmatics/ion
 
 CMD ["/bin/bash"]
