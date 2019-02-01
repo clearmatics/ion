@@ -16,7 +16,6 @@ const BN = require('bignumber.js')
 const encoder = require('./helpers/encoder.js')
 const rlp = require('rlp');
 const async = require('async')
-const levelup = require('levelup');
 const sha3 = require('js-sha3').keccak_256
 
 // Connect to the Test RPC running
@@ -198,11 +197,11 @@ contract('EthereumStore.js', (accounts) => {
             // Successfully add id of another chain
             await ion.addChain(storage.address, TESTCHAINID);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING);
         })
 
         it('Fail Add Block from unregistered chain', async () => {
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING).should.be.rejected;
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING).should.be.rejected;
         })
 
         it('Fail Add Block from non-ion', async () => {
@@ -214,190 +213,117 @@ contract('EthereumStore.js', (accounts) => {
         it('Fail Add Block with malformed data', async () => {
             await ion.addChain(storage.address, TESTCHAINID);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE).should.be.rejected;
-        })
-
-        it('Fail Add Block with incorrect block hash', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, unsignedHeaderHash, TESTRLPENCODING).should.be.rejected;
+            await ion.storeBlock(storage.address, TESTCHAINID, TEST_TX_VALUE).should.be.rejected;
         })
 
         it('Fail Add Same Block Twice', async () => {
             await ion.addChain(storage.address, TESTCHAINID);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING).should.be.rejected;
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING).should.be.rejected;
         })
     })
 
-    describe('Check Tx Proof', () => {
-        it('Successful Check Tx Proof', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            let tx = await storage.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH);
-
-            console.log("\tGas used to submit check tx proof = " + tx.receipt.gasUsed.toString() + " gas");
-        })
-
-        it('Fail Tx Proof with wrong chain id', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            // Fail with wrong chain ID
-            await storage.CheckTxProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH).should.be.rejected;
-        })
-
-        it('Fail Tx Proof with wrong tx value', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            // Fail with wrong tx value
-            await storage.CheckTxProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_TX_NODES, TEST_PATH).should.be.rejected;
-        })
-
-        it('Fail Tx Proof with wrong block hash', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            // Fail with wrong block hash
-            await storage.CheckTxProof(TESTCHAINID, TESTBLOCK.hash.substring(0, 30) + "ff", TEST_TX_VALUE, TEST_TX_NODES, TEST_PATH).should.be.rejected;
-        })
-
-        it('Fail Tx Proof with wrong path', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            // Fail with wrong path
-            await storage.CheckTxProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_TX_NODES, "0xff").should.be.rejected;
+    describe('Proof Decoding', () => {
+        it('Successful Proof Decoding', async () => {
+            compressedProof = generateProof();
+            CLIGeneratedProof = "0xf9074113f86707843b9aca008257c39461621bcf02914668f8404c1f860e92fc1893f74c8084457094cc1ba07e2ebe15f4ece2fd8ffc9a49d7e9e4e71a30534023ca6b24ab4000567709ad53a013a61e910eb7145aa93e865664c54846f26e09a74bd577eaf66b5dd00d334288f90235f871a0804f9c841a6a1d3361d79980581c84e5b4d3e4c9bf33951346775542d0ee0728a0edadb5e660118ea4323654191131b62c81fc00203a15a21c925f9f50d0e4b3e4808080808080a03eda2d64b94c5ed45026a29c75c99677d44c561ea5efea30c1db6299871d5c2e8080808080808080f90151a0bc285699e68d2fe18e7af2cdf7e7e6456e91a3fd31e3c9935bc5bef92e94bf4ba06eb963b2c3a3b6c07a7221aa6f6f86f7cb8ddb45ab1ff1a9dc781f34da1f081fa0deea5b5566e7a5634d91c5fb56e25f4370e3531e2fd71ee17ed6c4ad0be2ced3a0b4e9d14555f162e811cfbcbff9b98a271a197b75271565f693912c2ff75e2131a03b0bc2d764fbefd76848ee2da7b211eb230ede08d8c54e6a868be9f5e42122c1a0b6dd488ad4fb82b0a98dff81ac6766d1dec26b29dc06174de1d315b0ab0bdf0ca066c20ff06dc33777f53eec32b0b9a8d99872bec24bb3998bb520ae6897c21d7ea02db2a399f611ba7993efb4768938a6f61b4add8959ce4c89f201f41e882ff375a02e31051a9f938b9b342b8070db3dd829f62da8d0c83a6dff91a4e3b4cb2adb9ea090e75708e7dbf856b75ed126a960085419fcde0e6a0129a92dffc0cb83ac089680808080808080f86c20b869f86707843b9aca008257c39461621bcf02914668f8404c1f860e92fc1893f74c8084457094cc1ba07e2ebe15f4ece2fd8ffc9a49d7e9e4e71a30534023ca6b24ab4000567709ad53a013a61e910eb7145aa93e865664c54846f26e09a74bd577eaf66b5dd00d334288f901640183252867b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000f85af8589461621bcf02914668f8404c1f860e92fc1893f74ce1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000279884e133f9346f2fad9cc158222068221b613ef90335f871a012d378fe6800bc18f22e715a31971ef7e73ac5d1d85384f4b66ac32036ae43dea004d6e2678656a957ac776dbef512a04d266c1af3e2c5587fd233261a3d423213808080808080a05fac317a4d6d78181319fbc7e2cae4a9260f1a6afb5c6fea066e2308eed416818080808080808080f90151a03da235c6dd0fbdaf208c60cbdca0d609dee2ba107495aa7adaa658362616c8aaa09ebf378a9064aa4da0512c55c790a5e007ac79d2713e4533771cd2c95be47a4da0c06fed36ffe1f2ec164ba88f73b353960448d2decbb65355c5298a33555de742a0e057afe423ee17e5499c570a56880b0f5b5c1884b90ff9b9b5baa827f72fc816a093e06093cd2fdb67e0f87cfcc35ded2f445cc1309a0ff178e59f932aeadb6d73a0193e4e939fbc5d34a570bea3fff7c6d54adcb1c3ab7ef07510e7bd5fcef2d4b3a0a17a0c71c0118092367220f65b67f2ba2eb9068ff5270baeabe8184a01a37f14a03479a38e63123d497588ad5c31d781276ec8c11352dd3895c8add34f9a2b786ba042254728bb9ab94b58adeb75d2238da6f30382969c00c65e55d4cc4aa474c0a6a03c088484aa1c73b8fb291354f80e9557ab75a01c65d046c2471d19bd7f2543d880808080808080f9016b20b90167f901640183252867b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000f85af8589461621bcf02914668f8404c1f860e92fc1893f74ce1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000279884e133f9346f2fad9cc158222068221b613e"
+            assert.equal("0x" + compressedProof.toString('hex'), CLIGeneratedProof);
         })
     })
 
-    describe('Check Receipt Proof', () => {
-        it('Successful Check Receipt Proof', async () => {
+    describe('Check All Proofs', () => {
+        it('Successful Check All Proofs', async () => {
             await ion.addChain(storage.address, TESTCHAINID);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING);
 
-            nodes = generateTestReceiptRLPNodes();
+            compressedProof = generateProof();
 
-            let tx = await storage.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, "0x"+nodes.toString('hex'), TEST_PATH);
-            console.log("\tGas used to submit check receipt proof = " + tx.receipt.gasUsed.toString() + " gas");
+            let tx = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
+            console.log("\tGas used to submit check all proofs = " + tx.receipt.gasUsed.toString() + " gas");
         })
 
-        it('Fail Receipt Proof with wrong chain id', async () => {
+        it('Fail Proofs with wrong chain id', async () => {
             await ion.addChain(storage.address, TESTCHAINID);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING);
+
+            compressedProof = generateProof();
+
+            CLIdecoded = (rlp.decode(Buffer.from("f9074113f86707843b9aca008257c39461621bcf02914668f8404c1f860e92fc1893f74c8084457094cc1ba07e2ebe15f4ece2fd8ffc9a49d7e9e4e71a30534023ca6b24ab4000567709ad53a013a61e910eb7145aa93e865664c54846f26e09a74bd577eaf66b5dd00d334288f90235f871a0804f9c841a6a1d3361d79980581c84e5b4d3e4c9bf33951346775542d0ee0728a0edadb5e660118ea4323654191131b62c81fc00203a15a21c925f9f50d0e4b3e4808080808080a03eda2d64b94c5ed45026a29c75c99677d44c561ea5efea30c1db6299871d5c2e8080808080808080f90151a0bc285699e68d2fe18e7af2cdf7e7e6456e91a3fd31e3c9935bc5bef92e94bf4ba06eb963b2c3a3b6c07a7221aa6f6f86f7cb8ddb45ab1ff1a9dc781f34da1f081fa0deea5b5566e7a5634d91c5fb56e25f4370e3531e2fd71ee17ed6c4ad0be2ced3a0b4e9d14555f162e811cfbcbff9b98a271a197b75271565f693912c2ff75e2131a03b0bc2d764fbefd76848ee2da7b211eb230ede08d8c54e6a868be9f5e42122c1a0b6dd488ad4fb82b0a98dff81ac6766d1dec26b29dc06174de1d315b0ab0bdf0ca066c20ff06dc33777f53eec32b0b9a8d99872bec24bb3998bb520ae6897c21d7ea02db2a399f611ba7993efb4768938a6f61b4add8959ce4c89f201f41e882ff375a02e31051a9f938b9b342b8070db3dd829f62da8d0c83a6dff91a4e3b4cb2adb9ea090e75708e7dbf856b75ed126a960085419fcde0e6a0129a92dffc0cb83ac089680808080808080f86c20b869f86707843b9aca008257c39461621bcf02914668f8404c1f860e92fc1893f74c8084457094cc1ba07e2ebe15f4ece2fd8ffc9a49d7e9e4e71a30534023ca6b24ab4000567709ad53a013a61e910eb7145aa93e865664c54846f26e09a74bd577eaf66b5dd00d334288f901640183252867b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000f85af8589461621bcf02914668f8404c1f860e92fc1893f74ce1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000279884e133f9346f2fad9cc158222068221b613ef90335f871a012d378fe6800bc18f22e715a31971ef7e73ac5d1d85384f4b66ac32036ae43dea004d6e2678656a957ac776dbef512a04d266c1af3e2c5587fd233261a3d423213808080808080a05fac317a4d6d78181319fbc7e2cae4a9260f1a6afb5c6fea066e2308eed416818080808080808080f90151a03da235c6dd0fbdaf208c60cbdca0d609dee2ba107495aa7adaa658362616c8aaa09ebf378a9064aa4da0512c55c790a5e007ac79d2713e4533771cd2c95be47a4da0c06fed36ffe1f2ec164ba88f73b353960448d2decbb65355c5298a33555de742a0e057afe423ee17e5499c570a56880b0f5b5c1884b90ff9b9b5baa827f72fc816a093e06093cd2fdb67e0f87cfcc35ded2f445cc1309a0ff178e59f932aeadb6d73a0193e4e939fbc5d34a570bea3fff7c6d54adcb1c3ab7ef07510e7bd5fcef2d4b3a0a17a0c71c0118092367220f65b67f2ba2eb9068ff5270baeabe8184a01a37f14a03479a38e63123d497588ad5c31d781276ec8c11352dd3895c8add34f9a2b786ba042254728bb9ab94b58adeb75d2238da6f30382969c00c65e55d4cc4aa474c0a6a03c088484aa1c73b8fb291354f80e9557ab75a01c65d046c2471d19bd7f2543d880808080808080f9016b20b90167f901640183252867b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000f85af8589461621bcf02914668f8404c1f860e92fc1893f74ce1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000279884e133f9346f2fad9cc158222068221b613e", 'hex')));
+            decoded = (rlp.decode(compressedProof));
 
             // Fail with wrong chain ID
-            await storage.CheckReceiptProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TEST_PATH).should.be.rejected;
+            await storage.CheckProofs(DEPLOYEDCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex')).should.be.rejected;
         })
 
-        it('Fail Receipt Proof with wrong receipt value', async () => {
+        it('Fail Proofs with wrong block hash', async () => {
             await ion.addChain(storage.address, TESTCHAINID);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING);
 
-            // Fail with wrong chain ID
-            await storage.CheckReceiptProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_TX_VALUE, TEST_RECEIPT_NODES, TEST_PATH).should.be.rejected;
-        })
-
-        it('Fail Receipt Proof with wrong block hash', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
+            compressedProof = generateProof();
 
             // Fail with wrong block hash
-            await storage.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash.substring(0, 30) + "ff", TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, TEST_PATH).should.be.rejected;
+            await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash.substring(0, 30) + "ff", "0x" + compressedProof.toString('hex')).should.be.rejected;
         })
 
-        it('Fail Receipt Proof with wrong path', async () => {
+        it('Fail Proofs with malformed proof', async () => {
             await ion.addChain(storage.address, TESTCHAINID);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING);
 
-            // Fail with wrong path
-            await storage.CheckReceiptProof(TESTCHAINID, TESTBLOCK.hash, TEST_RECEIPT_VALUE, TEST_RECEIPT_NODES, "0xff").should.be.rejected;
-        })
-    })
+            compressedProof = generateMalformedProof();
 
-    describe('Check Roots Proof', () => {
-        it('Successful Check Roots Proof', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            let tx = await storage.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES);
-            console.log("\tGas used to submit check roots proof = " + tx.receipt.gasUsed.toString() + " gas");
+            // Fail with malformed proof
+            await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex')).should.be.rejected;
         })
 
-        it('Fail Roots Proof with wrong chain id', async () => {
+        it('Fail Proofs with corrupted proof', async () => {
             await ion.addChain(storage.address, TESTCHAINID);
 
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
+            await ion.storeBlock(storage.address, TESTCHAINID, TESTRLPENCODING);
 
-            // Fail with wrong chain ID
-            await storage.CheckRootsProof(DEPLOYEDCHAINID, TESTBLOCK.hash, TEST_TX_NODES, TEST_RECEIPT_NODES).should.be.rejected;
-        })
+            compressedProof = generateCorruptedProof();
 
-        it('Fail Roots Proof with wrong block hash', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            // Fail with wrong block hash
-            await storage.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash.substring(0, 30) + "ff", TEST_TX_NODES, TEST_RECEIPT_NODES).should.be.rejected;
-        })
-
-        it('Fail Roots Proof with wrong tx nodes', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            // Fail with wrong tx nodes
-            await storage.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, "0xf9011FF851a0f2c8598d0469e213e269219f0f631bf9834344426238de6b986cf64e8ab7a76a80808080808080a04a397832771093a06e1fbfde782a2fc1624f214d090825c065d301f0325e0c7b8080808080808080f85180a0a6177c642f5f21f80f5e7ba81558bfb253da9fbe0bcedc768433cbff6f973073a0d56c80e3abbe59dfa6b65f3640f8f0661b485b76c44379d3c478545c59e508a48080808080808080808080808080f87520b872f8708302a122850ba43b740083015f909453e0551a1e31a40855bc8e086eb8db803a625bbf880e861ef96aefa800801ca03a92b0a4ffd7f8774688325c1306387e15e64225d03a5a43aeceaf2e53ea782da033f501d040a857572b747e7a0968f269107e34dae093f901b380423937862084", TEST_RECEIPT_NODES).should.be.rejected;
-        })
-
-        it('Fail Roots Proof with wrong receipt nodes', async () => {
-            await ion.addChain(storage.address, TESTCHAINID);
-
-            await ion.storeBlock(storage.address, TESTCHAINID, TESTBLOCK.hash, TESTRLPENCODING);
-
-            // Fail with wrong receipt nodes
-            await storage.CheckRootsProof(TESTCHAINID, TESTBLOCK.hash, TEST_TX_NODES, "0xf90FF8f851a0e174e998404ccb578d781d64efceb6bf63547f4aed3d801e67229f1fbd827c6480808080808080a06e2f5c4a84018daf85387f2a09955f2fb535d8d459b867aabd0235ba97d991738080808080808080f85180a07d4e8719e289768c06065586d7e5b56a73b8c81e724724476ed75c9b5b59a5caa02eb7a5cd9716b4b4824e556c2df895a60fa6a0b68bd093081d24ba93eea522488080808080808080808080808080f9012f20b9012bf90128a0bbc7f826deb035ff86a12507aa7c967c931e920deffcf82bb61109267d88cab482f618b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0").should.be.rejected;
+            // Fail with corrupted proof
+            await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex')).should.be.rejected;
         })
     })
 })
 
-async function verifyReceipts(eP, txHash) {
-    await eP.getReceiptTrieRoot(txHash).then( (root) => {
-        console.log("EP RECEIPT Root hash = 0x" + root.toString('hex'))
-    })
+function generateProof() {
+    decodedPath = rlp.decode(Buffer.from(TEST_PATH.slice(2), 'hex'));
+    decodedTx = rlp.decode(Buffer.from(TEST_TX_VALUE.slice(2), 'hex'));
+    decodedTxNodes = rlp.decode(Buffer.from(TEST_TX_NODES.slice(2), 'hex'));
+    decodedReceipt = rlp.decode(Buffer.from(TEST_RECEIPT_VALUE.slice(2), 'hex'));
+    decodedReceiptNodes = rlp.decode(Buffer.from(TEST_RECEIPT_NODES.slice(2), 'hex'));
 
-    var verified;
-    await eP.getReceiptProof(txHash).then( (proof) => {
-        verified = EP.receipt(proof.path, proof.value, proof.parentNodes, proof.header, proof.blockHash);
-    })
-    return verified;
+    proof = rlp.encode([decodedPath, decodedTx, decodedTxNodes, decodedReceipt, decodedReceiptNodes]);
+    return proof;
 }
 
-function generateTestReceiptRLPNodes() {
-    let root = Buffer.from("f871a012d378fe6800bc18f22e715a31971ef7e73ac5d1d85384f4b66ac32036ae43dea004d6e2678656a957ac776dbef512a04d266c1af3e2c5587fd233261a3d423213808080808080a05fac317a4d6d78181319fbc7e2cae4a9260f1a6afb5c6fea066e2308eed416818080808080808080", 'hex');
-    second = Buffer.from("f90151a03da235c6dd0fbdaf208c60cbdca0d609dee2ba107495aa7adaa658362616c8aaa09ebf378a9064aa4da0512c55c790a5e007ac79d2713e4533771cd2c95be47a4da0c06fed36ffe1f2ec164ba88f73b353960448d2decbb65355c5298a33555de742a0e057afe423ee17e5499c570a56880b0f5b5c1884b90ff9b9b5baa827f72fc816a093e06093cd2fdb67e0f87cfcc35ded2f445cc1309a0ff178e59f932aeadb6d73a0193e4e939fbc5d34a570bea3fff7c6d54adcb1c3ab7ef07510e7bd5fcef2d4b3a0a17a0c71c0118092367220f65b67f2ba2eb9068ff5270baeabe8184a01a37f14a03479a38e63123d497588ad5c31d781276ec8c11352dd3895c8add34f9a2b786ba042254728bb9ab94b58adeb75d2238da6f30382969c00c65e55d4cc4aa474c0a6a03c088484aa1c73b8fb291354f80e9557ab75a01c65d046c2471d19bd7f2543d880808080808080", 'hex');
-    leaf = Buffer.from("f9016b20b90167f901640183252867b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000010000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000f85af8589461621bcf02914668f8404c1f860e92fc1893f74ce1a027a9902e06885f7c187501d61990eae923b37634a8d6dda55a04dc7078395340a0000000000000000000000000279884e133f9346f2fad9cc158222068221b613e", 'hex');
+function generateMalformedProof() {
+    decodedPath = rlp.decode(Buffer.from(TEST_PATH.slice(2), 'hex'));
+    decodedTx = rlp.decode(Buffer.from(TEST_TX_VALUE.slice(2), 'hex'));
+    decodedTxNodes = rlp.decode(Buffer.from(TEST_TX_NODES.slice(2), 'hex'));
+    decodedReceipt = rlp.decode(Buffer.from(TEST_RECEIPT_VALUE.slice(2), 'hex'));
+    // Exclude receipt nodes
+//    decodedReceiptNodes = rlp.decode(Buffer.from(TEST_RECEIPT_NODES.slice(2), 'hex'));
 
-    decodedRoot = rlp.decode(root);
-    decodedSecond = rlp.decode(second);
-    decodedLeaf = rlp.decode(leaf);
+    proof = rlp.encode([decodedPath, decodedTx, decodedTxNodes, decodedReceipt]);
+    return proof;
+}
 
-    nodes = rlp.encode([decodedRoot, decodedSecond, decodedLeaf]);
-    return nodes;
+function generateCorruptedProof() {
+    decodedPath = rlp.decode(Buffer.from(TEST_PATH.slice(2), 'hex'));
+    decodedTx = rlp.decode(Buffer.from(TEST_TX_VALUE.slice(2), 'hex'));
+    decodedTxNodes = rlp.decode(Buffer.from(TEST_TX_NODES.slice(2), 'hex'));
+    decodedReceipt = rlp.decode(Buffer.from(TEST_RECEIPT_VALUE.slice(2), 'hex'));
+    decodedReceiptNodes = rlp.decode(Buffer.from(TEST_RECEIPT_NODES.slice(2), 'hex'));
+
+    proof = rlp.encode([decodedPath, sha3(decodedTx), decodedTxNodes, decodedReceipt, decodedReceiptNodes]);
+    return proof;
 }

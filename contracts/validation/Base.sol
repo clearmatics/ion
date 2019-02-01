@@ -27,6 +27,6 @@ contract Base is IonCompatible {
         address _storageAddr
     ) internal {
         // Add block to Ion
-        ion.storeBlock(_storageAddr, _chainId, "0x0", _rlpBlock);
+        ion.storeBlock(_storageAddr, _chainId, _rlpBlock);
     }
 }
