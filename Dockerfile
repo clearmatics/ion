@@ -1,26 +1,16 @@
-FROM ubuntu:16.04
+FROM golang:1.8
 
-LABEL version="1.0"
-LABEL maintainer="mgb@clearmatics.com"
+RUN apt-get update && apt-get install -y \
+        vim \
+        curl \
+        sudo
 
-ENV DEBIAN_FRONTEND=noninteractive
+# Install a recent version of nodejs
+RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo bash - && sudo apt-get install -y nodejs
+RUN npm install -g truffle ganache-cli
 
-RUN apt-get update && apt-get install --yes software-properties-common
-RUN add-apt-repository ppa:ethereum/ethereum
-RUN apt-get update && apt-get install --yes geth
+COPY . /go/src/github.com/Clearmatics/ion
 
-RUN adduser --disabled-login --gecos "" eth_user
+WORKDIR /go/src/github.com/Clearmatics/ion
 
-COPY docker_build /home/eth_user/docker_build
-RUN chown -R eth_user:eth_user /home/eth_user/docker_build
-
-USER eth_user
-
-WORKDIR /home/eth_user
-
-RUN geth --datadir docker_build/account/ init docker_build/clique.json
-
-EXPOSE 8545
-
-ENTRYPOINT bash
-
+CMD ["/bin/bash"]
