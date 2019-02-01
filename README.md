@@ -53,16 +53,14 @@ The tests should pass as below:
 ```
     ...
 
-    Check Roots Proof
-	Gas used to submit check roots proof = 124536 gas
-      ✓ Successful Check Roots Proof (138ms)
-      ✓ Fail Roots Proof with wrong chain id (106ms)
-      ✓ Fail Roots Proof with wrong block hash (100ms)
-      ✓ Fail Roots Proof with wrong tx nodes (192ms)
-      ✓ Fail Roots Proof with wrong receipt nodes (132ms)
+      ✓ Successful Add Block (546ms)
+      ✓ Fail Add Block from unregistered chain
+      ✓ Fail Add Block from non-ion (44ms)
+      ✓ Fail Add Block with malformed data (70ms)
+      ✓ Fail Add Same Block Twice (644ms)
 
 
-  69 passing (43s)
+  74 passing (40s)
 
 ```
 
