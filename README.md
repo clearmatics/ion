@@ -31,6 +31,13 @@ We envision Ion to evolve to become a library of tools that developers can use o
 
 ## Getting Started
 
+### Prerequisites
+
+The following versions of `node` and `golang` are required.
+
+* node v10.15.0
+* golang 1.8
+
 Clone the repository and ensure that all the components work out of the box.
 
 ### With docker
