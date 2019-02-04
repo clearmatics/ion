@@ -39,7 +39,7 @@ Clone the repository and ensure that all the components work out of the box.
 docker build -t ion/dev .
 docker run -ti --name ion ion/dev
 
-# (Optional) if you want a second terminal in your container
+# To run through the following test example you will need a separate terminal window
 docker exec -ti ion /bin/bash
 ```
 
