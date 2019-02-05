@@ -248,8 +248,7 @@ Please see our [wiki](https://github.com/clearmatics/ion/wiki) for more detailed
 
 To start developing on Ion, you'll need access to at least two different networks.
 
-* [Set up an Ethereum network]()
-* [Set up a Hyperledger Fabric network]()
+* [Set up a Hyperledger Fabric network](https://github.com/clearmatics/simpleshares)
 
 ### Deploy the Ion stack
 
