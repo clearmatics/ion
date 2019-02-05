@@ -39,7 +39,7 @@ contract Ion {
     }
 
     // Pseudo-modifier returns boolean, used with different 'require's to input custom revert messages
-    function isContract(address _addr) internal returns (bool) {
+    function isContract(address _addr) internal view returns (bool) {
         uint size;
         assembly { size := extcodesize(_addr) }
         return (size > 0);
@@ -64,10 +64,10 @@ contract Ion {
     * param:
     *
     */
-    function storeBlock(address _storageAddress, bytes32 _chainId, bytes32 _blockHash, bytes _blockBlob) onlyRegisteredValidation public {
+    function storeBlock(address _storageAddress, bytes32 _chainId, bytes _blockBlob) onlyRegisteredValidation public {
         require( isContract(_storageAddress), "Storage address provided is not contract.");
         BlockStore store = BlockStore(_storageAddress);
 
-        store.addBlock(_chainId, _blockHash, _blockBlob);
+        store.addBlock(_chainId, _blockBlob);
     }
 }

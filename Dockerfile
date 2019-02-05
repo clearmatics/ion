@@ -1,26 +1,23 @@
-FROM ubuntu:16.04
+FROM golang:1.8
 
-LABEL version="1.0"
-LABEL maintainer="mgb@clearmatics.com"
+RUN apt-get update && apt-get install -y \
+        vim \
+        curl \
+        sudo \
+        wget
 
-ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install --yes software-properties-common
-RUN add-apt-repository ppa:ethereum/ethereum
-RUN apt-get update && apt-get install --yes geth
+# Install a recent version of nodejs
+RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo bash - && sudo apt-get install -y nodejs=10.15.1-1nodesource1
 
-RUN adduser --disabled-login --gecos "" eth_user
+COPY . /go/src/github.com/clearmatics/ion
 
-COPY docker_build /home/eth_user/docker_build
-RUN chown -R eth_user:eth_user /home/eth_user/docker_build
+# Install the current compatible solc version
+RUN wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux -O solc
+RUN chmod +x ./solc
+RUN cp ./solc /go/src/github.com/clearmatics/ion
+ENV PATH $PATH:/go/src/github.com/clearmatics/ion
 
-USER eth_user
+WORKDIR /go/src/github.com/clearmatics/ion
 
-WORKDIR /home/eth_user
-
-RUN geth --datadir docker_build/account/ init docker_build/clique.json
-
-EXPOSE 8545
-
-ENTRYPOINT bash
-
+CMD ["/bin/bash"]
