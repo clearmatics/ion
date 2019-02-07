@@ -4,19 +4,19 @@ package contract
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"math/big"
 	"os"
 	"strings"
-	"errors"
 
+	"github.com/Shirikatsu/go-ethereum/common/compiler"
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/Shirikatsu/go-ethereum/common/compiler"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -24,8 +24,8 @@ import (
 // ContractInstance is just an util type to output contract and address
 type ContractInstance struct {
 	Contract *compiler.Contract
-	Abi *abi.ABI
-	Path string
+	Abi      *abi.ABI
+	Path     string
 }
 
 // GENERIC UTIL FUNCTIONS
@@ -101,14 +101,14 @@ func DeployContract(
 	payload []byte,
 	amount *big.Int,
 	gasLimit uint64,
-) (*types.Transaction, error){
+) (*types.Transaction, error) {
 	userAddr := crypto.PubkeyToAddress(userKey.PublicKey)
 	tx := newTx(ctx, backend, &userAddr, nil, amount, gasLimit, payload)
 	signedTx := signTx(tx, userKey)
 
 	err := backend.SendTransaction(ctx, signedTx)
 	if err != nil {
-	    return nil, err
+		return nil, err
 	}
 	return signedTx, nil
 }
@@ -117,7 +117,7 @@ func CompilePayload(
 	binStr string,
 	abiStr string,
 	constructorArgs ...interface{},
-) ([]byte){
+) []byte {
 	return generateContractPayload(binStr, abiStr, constructorArgs...)
 }
 
@@ -171,46 +171,43 @@ func TransactionContract(
 	args ...interface{},
 ) (*types.Transaction, error) {
 
-    fmt.Print("Marshalling ABI\n")
+	fmt.Print("Marshalling ABI\n")
 	abiStr, err := json.Marshal(contract.Info.AbiDefinition)
 	if err != nil {
-	    errStr := fmt.Sprintf("ERROR marshalling abi to string: %s\n", err)
-	    return nil, errors.New(errStr)
+		errStr := fmt.Sprintf("ERROR marshalling abi to string: %s\n", err)
+		return nil, errors.New(errStr)
 		log.Fatal()
 	}
 
-
-    fmt.Print("JSONify ABI\n")
+	fmt.Print("JSONify ABI\n")
 	abiContract, err := abi.JSON(strings.NewReader(string(abiStr)))
 	if err != nil {
-	    errStr := fmt.Sprintf("ERROR reading contract ABI: %s\n", err)
-	    return nil, errors.New(errStr)
+		errStr := fmt.Sprintf("ERROR reading contract ABI: %s\n", err)
+		return nil, errors.New(errStr)
 	}
 
-
-    fmt.Print("Packing Args to ABI\n")
+	fmt.Print("Packing Args to ABI\n")
 	payload, err := abiContract.Pack(methodName, args...)
 	if err != nil {
-	    errStr := fmt.Sprintf("ERROR packing the method name for the contract call: %s\n", err)
-	    return nil, errors.New(errStr)
+		errStr := fmt.Sprintf("ERROR packing the method name for the contract call: %s\n", err)
+		return nil, errors.New(errStr)
 	}
 
-
-    fmt.Print("Retrieving public key\n")
+	fmt.Print("Retrieving public key\n")
 	from := crypto.PubkeyToAddress(userKey.PublicKey)
 
-    fmt.Print("Creating transaction\n")
+	fmt.Print("Creating transaction\n")
 	tx := newTx(ctx, backend, &from, &to, amount, gasLimit, payload)
 
-    fmt.Print("Signing transaction\n")
+	fmt.Print("Signing transaction\n")
 	signedTx := signTx(tx, userKey)
 
-    fmt.Print("SENDING TRANSACTION\n")
+	fmt.Print("SENDING TRANSACTION\n")
 
 	err = backend.SendTransaction(ctx, signedTx)
 	if err != nil {
-	    errStr := fmt.Sprintf("ERROR sending transaction: %s\n", err)
-	    return nil, errors.New(errStr)
+		errStr := fmt.Sprintf("ERROR sending transaction: %s\n", err)
+		return nil, errors.New(errStr)
 	}
 	return signedTx, nil
 }
@@ -221,7 +218,7 @@ func CompileContract(contract string) (compiledContract *compiler.Contract, err 
 
 	contracts, err := compiler.CompileSolidity("", []string{}, contractPath)
 	if err != nil {
-	    return nil, err
+		return nil, err
 	}
 
 	compiledContract = contracts[basePath+contract+".sol:"+contract]
@@ -237,12 +234,12 @@ func CompileContractAt(contractPath string) (compiledContract *compiler.Contract
 	i := strings.Index(contractPath, contractFolder)
 	remapping := fmt.Sprintf("../=%s", contractPath[:i])
 
-    contract, err := compiler.CompileSolidity("", []string{remapping}, contractPath)
+	contract, err := compiler.CompileSolidity("", []string{remapping}, contractPath)
 	if err != nil {
-	    return nil, err
+		return nil, err
 	}
 
-    compiledContract = contract[contractPath+":"+strings.Replace(contractName, ".sol", "", -1)]
+	compiledContract = contract[contractPath+":"+strings.Replace(contractName, ".sol", "", -1)]
 
 	return compiledContract, nil
 }
@@ -252,24 +249,24 @@ func CompileContractWithLibraries(contractPath string, libraries map[string]comm
 	contractName := path[len(path)-1]
 	contractFolder := path[len(path)-2]
 
-    args := []string{}
+	args := []string{}
 
-    for name := range libraries {
-        address := libraries[name]
+	for name := range libraries {
+		address := libraries[name]
 
-        libraryArg := name + ":" + address.String()
-        args = append(args, fmt.Sprintf("--libraries=%s", libraryArg))
-    }
+		libraryArg := name + ":" + address.String()
+		args = append(args, fmt.Sprintf("--libraries=%s", libraryArg))
+	}
 
 	i := strings.Index(contractPath, contractFolder)
 	args = append(args, fmt.Sprintf("../=%s ", contractPath[:i]))
 
-    contract, err := compiler.CompileSolidity("", args, contractPath)
+	contract, err := compiler.CompileSolidity("", args, contractPath)
 	if err != nil {
-	    return nil, err
+		return nil, err
 	}
 
-    compiledContract = contract[contractPath+":"+strings.Replace(contractName, ".sol", "", -1)]
+	compiledContract = contract[contractPath+":"+strings.Replace(contractName, ".sol", "", -1)]
 
 	return compiledContract, nil
 }
