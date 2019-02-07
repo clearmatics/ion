@@ -107,7 +107,7 @@ contract.only('Ibft.js', (accounts) => {
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
   
   describe('Submit Block', () => {
-      it.only('Authentic Submission Happy Path', async () => {
+      it('Verify Validator', async () => {
         // await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
         let block = await autonity.eth.getBlock(1);
 
@@ -245,6 +245,152 @@ contract.only('Ibft.js', (accounts) => {
         console.log(sig);
 
         const blockHeaderHash = eth_util.sha3(testBlockHeaderHash);
+        console.log(blockHeaderHash)
+        const {v, r, s} = eth_util.fromRpcSig(sig);
+
+        const pubKey  = eth_util.ecrecover(blockHeaderHash, v, r, s);
+        const addrBuf = eth_util.pubToAddress(pubKey);
+        // assert.equal(VALIDATORS[0], '0x'+addrBuf.toString('hex'));
+        console.log('0x'+addrBuf.toString('hex'));
+ 
+      })
+      it.only('Verify Seals', async () => {
+        // await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
+        let block = await autonity.eth.getBlock(1);
+
+        // Decompose the values in the block to hash
+        const parentHash = block.parentHash;
+        const sha3Uncles = block.sha3Uncles;
+        const coinbase = block.miner;
+        const root = block.stateRoot;
+        const txHash = block.transactionsRoot;
+        const receiptHash = block.receiptsRoot;
+        const logsBloom = block.logsBloom;
+        const difficulty = Web3Utils.toBN(block.difficulty);
+        const number = Web3Utils.toBN(block.number);
+        const gasLimit = block.gasLimit;
+        const gasUsed = block.gasUsed;
+        const timestamp = Web3Utils.toBN(block.timestamp);
+        const extraData = block.extraData;
+        const mixHash = block.mixHash;
+        const nonce = block.nonce;
+
+        console.log("\nExtra Data:")
+        console.log(extraData);
+        let istExtraData = extraData.slice(66);
+        
+        console.log("\nIstanbul Extra Data:")
+        console.log('0x' + istExtraData);
+        let rlpExtraData = rlp.decode('0x' + istExtraData);
+
+        let sig = '0x' + rlpExtraData[2][0].toString('hex');
+        let validators = rlpExtraData[0];
+
+        console.log("\nValidators:");
+        validators.forEach( function(entry) {
+            console.log(entry.toString('hex'))
+          }
+        );
+
+        // Remove the committed seals
+        committedSeals = rlpExtraData[2];
+        rlpExtraData[2] = [];
+
+        let rlpEncodedExtraDataSeal = rlp.encode(rlpExtraData);
+
+        console.log('0x' + rlpEncodedExtraDataSeal.toString('hex'));
+
+        // Remove last 65 Bytes of extraData
+        let extraBytes = hexToBytes(extraData);
+        let extraBytesShort = extraBytes.splice(1, 32);
+        let extraDataShort = '0x' + bytesToHex(extraBytesShort) + rlpEncodedExtraDataSeal.toString('hex');
+
+
+        console.log("\nSigned Commit Block\n")
+        
+        console.log("\nExtraData:")
+        console.log(extraData);
+        console.log("\nExtraData Short:")
+        console.log(extraDataShort);
+
+        let header = [
+          parentHash,
+          sha3Uncles,
+          coinbase,
+          root,
+          txHash,
+          receiptHash,
+          logsBloom,
+          difficulty,
+          number,
+          gasLimit,
+          gasUsed,
+          timestamp,
+          extraDataShort,
+          mixHash,
+          nonce
+        ];
+
+        let testBlockHeader = '0x' + rlp.encode(header).toString('hex');
+        let testBlockHeaderHash = Web3Utils.sha3(testBlockHeader);
+
+        console.log("\nBlock hash:")
+        console.log(testBlockHeaderHash);
+        console.log(block.hash);
+
+        // Create the rlp encoded extra data
+        rlpExtraData[2] = [];
+
+        console.log("\nrlp extra data")
+        console.log(rlpExtraData)
+
+        rlpEncodedExtraDataSeal = rlp.encode(rlpExtraData);
+
+        console.log('0x' + rlpEncodedExtraDataSeal.toString('hex'));
+
+        // Remove last 65 Bytes of extraData
+        extraBytes = hexToBytes(extraData);
+        extraBytesShort = extraBytes.splice(1, 32);
+        extraDataShort = '0x' + bytesToHex(extraBytesShort) + rlpEncodedExtraDataSeal.toString('hex');
+
+        console.log("\nSigned Seal Block\n")
+
+
+        console.log("\nExtraData:")
+        console.log(extraData);
+        console.log("\nExtraData Short:")
+        console.log(extraDataShort);
+
+        header = [
+          parentHash,
+          sha3Uncles,
+          coinbase,
+          root,
+          txHash,
+          receiptHash,
+          logsBloom,
+          difficulty,
+          number,
+          gasLimit,
+          gasUsed,
+          timestamp,
+          extraDataShort,
+          mixHash,
+          nonce
+        ];
+
+        testBlockHeader = '0x' + rlp.encode(header).toString('hex');
+        testBlockHeaderHash = Web3Utils.sha3(testBlockHeader);
+
+        console.log("\nBlock hash:")
+        console.log(testBlockHeaderHash);
+        console.log(Web3Utils.sha3(testBlockHeaderHash+"02"));
+        console.log(block.hash);
+
+        console.log("\nSignature Retrieved From Istanbul Extra:");
+        console.log(sig);
+
+        const blockHeaderHash = eth_util.sha3(testBlockHeaderHash+"02");
         console.log(blockHeaderHash)
         const {v, r, s} = eth_util.fromRpcSig(sig);
 
