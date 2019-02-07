@@ -15,7 +15,6 @@ import (
 	"github.com/clearmatics/ion/ion-cli/config"
 )
 
-
 func Test_ReadValidKeystore(t *testing.T) {
 	path := findPath() + "../keystore/UTC--2018-06-05T09-31-57.109288703Z--2be5ab0e43b6dc2908d5321cf318f35b80d0c10d"
 	contents := config.ReadString(path)
