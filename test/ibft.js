@@ -27,6 +27,7 @@ const web3 = new Web3();
 const autonity = new Web3();
 
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+// autonity.setProvider(new web3.providers.HttpProvider('https://rinkeby.infura.io'));
 autonity.setProvider(new web3.providers.HttpProvider('http://34.243.204.94:30001'));
 
 require('chai')
@@ -128,14 +129,73 @@ contract.only('Ibft.js', (accounts) => {
 
         console.log("Extra Data:")
         console.log(extraData);
-        const istExtraData = extraData.slice(66);
+        let istExtraData = extraData.slice(66);
         
         console.log("Istanbul Extra Data:")
-        console.log('0x'+istExtraData);
-        const rlpExtraData = rlp.decode('0x'+istExtraData);
+        console.log('0x' + istExtraData);
+        let rlpExtraData = rlp.decode('0x' + istExtraData);
 
-        const sig = '0x'+rlpExtraData[1].toString('hex');
-        const validators = rlpExtraData[0];
+        let sig = '0x' + rlpExtraData[1].toString('hex');
+        let validators = rlpExtraData[0];
+
+        console.log("Validators:");
+        validators.forEach( function(entry) {
+            console.log(entry.toString('hex'))
+          }
+        );
+        
+        rlpExtraData[2] = [];
+
+        let rlpEncodedExtraDataSeal = rlp.encode(rlpExtraData);
+
+        console.log('0x' + rlpEncodedExtraDataSeal.toString('hex'));
+
+        // Remove last 65 Bytes of extraData
+        const extraBytes = hexToBytes(extraData);
+        const extraBytesShort = extraBytes.splice(1, 32);
+
+        // const extraDataSignature = '0x' + bytesToHex(extraBytes.splice(extraBytes.length-65));
+        let extraDataShort = '0x' + bytesToHex(extraBytesShort) + rlpEncodedExtraDataSeal.toString('hex');
+        console.log("ExtraData Short:")
+        console.log(extraDataShort);
+        console.log(extraData);
+
+        const verifyHeader = [
+          parentHash,
+          sha3Uncles,
+          coinbase,
+          root,
+          txHash,
+          receiptHash,
+          logsBloom,
+          difficulty,
+          number,
+          gasLimit,
+          gasUsed,
+          timestamp,
+          extraDataShort,
+          mixHash,
+          nonce
+        ];
+
+        const testBlockHeader = '0x' + rlp.encode(verifyHeader).toString('hex');
+        // const testBlockHeader = '0x' + rlp.encode(header).toString('hex');
+        const testBlockHeaderHash = Web3Utils.sha3(testBlockHeader);
+        // assert.equal(testBlockHeaderHash, block.hash);
+        console.log("Block hash:")
+        console.log(testBlockHeaderHash);
+        console.log(block.hash);
+
+        console.log("Extra Data:")
+        console.log(extraData);
+        istExtraData = extraData.slice(66);
+        
+        console.log("Istanbul Extra Data:")
+        console.log('0x' + istExtraData);
+        rlpExtraData = rlp.decode('0x' + istExtraData);
+
+        sig = '0x' + rlpExtraData[1].toString('hex');
+        validators = rlpExtraData[0];
 
         console.log("Validators:");
         validators.forEach( function(entry) {
@@ -148,16 +208,16 @@ contract.only('Ibft.js', (accounts) => {
 
         console.log(rlpExtraData);
 
-        const rlpEncodedExtraDataSeal = rlp.encode(rlpExtraData).toString('hex');
+        rlpEncodedExtraDataSeal = rlp.encode(rlpExtraData);
 
-        console.log('0x' + rlpEncodedExtraDataSeal);
+        console.log('0x' + rlpEncodedExtraDataSeal.toString('hex'));
 
-        // Remove last 65 Bytes of extraData
-        const extraBytes = hexToBytes(extraData);
-        const extraBytesShort = extraBytes.splice(1, 32);
+        extraBytes = hexToBytes(extraData);
+        extraBytesShort = extraBytes.splice(1, 32);
 
         // const extraDataSignature = '0x' + bytesToHex(extraBytes.splice(extraBytes.length-65));
-        let extraDataShort = '0x' + bytesToHex(extraBytesShort) + rlpEncodedExtraDataSeal;
+        extraDataShort = '0x' + bytesToHex(extraBytesShort) + rlpEncodedExtraDataSeal.toString('hex');
+        console.log("ExtraData Short:")
         console.log(extraDataShort);
         console.log(extraData);
 
@@ -180,11 +240,12 @@ contract.only('Ibft.js', (accounts) => {
         ];
 
         const signedBlockHeader = '0x' + rlp.encode(header).toString('hex');
+        // const signedBlockHeader = '0x' + rlp.encode(header).toString('hex');
         const blockHeaderHash = Web3Utils.sha3(signedBlockHeader);
 
         const {v, r, s} = eth_util.fromRpcSig(sig);
 
-        const pubKey  = eth_util.ecrecover(eth_util.toBuffer(blockHeaderHash), v, r, s);
+        const pubKey  = eth_util.ecrecover(eth_util.toBuffer(blockHeaderHash), 27, r, s);
         const addrBuf = eth_util.pubToAddress(pubKey);
         const addr    = eth_util.bufferToHex(addrBuf);
  
