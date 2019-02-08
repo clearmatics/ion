@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
+// Copyright (c) 2016-2019 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.4.23;
 
@@ -59,6 +59,12 @@ library SolUtils {
 	    }
 	}
 
+	/*
+    * @description  copies output.length bytes from the input into the output
+	* @param output	memory allocation for the data you need to extract
+	* @param input  array from which the data should be extracted
+	* @param buf	index which the data starts within the byte array
+	*/
 	function UintToString(uint _i) internal pure returns (string memory _uintAsString) {
 		if (_i == 0) {
 			return "0";
@@ -78,7 +84,24 @@ library SolUtils {
 		return string(bstr);
 	}
 
-	function BoolToString(bool _b) internal pure returns (string memory) {
+	/*
+    * @description  copies bytes from input into the output returning uint256
+	* @param output	memory allocation for the data you need to extract
+	* @param input  array from which the data should be extracted
+	* @param buf	index which the data starts within the byte array needs to have 32 bytes appended
+	*/
+	function BytesToUint256(bytes input, uint256 buf) internal pure returns (uint256 output) {
+		buf = buf + 32;
+		assembly {
+			output := mload(add(input, buf))
+		} 
+	}
+
+	/*
+    * @description  returns string true/false depending on input
+	* @param input	boolean input
+	*/
+	function BoolToString(bool input) internal pure returns (string memory) {
 		if (_b)
             return "true";
         else
