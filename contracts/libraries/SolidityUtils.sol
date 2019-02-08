@@ -65,11 +65,11 @@ library SolUtils {
 	* @param input  array from which the data should be extracted
 	* @param buf	index which the data starts within the byte array
 	*/
-	function UintToString(uint _i) internal pure returns (string memory _uintAsString) {
-		if (_i == 0) {
+	function UintToString(uint _input) internal pure returns (string memory _uintAsString) {
+		if (_input == 0) {
 			return "0";
 		}
-		uint j = _i;
+		uint j = _input;
 		uint len;
 		while (j != 0) {
 			len++;
@@ -77,9 +77,9 @@ library SolUtils {
 		}
 		bytes memory bstr = new bytes(len);
 		uint k = len - 1;
-		while (_i != 0) {
-			bstr[k--] = byte(uint8(48 + _i % 10));
-			_i /= 10;
+		while (_input != 0) {
+			bstr[k--] = byte(uint8(48 + _input % 10));
+			_input /= 10;
 		}
 		return string(bstr);
 	}
@@ -102,7 +102,7 @@ library SolUtils {
 	* @param input	boolean input
 	*/
 	function BoolToString(bool input) internal pure returns (string memory) {
-		if (_b)
+		if (input)
             return "true";
         else
             return "false";

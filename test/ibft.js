@@ -16,20 +16,14 @@ const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
 const rlp = require('rlp');
-const truffleAssert = require('truffle-assertions');
-const sha3 = require('js-sha3').keccak_256
 
-const Clique = artifacts.require("Clique");
+const Ibft = artifacts.require("IBFT");
 const MockIon = artifacts.require("MockIon");
 const MockStorage = artifacts.require("MockStorage");
 
 const web3 = new Web3();
-const autonity = new Web3();
 
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
-autonity.setProvider(new web3.providers.HttpProvider('http://localhost:9501'));
-// autonity.setProvider(new web3.providers.HttpProvider('https://rinkeby.infura.io'));
-// autonity.setProvider(new web3.providers.HttpProvider('http://34.243.204.94:30001'));
 
 require('chai')
  .use(require('chai-as-promised'))
@@ -72,19 +66,40 @@ const TESTCHAINID = "0x22b55e8a4f7c03e1689da845dd463b09299cb3a574e64c68eafc4e990
 
 
 const VALIDATORS = [
-  "0x4bf2776241283242b13f6501454cf27345280f13",
-  "0x0d066e7626cadefa5465299d46b17d552c9da5bc",
-  "0x7f4f1ee3c39b7be3e0ca54e6a3504004a873f934",
-  "0x6c6fe934c860270fd57a541dd6f92e5ba456113c",
-  "0x70b39355f8b1cd5106d1fce9cd0b00d77585c406",
-  "0xa030cd716d381d165cbbe893087e679ac23d60aa",
-  "0x0ce0cb6eb8df3075c1c4b9de2a59b24ce06b1a3b"
-];
+    "0x287d1058a7ae485552b9d18627570f8a46c4c924",
+    "0x13ef33419a28f3d7fdc922b8a8696b4a5002050b",
+    "0xf66aa7edb3b19cdf2486689039ad5af7bfae1471",
+    "0x1e393c46d7cffc50c66a72067277bd9744a96c5c"
+  ];
 
-const VALIDATORS_START = ["0x42eb768f2244c8811c63729a21a3569731535f06", "0x7ffc57839b00206d1ad20c69a1981b489f772031", "0xb279182d99e65703f0076e4812653aab85fca0f0"];
-const VALIDATORS_FINISH = ["0x42eb768f2244c8811c63729a21a3569731535f06", "0x6635f83421bf059cd8111f180f0727128685bae4", "0x7ffc57839b00206d1ad20c69a1981b489f772031", "0xb279182d99e65703f0076e4812653aab85fca0f0"];
-const GENESIS_HASH = "0xf32b505a5ad95dfa88c2bd6904a1ba81a92a1db547dc17f4d7c0f64cf2cddbb1";
-const ADD_VALIDATORS_GENESIS_HASH = "0xf32b505a5ad95dfa88c2bd6904a1ba81a92a1db547dc17f4d7c0f64cf2cddbb1";
+const GENESIS_HASH = "0xa4db1d14ac6d264cb0b30c6b3a641b634cb78b31747e7533403c3f54b0f78b43";
+const BLOCK_HASH = "0x755a0a1145e70191c42bf9a8154e7932384e4a5e05f8eb4f9113dd9c6a0c7647";
+const COMMIT_HASH = "0xc1b75da5f66996f3f3370142cba5b74fc0d1aeb3a2610ac7a7c1a1d3fc80983f";
+
+const block = { 
+    difficulty: '1',
+    extraData: '0xd883010814846765746888676f312e31302e34856c696e757800000000000000f90164f85494287d1058a7ae485552b9d18627570f8a46c4c9249413ef33419a28f3d7fdc922b8a8696b4a5002050b94f66aa7edb3b19cdf2486689039ad5af7bfae1471941e393c46d7cffc50c66a72067277bd9744a96c5cb841e4db88ad7c924cd9c690affd756113bb82209a335eb7af9a3c88f372b36efa914e545de5bc755506f92b85dc4dafe0aace5d35453a1d29e738e7716f0367d2a900f8c9b841096810bb56276a8976367dd17e57eb31137bc1abcd5648b3112d8257298a8c25363eed24028904e076dd8cf89162fb5f0c34ac8a6cc70a6c2076f4335ff646eb01b84184bdaa8b4a389208324fa36d45270661df31548aec3fc339c1b43388b07ead65787a9550c6a571d9987c64b1611965f0bbff7c418926afb53a0956c3968657b801b841078a954e3a96ecdbd191a7e2796d51cb31b5d265dac6c5e9bf948fcdc286b9b17b4e780899855812df8f1989a76fc54687e20b9ab96b51b3254efc4559b5ec3700',
+    gasLimit: 4704588,
+    gasUsed: 0,
+    hash: '0x755a0a1145e70191c42bf9a8154e7932384e4a5e05f8eb4f9113dd9c6a0c7647',
+    logsBloom: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+    miner: '0x13Ef33419A28f3d7Fdc922B8a8696b4A5002050B',
+    mixHash: '0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365',
+    nonce: '0x0000000000000000',
+    number: 1,
+    parentHash: '0xa4db1d14ac6d264cb0b30c6b3a641b634cb78b31747e7533403c3f54b0f78b43',
+    receiptsRoot: '0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
+    sha3Uncles: '0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347',
+    size: 901,
+    stateRoot: '0x30e982d38e5e6ea77f130d8657649120d22fa240ab3ab2beea1212b534a9d5d6',
+    timestamp: 1549556108,
+    totalDifficulty: '2',
+    transactions: [],
+    transactionsRoot: '0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
+    uncles: []
+  };
+
+
 
 function hexToBytes(hex) {
   for (var bytes = [], c = 0; c < hex.length; c += 2)
@@ -106,10 +121,30 @@ contract.only('Ibft.js', (accounts) => {
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
   
+  let ion;
+  let ibft;
+  let storage;
+
+  beforeEach('setup contract for each test', async function () {
+    ion = await MockIon.new(DEPLOYEDCHAINID);
+    ibft = await Ibft.new(ion.address);
+    storage = await MockStorage.new(ion.address);
+
+  })
+
   describe('Submit Block', () => {
+      it.only('Authentic Submission Happy Path', async () => {
+        await ibft.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
+
+        rlpHeader = encoder.encodeIbftHeader(block);
+
+        // Submit block should succeed
+        const validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, storage.address);
+        console.log(validationReceipt.logs)
+      })
+
       it('Verify Validator', async () => {
         // await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
-        let block = await autonity.eth.getBlock(1);
 
         // Decompose the values in the block to hash
         const parentHash = block.parentHash;
@@ -190,7 +225,7 @@ contract.only('Ibft.js', (accounts) => {
         console.log("\nBlock hash:")
         console.log(testBlockHeaderHash);
         console.log(block.hash);
-
+        
         // Create the rlp encoded extra data
         rlpExtraData[1] = new Buffer([]);
         rlpExtraData[2] = [];
@@ -254,9 +289,10 @@ contract.only('Ibft.js', (accounts) => {
         console.log('0x'+addrBuf.toString('hex'));
  
       })
-      it.only('Verify Seals', async () => {
+
+      it('Verify Seals', async () => {
         // await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
-        let block = await autonity.eth.getBlock(1);
+        console.log(block)
 
         // Decompose the values in the block to hash
         const parentHash = block.parentHash;
