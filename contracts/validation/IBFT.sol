@@ -32,15 +32,11 @@ contract IBFT is IonCompatible {
     struct Metadata {
         address[] validators;
         mapping (address => bool) m_validators;
-        mapping (address => uint256) m_proposals;
         uint256 threshold;
     }
 
     event GenesisCreated(bytes32 chainId, bytes32 blockHash);
     event BlockSubmitted(bytes32 chainId, bytes32 blockHash);
-    event BytesEvent(bytes output);
-    event Bytes32Event(bytes32 output);
-    event AddressEvent(address output);
 
     /*
     * onlyRegisteredChains
@@ -84,10 +80,10 @@ contract IBFT is IonCompatible {
     * and is not opinionated on how they are used.
     */
     function RegisterChain(bytes32 _chainId, address[] _validators, bytes32 _genesisBlockHash, address _storeAddr) public {
-        require( _chainId != ion.chainId(), "Cannot add this chain id to chain register" );
+        require(_chainId != ion.chainId(), "Cannot add this chain id to chain register");
 
         if (chains[_chainId]) {
-            require( !m_blockhashes[_chainId][_genesisBlockHash], "Chain already exists with identical genesis" );
+            require(!m_blockhashes[_chainId][_genesisBlockHash], "Chain already exists with identical genesis");
         } else {
             chains[_chainId] = true;
             ion.addChain(_storeAddr, _chainId);
@@ -116,7 +112,11 @@ contract IBFT is IonCompatible {
         require(checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash), "Signer is not validator");
         require(checkSeals(_chainId, _commitSeals, _rlpSignedBlockHeader, parentBlockHash), "Sealer(s) not valid");
 
-        // Check that the seals given are correct
+        // Append new block to the struct
+        addValidators(_chainId, header[12].toData(), keccak256(_rlpSignedBlockHeader), parentBlockHash);
+        // storeBlock(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader, _storageAddr);
+
+        emit BlockSubmitted(_chainId, keccak256(_rlpSignedBlockHeader));
 
         
     }
@@ -149,10 +149,9 @@ contract IBFT is IonCompatible {
         for (uint256 i = 0; i < _validators.length; i++) {
             metadata.m_validators[_validators[i]] = true;
         }
-        metadata.threshold = (_validators.length/2) + 1;
+        metadata.threshold = 2*(_validators.length/3) + 1;
 
         m_blockhashes[_chainId][_genesisBlockHash] = true;
-        shiftHead(_chainId, _genesisBlockHash, 0x0);
 
         emit GenesisCreated(_chainId, _genesisBlockHash);
     }
@@ -197,12 +196,11 @@ contract IBFT is IonCompatible {
     function checkSeals(bytes32 _chainId, bytes _seals, bytes _rlpBlock, bytes32 _parentBlockHash) internal view returns (bool) {
         bytes32 signedHash = keccak256(abi.encodePacked(keccak256(_rlpBlock), 0x02));
         Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
-        uint256 threshold = (2 * (parentMetadata.validators.length/3)) + 1;
         uint256 validSeals = 0;
 
         // Check if signature is a validator that exists in previous block
         RLP.RLPItem[] memory seals = _seals.toRLPItem().toList();
-        for ( uint i=0; i<seals.length; i++ ) {
+        for (uint i = 0; i < seals.length; i++) {
             
             // Recover the signature
             address sigAddr = ECVerify.ecrecovery(signedHash, seals[i].toData());
@@ -212,7 +210,7 @@ contract IBFT is IonCompatible {
             validSeals++;
         }
 
-        if (validSeals < threshold) {
+        if (validSeals < parentMetadata.threshold) {
             return false;
         }
 
@@ -220,66 +218,36 @@ contract IBFT is IonCompatible {
     }
 
     /*
-    * addProposal
+    * addValidators
     * param: _chainId (bytes32) Unique id of interoperating chain
-    * param: _candidate (address) Byte array of the extra data containing signature
+    * param: _extraData (bytes) Byte array of the extra data containing signature
     * param: _blockHash (bytes32) Current block hash being checked
     * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
     *
-    * Modifies the proposal/validator set via votes collated from the block. Checks parent block for latest state.
+    * Updates the validators from the RLP encoded extradata
     */
-    function addProposal(bytes32 _chainId, address _candidate, bytes32 _blockHash, bytes32 _parentBlockHash) internal {
-        Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
+    function addValidators(bytes32 _chainId, bytes _extraData, bytes32 _blockHash, bytes32 _parentBlockHash) internal {
+        // Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
         Metadata storage metadata = m_blockmetadata[_chainId][_blockHash];
 
-        if (_candidate != 0x0) {
-            uint newVoteCount;
-            uint newThreshold = metadata.threshold;
-            address[] storage newValidators = metadata.validators;
+        address[] storage newValidators = metadata.validators;
 
-            // If votes pass threshold, add validator if exists, remove validator if not exists. Else metadata equal to parent
-            if ( (parentMetadata.m_proposals[_candidate] + 1) >= parentMetadata.threshold && !parentMetadata.m_validators[_candidate]) {
-                newVoteCount = 0;
+        // Retrieve Istanbul Extra
+        bytes memory rlpIstanbulExtra = new bytes(_extraData.length - 32);
+        SolUtils.BytesToBytes(rlpIstanbulExtra, _extraData, 32);
 
-                for (uint i = 0; i < parentMetadata.validators.length; i++) {
-                    newValidators.push(parentMetadata.validators[i]);
-                }
-                newValidators.push(_candidate);
-            } else if ( (parentMetadata.m_proposals[_candidate] + 1) >= parentMetadata.threshold && parentMetadata.m_validators[_candidate]) {
-                newVoteCount = 0;
+        RLP.RLPItem[] memory istanbulExtra = rlpIstanbulExtra.toRLPItem().toList();
+        RLP.RLPItem[] memory decodedExtra = istanbulExtra[0].toBytes().toRLPItem().toList();
 
-                for (uint j = 0; j < parentMetadata.validators.length; j++) {
-                    if (parentMetadata.validators[j] != _candidate) {
-                        newValidators.push(parentMetadata.validators[j]);
-                    }
-                }
-            } else {
-                newVoteCount = parentMetadata.m_proposals[_candidate] + 1;
-
-                for (uint k = 0; k < parentMetadata.validators.length; k++) {
-                    newValidators.push(parentMetadata.validators[k]);
-                }
-            }
-
-            metadata.m_proposals[_candidate] = newVoteCount;
-            newThreshold = (newValidators.length/2) + 1;
-
-            for (uint vi = 0; vi < newValidators.length; vi++) {
-                metadata.m_validators[newValidators[vi]] = true;
-                if (newValidators[vi] != _candidate) {
-                    metadata.m_proposals[newValidators[vi]] = parentMetadata.m_proposals[newValidators[vi]];
-                }
-            }
-        } else {
-            // If no vote, set current block metadata equal to parent block
-            metadata.validators = parentMetadata.validators;
-            metadata.threshold = parentMetadata.threshold;
-
-            for (uint pi = 0; pi < parentMetadata.validators.length; pi++) {
-                metadata.m_validators[parentMetadata.validators[pi]] = true;
-                metadata.m_proposals[parentMetadata.validators[pi]] = parentMetadata.m_proposals[parentMetadata.validators[pi]];
-            }
+        for (uint i = 0; i < decodedExtra.length; i++) {
+            address validator = decodedExtra[i].toAddress();
+            newValidators.push(validator);
+            metadata.m_validators[validator] = true;
         }
+
+        metadata.validators = newValidators;
+        metadata.threshold = 2*(newValidators.length/3) + 1;
+
     }
 
     /*
@@ -318,40 +286,8 @@ contract IBFT is IonCompatible {
         ion.storeBlock(_storageAddr, _chainId, _rlpBlockHeader);
     }
 
-    /*
-    * shiftHead
-    * param: _chainId (bytes32) Unique id of chain
-    * param: _childHash (bytes32) New block hash
-    * param: _parentHash (bytes32) Previous block hash
-    *
-    * Updates set of current open chain heads per chain. Open chain heads are blocks that do not have a child that can
-    * be built upon.
-    */
-    function shiftHead(bytes32 _chainId, bytes32 _childHash, bytes32 _parentHash) public {
-        int index = -1;
-        bytes32[] storage chainHeads = heads[_chainId];
-
-        // Check if parent hash is an open head and replace with child
-        for (uint i = 0; i < chainHeads.length; i++) {
-            if (chainHeads[i] == _parentHash) {
-                index = int(i);
-
-                delete chainHeads[uint(index)];
-                chainHeads[uint(index)] = _childHash;
-
-                return;
-            }
-        }
-
-        // If parent is not an open head, child is, so append to heads
-        chainHeads.push(_childHash);
-    }
-
     function getValidators(bytes32 _chainId, bytes32 _blockHash) public view returns (address[]) {
         return m_blockmetadata[_chainId][_blockHash].validators;
     }
 
-    function getProposal(bytes32 _chainId, bytes32 _blockHash, address _candidate) public view returns (uint256) {
-        return m_blockmetadata[_chainId][_blockHash].m_proposals[_candidate];
-    }
 }
