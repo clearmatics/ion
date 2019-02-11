@@ -114,7 +114,7 @@ contract IBFT is IonCompatible {
 
         // Append new block to the struct
         addValidators(_chainId, header[12].toData(), keccak256(_rlpSignedBlockHeader), parentBlockHash);
-        // storeBlock(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader, _storageAddr);
+        storeBlock(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader, _storageAddr);
 
         emit BlockSubmitted(_chainId, keccak256(_rlpSignedBlockHeader));
 
