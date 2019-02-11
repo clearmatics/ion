@@ -182,7 +182,7 @@ contract('FabricStore.sol', (accounts) => {
             await ion.addChain(storage.address, TESTCHAINID);
 
             let receipt = await ion.storeBlock(storage.address, TESTCHAINID, rlpEncodedBlock);
-            console.log("Gas used to store fabric block: %d", receipt.receipt.gasUsed);
+            console.log("\tGas used to store fabric block: %d", receipt.receipt.gasUsed);
 
             let block = await storage.getBlock.call(TESTCHAINID, TESTDATA[0].channelId, TESTDATA[0].blocks[0].hash);
 
