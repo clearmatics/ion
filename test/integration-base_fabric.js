@@ -200,7 +200,7 @@ contract('Base-Fabric Integration', (accounts) => {
             let tx = await validation.RegisterChain(TESTCHAINID, storage.address);
 
             let receipt = await validation.SubmitBlock(TESTCHAINID, rlpEncodedBlock, storage.address);
-            console.log("Gas used to store fabric block: %d", receipt.receipt.gasUsed);
+            console.log("\tGas used to store fabric block: %d", receipt.receipt.gasUsed);
 
             let block = await storage.getBlock.call(TESTCHAINID, TESTDATA[0].channelId, TESTDATA[0].blocks[0].hash);
 
