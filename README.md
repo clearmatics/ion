@@ -412,4 +412,5 @@ All Ion-extensions or applications built on Ion are part of the Ionosphere! If y
 ## Applications
 
 * [Transact-Ion](https://github.com/Shirikatsu/Transact-Ion), an atomic swap contract built on Ion.
+* [Simple Shares](https://github.com/clearmatics/simpleshares), a DvP model between Fabric and Ethereum using Ion.
 * [web3j Ion](https://github.com/web3j/ion), a simple start application using Ion with web3j.
