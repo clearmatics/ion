@@ -3,14 +3,14 @@
 package main
 
 import (
-    "fmt"
+	"fmt"
 	"github.com/clearmatics/ion/ion-cli/cli"
 )
 
 func main() {
-    // Launch the CLI
-    printWelcome()
-    cli.Launch()
+	// Launch the CLI
+	printWelcome()
+	cli.Launch()
 }
 
 func printWelcome() {

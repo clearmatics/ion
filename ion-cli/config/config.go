@@ -30,8 +30,8 @@ type Setup struct {
 }
 
 type Account struct {
-    Auth *bind.TransactOpts
-    Key *keystore.Key
+	Auth *bind.TransactOpts
+	Key  *keystore.Key
 }
 
 // Takes path to a JSON and returns a struct of the contents

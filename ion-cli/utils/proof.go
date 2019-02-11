@@ -42,7 +42,6 @@ func GenerateProof(ctx context.Context, client *rpc.Client, txHash common.Hash) 
 		}
 	}
 
-
 	txPath := []byte{idx}
 	txRLP, _ := rlp.EncodeToBytes(tx)
 	txProof := Proof(txTrie, txPath[:])
@@ -56,8 +55,8 @@ func GenerateProof(ctx context.Context, client *rpc.Client, txHash common.Hash) 
 	rlp.DecodeBytes(receiptRLP, &decodedReceipt)
 	rlp.DecodeBytes(receiptProof, &decodedReceiptProof)
 
-    proof := make([]interface{}, 0)
-    proof = append(proof, txPath, decodedTx, decodedTxProof, decodedReceipt, decodedReceiptProof)
+	proof := make([]interface{}, 0)
+	proof = append(proof, txPath, decodedTx, decodedTxProof, decodedReceipt, decodedReceiptProof)
 
 	return rlp.EncodeToBytes(proof)
 }

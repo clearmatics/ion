@@ -9,11 +9,11 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/clearmatics/ion/ion-cli/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/clearmatics/ion/ion-cli/utils"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -37,9 +37,9 @@ type header struct {
 }
 
 type EthClient struct {
-    client *ethclient.Client
-    rpcClient *rpc.Client
-    url string
+	client    *ethclient.Client
+	rpcClient *rpc.Client
+	url       string
 }
 
 func latestBlock(eth *EthClient) (lastBlock *types.Header) {
@@ -101,27 +101,27 @@ func getTransactionByHash(eth *EthClient, hash string) (*types.Transaction, []by
 }
 
 func getProof(eth *EthClient, transactionHash string) {
-    // Get the transaction hash
-    bytesTxHash := common.HexToHash(transactionHash)
+	// Get the transaction hash
+	bytesTxHash := common.HexToHash(transactionHash)
 
-    // Generate the proof
-    proof, err := utils.GenerateProof(
-        context.Background(),
-        eth.rpcClient,
-        bytesTxHash,
-    )
+	// Generate the proof
+	proof, err := utils.GenerateProof(
+		context.Background(),
+		eth.rpcClient,
+		bytesTxHash,
+	)
 
-    if err != nil {
-        panic(err)
-    }
+	if err != nil {
+		panic(err)
+	}
 
-    //fmt.Printf( "Path:           0x%x\n" +
-    //            "TxValue:        0x%x\n" +
-    //            "TxNodes:        0x%x\n" +
-    //            "ReceiptValue:   0x%x\n" +
-    //            "ReceiptNodes:   0x%x\n", txPath, txValue, txNodes, receiptValue, receiptNodes)
+	//fmt.Printf( "Path:           0x%x\n" +
+	//            "TxValue:        0x%x\n" +
+	//            "TxNodes:        0x%x\n" +
+	//            "ReceiptValue:   0x%x\n" +
+	//            "ReceiptNodes:   0x%x\n", txPath, txValue, txNodes, receiptValue, receiptNodes)
 
-    fmt.Printf("Proof: 0x%x\n", proof)
+	fmt.Printf("Proof: 0x%x\n", proof)
 }
 
 func RlpEncode(blockHeader *types.Header) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
