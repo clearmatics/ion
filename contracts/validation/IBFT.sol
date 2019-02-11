@@ -105,16 +105,18 @@ contract IBFT is IonCompatible {
     * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
     * and if valid the block is persisted as BlockHeader structs defined above.
     */
-    function SubmitBlock(bytes32 _chainId, bytes _rlpUnsignedBlockHeader, bytes _rlpSignedBlockHeader, address _storageAddr) onlyRegisteredChains(_chainId) public {
+    function SubmitBlock(bytes32 _chainId, bytes _rlpUnsignedBlockHeader, bytes _rlpSignedBlockHeader, bytes _commitSeals, address _storageAddr) onlyRegisteredChains(_chainId) public {
         RLP.RLPItem[] memory header = _rlpSignedBlockHeader.toRLPItem().toList();
-
-        emit Bytes32Event(keccak256(_rlpUnsignedBlockHeader));
-        emit Bytes32Event(keccak256(_rlpSignedBlockHeader));
 
         // Check the parent hash is the same as the previous block submitted
 		bytes32 parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
-		require( m_blockhashes[_chainId][parentBlockHash], "Not child of previous block!" );
-        require( checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash), "Signer is not validator" );
+		require(m_blockhashes[_chainId][parentBlockHash], "Not child of previous block!");
+
+        // Verify that validator and sealers are correct
+        require(checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash), "Signer is not validator");
+        require(checkSeals(_chainId, _commitSeals, _rlpSignedBlockHeader, parentBlockHash), "Sealer(s) not valid");
+
+        // Check that the seals given are correct
 
         
     }
@@ -181,6 +183,40 @@ contract IBFT is IonCompatible {
 
         // Check if signature is a validator that exists in previous block
 		return parentMetadata.m_validators[sigAddr];
+    }
+
+    /*
+    * checkSeals
+    * param: _chainId (bytes32) Unique id of interoperating chain
+    * param: _seals (bytes) RLP encoded list of 65 byte seals
+    * param: _rlpBlock (bytes) Byte array of RLP encoded unsigned block header
+    * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
+    *
+    * Checks that the submitted block has enough seals to be considered valid as per the IBFT Soma rules
+    */
+    function checkSeals(bytes32 _chainId, bytes _seals, bytes _rlpBlock, bytes32 _parentBlockHash) internal view returns (bool) {
+        bytes32 signedHash = keccak256(abi.encodePacked(keccak256(_rlpBlock), 0x02));
+        Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
+        uint256 threshold = (2 * (parentMetadata.validators.length/3)) + 1;
+        uint256 validSeals = 0;
+
+        // Check if signature is a validator that exists in previous block
+        RLP.RLPItem[] memory seals = _seals.toRLPItem().toList();
+        for ( uint i=0; i<seals.length; i++ ) {
+            
+            // Recover the signature
+            address sigAddr = ECVerify.ecrecovery(signedHash, seals[i].toData());
+            if (!parentMetadata.m_validators[sigAddr]) {
+                return false;
+            }
+            validSeals++;
+        }
+
+        if (validSeals < threshold) {
+            return false;
+        }
+
+		return true;
     }
 
     /*

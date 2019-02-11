@@ -139,7 +139,7 @@ contract.only('Ibft.js', (accounts) => {
         rlpHeader = encoder.encodeIbftHeader(block);
 
         // Submit block should succeed
-        const validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, storage.address);
+        const validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
         console.log(validationReceipt.logs)
       })
 

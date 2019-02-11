@@ -17,6 +17,7 @@ library SolUtils {
 		}
 	}
 
+
 	/*
     * @description  copies 20 bytes from input into the output
 	* @param output	memory allocation for the data you need to extract
@@ -57,6 +58,13 @@ library SolUtils {
 		assembly {
            let ret := staticcall(3000, 4, add(input, buf), outputLength, add(output, 32), outputLength)
 	    }
+	}
+	
+	function Bytes32ToBytes(bytes32 input, uint256 buf) internal pure returns (bytes output) {
+		buf = buf + 32;
+        assembly {
+			output := mload(add(input, buf))
+		} 
 	}
 
 	/*
