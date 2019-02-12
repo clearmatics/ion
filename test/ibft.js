@@ -171,6 +171,9 @@ contract('Ibft.js', (accounts) => {
       let chainExists = await ibft.chains(TESTCHAINID);
 
       assert(chainExists);
+
+      let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+      assert.equal(chainHead, GENESIS_HASH);
     })
 
     it('Fail Register Chain Twice', async () => {
@@ -180,6 +183,9 @@ contract('Ibft.js', (accounts) => {
       let chainExists = await ibft.chains(TESTCHAINID);
 
       assert(chainExists);
+
+      let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+      assert.equal(chainHead, GENESIS_HASH);
 
       // Fail adding id of this chain
       await ibft.RegisterChain(DEPLOYEDCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address).should.be.rejected;
@@ -204,16 +210,17 @@ contract('Ibft.js', (accounts) => {
       // Successfully add id of another chain
       await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
 
-      let header = await ibft.m_blockheaders(TESTCHAINID, GENESIS_HASH);
-      let blockHeight = header[0];
-
-      assert.equal(0, blockHeight);
+      let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+      assert.equal(chainHead, GENESIS_HASH);
     })
   })
 
   describe('Submit Block', () => {
-      it('Authentic Submission Happy Path', async () => {
+      it('Successful Submit block', async () => {
         await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+
+        let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, GENESIS_HASH);
 
         rlpHeader = encoder.encodeIbftHeader(block);
 
@@ -237,6 +244,9 @@ contract('Ibft.js', (accounts) => {
 
         // Assert that block was persisted correctly
         assert.equal(parentHash, block.parentHash);
+
+        chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, block.hash);
       })
 
       it('Submit Sequential Blocks with Additional Validator', async () => {
