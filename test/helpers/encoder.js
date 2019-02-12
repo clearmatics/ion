@@ -8,6 +8,86 @@ const utils = require('./utils.js');
 const encoder = {};
 
 // Encodes the block headers from clique returning the signed and unsigned instances
+encoder.encodeIbftHeader = (block) => {
+  let istExtraData = block.extraData.slice(66);
+  let rlpExtraData = rlp.decode('0x' + istExtraData);
+
+  let sig = '0x' + rlpExtraData[1].toString('hex');
+
+  // Remove the committed seals
+  committedSeals = rlpExtraData[2];
+  rlpExtraData[2] = [];
+
+  let rlpEncodedExtraDataSeal = rlp.encode(rlpExtraData);
+
+  // Remove last 65 Bytes of extraData
+  let extraBytes = utils.hexToBytes(block.extraData);
+  let extraBytesShort = extraBytes.splice(1, 32);
+  let extraDataShort = '0x' + utils.bytesToHex(extraBytesShort) + rlpEncodedExtraDataSeal.toString('hex');
+
+  let header = [
+    block.parentHash,
+    block.sha3Uncles,
+    block.miner,
+    block.stateRoot,
+    block.transactionsRoot,
+    block.receiptsRoot,
+    block.logsBloom,
+    Web3Utils.toBN(block.difficulty),
+    Web3Utils.toBN(block.number),
+    block.gasLimit,
+    block.gasUsed,
+    Web3Utils.toBN(block.timestamp),
+    extraDataShort,
+    block.mixHash,
+    block.nonce
+    ];
+
+  let encodedHeader = '0x' + rlp.encode(header).toString('hex');
+  let encodedBlockHeaderHash = Web3Utils.sha3(encodedHeader);
+
+  // Create the rlp encoded extra data
+  rlpExtraData[1] = new Buffer([]);
+  rlpExtraData[2] = [];
+
+  rlpEncodedExtraDataSeal = rlp.encode(rlpExtraData);
+
+  // Remove last 65 Bytes of extraData
+  extraBytes = utils.hexToBytes(block.extraData);
+  extraBytesShort = extraBytes.splice(1, 32);
+  extraDataShort = '0x' + utils.bytesToHex(extraBytesShort) + rlpEncodedExtraDataSeal.toString('hex');
+
+  header = [
+    block.parentHash,
+    block.sha3Uncles,
+    block.miner,
+    block.stateRoot,
+    block.transactionsRoot,
+    block.receiptsRoot,
+    block.logsBloom,
+    Web3Utils.toBN(block.difficulty),
+    Web3Utils.toBN(block.number),
+    block.gasLimit,
+    block.gasUsed,
+    Web3Utils.toBN(block.timestamp),
+    extraDataShort,
+    block.mixHash,
+    block.nonce
+  ];
+
+  encodedUnsignedHeader = '0x' + rlp.encode(header).toString('hex');
+  encodedUnsignedHeaderHash = Web3Utils.sha3(encodedUnsignedHeader);
+
+  encodedCommittedSeals = '0x' + rlp.encode(committedSeals).toString('hex');
+
+  return { 
+    unsigned: encodedUnsignedHeader,
+    signed: encodedHeader,
+    seal: encodedCommittedSeals
+  };
+}
+
+// Encodes the block headers from clique returning the signed and unsigned instances
 encoder.encodeBlockHeader = (block) => {
     const signedHeader = [
         block.parentHash,
