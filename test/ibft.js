@@ -172,8 +172,23 @@ contract('Ibft.js', (accounts) => {
 
       assert(chainExists);
 
+      let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+      assert.equal(chainHead, GENESIS_HASH);
+    })
+
+    it('Fail Register Chain Twice', async () => {
+      // Successfully add id of another chain
+      let tx = await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+      console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
+      let chainExists = await ibft.chains(TESTCHAINID);
+
+      assert(chainExists);
+
+      let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+      assert.equal(chainHead, GENESIS_HASH);
+
       // Fail adding id of this chain
-      await ibft.RegisterChain(storage.address, DEPLOYEDCHAINID, VALIDATORS_BEFORE, GENESIS_HASH).should.be.rejected;
+      await ibft.RegisterChain(DEPLOYEDCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address).should.be.rejected;
 
       // Fail adding id of chain already initialised
       await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address).should.be.rejected;
@@ -183,7 +198,7 @@ contract('Ibft.js', (accounts) => {
       // Successfully add id of another chain
       await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
 
-      let registeredValidators = await ibft.getValidators.call(TESTCHAINID, GENESIS_HASH);
+      let registeredValidators = await ibft.getValidators.call(TESTCHAINID);
 
       for (let i = 0; i < VALIDATORS_BEFORE.length; i++) {
           let validatorExists = registeredValidators.some(v => { return v == VALIDATORS_BEFORE[i] });;
@@ -195,16 +210,17 @@ contract('Ibft.js', (accounts) => {
       // Successfully add id of another chain
       await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
 
-      let header = await ibft.m_blockheaders(TESTCHAINID, GENESIS_HASH);
-      let blockHeight = header[0];
-
-      assert.equal(0, blockHeight);
+      let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+      assert.equal(chainHead, GENESIS_HASH);
     })
   })
 
   describe('Submit Block', () => {
-      it('Authentic Submission Happy Path', async () => {
+      it('Successful Submit block', async () => {
         await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+
+        let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, GENESIS_HASH);
 
         rlpHeader = encoder.encodeIbftHeader(block);
 
@@ -218,8 +234,8 @@ contract('Ibft.js', (accounts) => {
         const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
         assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
 
-        let blockHashExists = await ibft.m_blockhashes(TESTCHAINID, block.hash);
-        assert(blockHashExists);
+        let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);
+        assert.equal(addedBlockHash, block.hash);
 
         let header = await ibft.m_blockheaders(TESTCHAINID, block.hash);
 
@@ -228,6 +244,9 @@ contract('Ibft.js', (accounts) => {
 
         // Assert that block was persisted correctly
         assert.equal(parentHash, block.parentHash);
+
+        chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, block.hash);
       })
 
       it('Submit Sequential Blocks with Additional Validator', async () => {
@@ -250,8 +269,8 @@ contract('Ibft.js', (accounts) => {
         const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
         assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
 
-        let blockHashExists = await ibft.m_blockhashes(TESTCHAINID, block_add.hash);
-        assert(blockHashExists);
+        let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);
+        assert.equal(addedBlockHash, block_add.hash);
 
         let header = await ibft.m_blockheaders(TESTCHAINID, block_add.hash);
 
@@ -262,14 +281,14 @@ contract('Ibft.js', (accounts) => {
         assert.equal(parentHash, block_add.parentHash);
 
         // Check new validators
-        let registeredValidators = await ibft.getValidators.call(TESTCHAINID, block_add.hash);
+        let registeredValidators = await ibft.getValidators.call(TESTCHAINID);
         for (let i = 0; i < VALIDATORS_AFTER.length; i++) {
           let validatorExists = registeredValidators.some(v => { return v == VALIDATORS_AFTER[i] });;
           assert(validatorExists);
         }
       })
 
-      it('Submit Block Unknown Validator', async () => {
+      it('Fail Submit Block with Unknown Validator', async () => {
         await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
 
         block.extraData = "0xdc83010000886175746f6e69747988676f312e31302e34856c696e7578000000f90164f854941cb62855cd70774634c85c9acb7c3070ce692936946b2f468af3d0ba2f3a09712faea4d379c2e891a194a667ea98809a69724c6672018bd7db799cd3fefc94c2054df3acfdbe5b221866b25e09026734ca5572b841012edd2e5936deaf4c0ee17698dc0fda832bb51a81d929ae3156d73e5475123c19d162cf1e434637c16811d63d1d3b587906933d75e25cedf7bef59e8fa8375d01f8c9b841719c5bc521721e71ff7fafff09fdff4037e678a77a816b08d45b89d55f35edc94b5c51cc3eeba79d3de291c3c46fbf04faec4952e7d0836be9ad5d855f525c9301b841a7c9eed0337f92a5d4caf6f57b3b59ba10a14ea615c6264fc82fcf5b2e4b626f701fd3596cd1f8639b37a41cb4f3a7582bb530790441de73e6e3449284127b4d00b841210db6ef89906ef1c77538426d29b8440a1c987d508e396776e63515df2a345767c195dc540cfabdf86d696c73b4a24632445565d322d8e45fa2668ec5e6c0e000";
@@ -281,7 +300,7 @@ contract('Ibft.js', (accounts) => {
         
       })
 
-      it('Submit Block Insufficient Seals', async () => {
+      it('Fail Submit Block with Insufficient Seals', async () => {
         await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
 
         let badExtraData = "0xf90164f854944335d75841d8b85187cf651ed130774143927c799461d7d88dbc76259fcf1f26bc0b5763aebd67aead94955425273ef777d6430d910f9a8b10adbe95fff694f00d3c728929e42000c8d92d1a7e6a666f12e6edb8410c11022a97fcb2248a2d757a845b4804755702125f8b7ec6c06503ae0277ad996dc22f81431e8036b6cf9ef7d3c1ff1b65a255c9cb70dd2f4925951503a6fdbf01f8c9b8412d3849c86c8ba3ed9a79cdd71b1684364c4c4efb1f01e83ca8cf663f3c95f7ac64b711cd297527d42fb3111b8f78d5227182f38ccc442be5ac4dcb52efede89a01b84135de3661d0191247c7f835c8eb6d7939052c0da8ae234baf8bd208c00225e706112df9bad5bf773120ba4bbc55f6d18e478de43712c0cd3de7a3e2bfd65abb7c01b841735f482a051e6ad7fb76a815907e68d903b73eff4e472006e56fdeca8155cb575f4c1d3e98cf3a4b013331c1bd171d0d500243ac0e073a5fd382294c4fe996f000";

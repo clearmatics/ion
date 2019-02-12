@@ -25,15 +25,9 @@ contract IBFT is IonCompatible {
         uint256 blockNumber;
 		bytes32 blockHash;
 		bytes32 prevBlockHash;
-        bytes32 txRootHash;
-        bytes32 receiptRootHash;
-	}
-
-    struct Metadata {
         address[] validators;
-        mapping (address => bool) m_validators;
         uint256 threshold;
-    }
+	}
 
     event GenesisCreated(bytes32 chainId, bytes32 blockHash);
     event BlockSubmitted(bytes32 chainId, bytes32 blockHash);
@@ -50,10 +44,8 @@ contract IBFT is IonCompatible {
     }
 
     mapping (bytes32 => bool) public chains;
-    mapping (bytes32 => mapping (bytes32 => bool)) public m_blockhashes;
+    mapping (bytes32 => bytes32) public m_chainHeads;
 	mapping (bytes32 => mapping (bytes32 => BlockHeader)) public m_blockheaders;
-	mapping (bytes32 => mapping (bytes32 => Metadata)) public m_blockmetadata;
-    mapping (bytes32 => bytes32[]) public heads;
 
 	constructor (address _ionAddr) IonCompatible(_ionAddr) public {}
 
@@ -83,7 +75,7 @@ contract IBFT is IonCompatible {
         require(_chainId != ion.chainId(), "Cannot add this chain id to chain register");
 
         if (chains[_chainId]) {
-            require(!m_blockhashes[_chainId][_genesisBlockHash], "Chain already exists with identical genesis");
+            require(m_chainHeads[_chainId] == bytes32(0x0), "Chain already exists");
         } else {
             chains[_chainId] = true;
             ion.addChain(_storeAddr, _chainId);
@@ -107,19 +99,17 @@ contract IBFT is IonCompatible {
 
         // Check the parent hash is the same as the previous block submitted
 		bytes32 parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
-		require(m_blockhashes[_chainId][parentBlockHash], "Not child of previous block!");
+		require(m_chainHeads[_chainId] == parentBlockHash, "Not child of previous block!");
 
         // Verify that validator and sealers are correct
         require(checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash), "Signer is not validator");
         require(checkSeals(_chainId, _commitSeals, _rlpSignedBlockHeader, parentBlockHash), "Sealer(s) not valid");
 
         // Append new block to the struct
-        addValidators(_chainId, header[12].toData(), keccak256(_rlpSignedBlockHeader), parentBlockHash);
-        storeBlock(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash, SolUtils.BytesToBytes32(header[4].toBytes(), 1), SolUtils.BytesToBytes32(header[5].toBytes(), 1), header[8].toUint(), _rlpSignedBlockHeader, _storageAddr);
+        addValidators(_chainId, header[12].toData(), keccak256(_rlpSignedBlockHeader));
+        storeBlock(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash, header[8].toUint(), _rlpSignedBlockHeader, _storageAddr);
 
         emit BlockSubmitted(_chainId, keccak256(_rlpSignedBlockHeader));
-
-        
     }
 
 
@@ -142,18 +132,10 @@ contract IBFT is IonCompatible {
         BlockHeader storage header = m_blockheaders[_chainId][_genesisBlockHash];
         header.blockNumber = 0;
         header.blockHash = _genesisBlockHash;
+        header.validators = _validators;
+        header.threshold = 2*(_validators.length/3) + 1;
 
-        Metadata storage metadata = m_blockmetadata[_chainId][_genesisBlockHash];
-        metadata.validators = _validators;
-
-        // Append validators and vote threshold
-        for (uint256 i = 0; i < _validators.length; i++) {
-            metadata.m_validators[_validators[i]] = true;
-        }
-        metadata.threshold = 2*(_validators.length/3) + 1;
-
-        m_blockhashes[_chainId][_genesisBlockHash] = true;
-
+        m_chainHeads[_chainId] = _genesisBlockHash;
         emit GenesisCreated(_chainId, _genesisBlockHash);
     }
 
@@ -168,7 +150,7 @@ contract IBFT is IonCompatible {
     * parent block
     */
     function checkSignature(bytes32 _chainId, bytes _extraData, bytes32 _hash, bytes32 _parentBlockHash) internal view returns (bool) {
-        // Retrieve Istanbul Extra
+        // Retrieve Istanbul Extra Data
         bytes memory istanbulExtra = new bytes(_extraData.length - 32);
         SolUtils.BytesToBytes(istanbulExtra, _extraData, 32);
 
@@ -179,10 +161,10 @@ contract IBFT is IonCompatible {
 
         // Recover the signature
         address sigAddr = ECVerify.ecrecovery(keccak256(_hash), extraDataSig);
-        Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
+        BlockHeader storage parentBlock = m_blockheaders[_chainId][_parentBlockHash];
 
         // Check if signature is a validator that exists in previous block
-		return parentMetadata.m_validators[sigAddr];
+		return isValidator(parentBlock.validators, sigAddr);
     }
 
     /*
@@ -196,26 +178,31 @@ contract IBFT is IonCompatible {
     */
     function checkSeals(bytes32 _chainId, bytes _seals, bytes _rlpBlock, bytes32 _parentBlockHash) internal view returns (bool) {
         bytes32 signedHash = keccak256(abi.encodePacked(keccak256(_rlpBlock), 0x02));
-        Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
+        BlockHeader storage parentBlock = m_blockheaders[_chainId][_parentBlockHash];
         uint256 validSeals = 0;
 
         // Check if signature is a validator that exists in previous block
         RLP.RLPItem[] memory seals = _seals.toRLPItem().toList();
         for (uint i = 0; i < seals.length; i++) {
-            
             // Recover the signature
             address sigAddr = ECVerify.ecrecovery(signedHash, seals[i].toData());
-            if (!parentMetadata.m_validators[sigAddr]) {
+            if (!isValidator(parentBlock.validators, sigAddr))
                 return false;
-            }
             validSeals++;
         }
 
-        if (validSeals < parentMetadata.threshold) {
+        if (validSeals < parentBlock.threshold)
             return false;
-        }
 
 		return true;
+    }
+
+    function isValidator(address[] _validators, address _validator) internal pure returns (bool) {
+        for (uint i = 0; i < _validators.length; i++) {
+            if (_validator == _validators[i])
+                return true;
+        }
+        return false;
     }
 
     /*
@@ -227,13 +214,10 @@ contract IBFT is IonCompatible {
     *
     * Updates the validators from the RLP encoded extradata
     */
-    function addValidators(bytes32 _chainId, bytes _extraData, bytes32 _blockHash, bytes32 _parentBlockHash) internal {
-        // Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
-        Metadata storage metadata = m_blockmetadata[_chainId][_blockHash];
+    function addValidators(bytes32 _chainId, bytes _extraData, bytes32 _blockHash) internal {
+        BlockHeader storage newBlock = m_blockheaders[_chainId][_blockHash];
 
-        address[] storage newValidators = metadata.validators;
-
-        // Retrieve Istanbul Extra
+        // Retrieve Istanbul Extra Data
         bytes memory rlpIstanbulExtra = new bytes(_extraData.length - 32);
         SolUtils.BytesToBytes(rlpIstanbulExtra, _extraData, 32);
 
@@ -242,13 +226,10 @@ contract IBFT is IonCompatible {
 
         for (uint i = 0; i < decodedExtra.length; i++) {
             address validator = decodedExtra[i].toAddress();
-            newValidators.push(validator);
-            metadata.m_validators[validator] = true;
+            newBlock.validators.push(validator);
         }
 
-        metadata.validators = newValidators;
-        metadata.threshold = 2*(newValidators.length/3) + 1;
-
+        newBlock.threshold = 2*(newBlock.validators.length/3) + 1;
     }
 
     /*
@@ -256,8 +237,6 @@ contract IBFT is IonCompatible {
     * param: _chainId (bytes32) Unique id of interoperating chain
     * param: _hash (address) Byte array of the extra data containing signature
     * param: _parentHash (bytes32) Current block hash being checked
-    * param: _txRootHash (bytes32) Parent block hash of current block being checked
-    * param: _receiptRootHash (bytes32) Parent block hash of current block being checked
     * param: _height (bytes32) Parent block hash of current block being checked
     * param: _rlpBlockHeader (bytes32) Parent block hash of current block being checked
     * param: _storageAddr (bytes32) Parent block hash of current block being checked
@@ -268,27 +247,25 @@ contract IBFT is IonCompatible {
         bytes32 _chainId,
         bytes32 _hash,
         bytes32 _parentHash,
-        bytes32 _txRootHash,
-        bytes32 _receiptRootHash,
         uint256 _height,
         bytes _rlpBlockHeader,
         address _storageAddr
     ) internal {
-        m_blockhashes[_chainId][_hash] = true;
+        m_chainHeads[_chainId] = _hash;
 
         BlockHeader storage header = m_blockheaders[_chainId][_hash];
         header.blockNumber = _height;
         header.blockHash = _hash;
         header.prevBlockHash = _parentHash;
-        header.txRootHash = _txRootHash;
-        header.receiptRootHash = _receiptRootHash;
+
+        delete m_blockheaders[_chainId][_parentHash];
 
         // Add block to Ion
         ion.storeBlock(_storageAddr, _chainId, _rlpBlockHeader);
     }
 
-    function getValidators(bytes32 _chainId, bytes32 _blockHash) public view returns (address[]) {
-        return m_blockmetadata[_chainId][_blockHash].validators;
+    function getValidators(bytes32 _chainId) public view returns (address[]) {
+        return m_blockheaders[_chainId][m_chainHeads[_chainId]].validators;
     }
 
 }
