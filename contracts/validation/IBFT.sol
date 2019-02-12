@@ -19,7 +19,7 @@ contract IBFT is IonCompatible {
     using RLP for bytes;
 
     /*
-    *   @description    persists the last submitted block of a chain being validated
+    * @description    persists the last submitted block of a chain being validated
     */
 	struct BlockHeader {
         uint256 blockNumber;
@@ -95,11 +95,12 @@ contract IBFT is IonCompatible {
 	/*
     * SubmitBlock
     * param: _chainId (bytes32) Unique id of chain submitting block from
-    * param: _rlpBlockHeader (bytes) RLP-encoded byte array of the block header from other chain including all proposal and commit seals
+    * param: _rlpUnsignedBlockHeader (bytes) RLP-encoded byte array of the block header from IBFT-Soma chain containing only validator set in IstanbulExtra field
+    * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain including all proposal seal in the IstanbulExtra field
+    * param: _commitSeals (bytes) RLP-encoded commitment seals that are typically contained in the last element of the IstanbulExtra field
     * param: _storeAddr (address) Address of block store contract to store block to
     *
-    * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
-    * and if valid the block is persisted as BlockHeader structs defined above.
+    * Submission of block headers from another chain. 
     */
     function SubmitBlock(bytes32 _chainId, bytes _rlpUnsignedBlockHeader, bytes _rlpSignedBlockHeader, bytes _commitSeals, address _storageAddr) onlyRegisteredChains(_chainId) public {
         RLP.RLPItem[] memory header = _rlpSignedBlockHeader.toRLPItem().toList();
@@ -160,7 +161,7 @@ contract IBFT is IonCompatible {
     * checkSignature
     * param: _chainId (bytes32) Unique id of interoperating chain
     * param: _extraData (bytes) Byte array of the extra data containing signature
-    * param: _rlpBlockHeader (bytes) Byte array of RLP encoded unsigned block header
+    * param: _hash (bytes32) Hash of the unsigned block header
     * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
     *
     * Checks that the submitted block has actually been signed, recovers the signer and checks if they are validator in
@@ -187,7 +188,7 @@ contract IBFT is IonCompatible {
     /*
     * checkSeals
     * param: _chainId (bytes32) Unique id of interoperating chain
-    * param: _seals (bytes) RLP encoded list of 65 byte seals
+    * param: _seals (bytes) RLP-encoded list of 65 byte seals
     * param: _rlpBlock (bytes) Byte array of RLP encoded unsigned block header
     * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
     *
