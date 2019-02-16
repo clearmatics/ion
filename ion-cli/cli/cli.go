@@ -530,6 +530,82 @@ func Launch() {
 	})
 
 	shell.AddCmd(&ishell.Cmd{
+		Name: "getEncodedBlockByHash",
+		Help: "use: \tgetEncodedBlockByHash [optional rpc url] [hash] \n\t\t\t\tdescription: Returns RLP-encoded block header specified by hash from connected client or from specific endpoint",
+		Func: func(c *ishell.Context) {
+			if len(c.Args) == 1 {
+                if ethClient != nil {
+                    block, _, err := getBlockByHash(ethClient, c.Args[0])
+                    if err != nil {
+                        c.Println(err)
+                        return
+                    }
+                    encodedBlock, err := RlpEncode(block)
+                    c.Printf("Encoded Block: %+x\n", encodedBlock)
+                } else {
+                    c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+                    return
+                }
+            } else if len(c.Args) == 2 {
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                block, _, err := getBlockByHash(client, c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                encodedBlock, err := RlpEncode(block)
+                c.Printf("Encoded Block:\n %+x\n", encodedBlock)
+            } else {
+                c.Println("Usage: \tgetEncodedBlockByHash [optional rpc url] [integer]\n")
+                return
+            }
+            c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "getEncodedBlockByNumber",
+		Help: "use: \tgetEncodedBlockByNumber [optional rpc url] [hash] \n\t\t\t\tdescription: Returns RLP-encoded block header specified by number from connected client or from specific endpoint",
+		Func: func(c *ishell.Context) {
+		    if len(c.Args) == 1 {
+                if ethClient != nil {
+					block, _, err := getBlockByNumber(ethClient, c.Args[0])
+					if err != nil {
+						c.Println(err)
+						return
+					}
+					encodedBlock, err := RlpEncode(block)
+                    c.Printf("Encoded Block: %+x\n", encodedBlock)
+                } else {
+                    c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+                    return
+                }
+            } else if len(c.Args) == 2 {
+                client, err := getClient(c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                block, _, err := getBlockByNumber(client, c.Args[0])
+                if err != nil {
+                    c.Println(err)
+                    return
+                }
+                encodedBlock, err := RlpEncode(block)
+                c.Printf("Encoded Block:\n %+x\n", encodedBlock)
+            } else {
+                c.Println("Usage: \tgetEncodedBlockByNumber [optional rpc url] [integer]\n")
+                return
+            }
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
 		Name: "getProof",
 		Help: "use: \tgetProof [optional rpc url] [Transaction Hash] \n\t\t\t\tdescription: Returns a merkle patricia proof of a specific transaction and its receipt in a block",
 		Func: func(c *ishell.Context) {
@@ -570,7 +646,7 @@ func Launch() {
 						c.Println(err)
 						return
 					}
-					signedBlock, unsignedBlock := RlpEncode(block)
+					signedBlock, unsignedBlock := RlpEncodeClique(block)
 					c.Printf("Signed Block: %+x\n", signedBlock)
 					c.Printf("Unsigned Block: %+x\n", unsignedBlock)
 				} else {
@@ -588,7 +664,7 @@ func Launch() {
 					c.Println(err)
 					return
 				}
-				signedBlock, unsignedBlock := RlpEncode(block)
+				signedBlock, unsignedBlock := RlpEncodeClique(block)
 				c.Printf("Signed Block:\n %+x\n", signedBlock)
 				c.Printf("Unsigned Block:\n %+x\n", unsignedBlock)
 			} else {
@@ -610,7 +686,7 @@ func Launch() {
 						c.Println(err)
 						return
 					}
-					signedBlock, unsignedBlock := RlpEncode(block)
+					signedBlock, unsignedBlock := RlpEncodeClique(block)
 					c.Printf("Signed Block: 0x%+x\n", signedBlock)
 					c.Printf("Unsigned Block: 0x%+x\n", unsignedBlock)
 				} else {
@@ -628,7 +704,7 @@ func Launch() {
 					c.Println(err)
 					return
 				}
-				signedBlock, unsignedBlock := RlpEncode(block)
+				signedBlock, unsignedBlock := RlpEncodeClique(block)
 				c.Printf("Signed Block:\n %+x\n", signedBlock)
 				c.Printf("Unsigned Block:\n %+x\n", unsignedBlock)
 			} else {
