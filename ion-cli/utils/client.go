@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"log"
 
-	ethereum "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
+	ethereum "github.com/clearmatics/autonity"
+	"github.com/clearmatics/autonity/common"
+	"github.com/clearmatics/autonity/core/types"
+	"github.com/clearmatics/autonity/ethclient"
+	"github.com/clearmatics/autonity/rpc"
 )
 
 // Client gets client or fails if no connection

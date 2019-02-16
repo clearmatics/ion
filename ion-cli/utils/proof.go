@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/clearmatics/autonity/common"
+	"github.com/clearmatics/autonity/ethclient"
+	"github.com/clearmatics/autonity/rlp"
+	"github.com/clearmatics/autonity/rpc"
 )
 
 func GenerateProof(ctx context.Context, client *rpc.Client, txHash common.Hash) ([]byte, error) {

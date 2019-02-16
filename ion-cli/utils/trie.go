@@ -4,11 +4,11 @@ package utils
 import (
 	"log"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/clearmatics/autonity/common"
+	"github.com/clearmatics/autonity/core/types"
+	"github.com/clearmatics/autonity/ethdb"
+	"github.com/clearmatics/autonity/rlp"
+	"github.com/clearmatics/autonity/trie"
 )
 
 // ReceiptTrie generate trie for receipts

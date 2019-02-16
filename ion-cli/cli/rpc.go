@@ -9,12 +9,12 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/clearmatics/autonity/common"
+	"github.com/clearmatics/autonity/core/types"
+	"github.com/clearmatics/autonity/ethclient"
+	"github.com/clearmatics/autonity/rlp"
+	"github.com/clearmatics/autonity/rpc"
 	"github.com/clearmatics/ion/ion-cli/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // Header used to marshall blocks into a string based struct
@@ -139,6 +139,18 @@ func RlpEncodeClique(blockHeader *types.Header) (rlpSignedBlock []byte, rlpUnsig
 	return rlpSignedBlock, rlpUnsignedBlock
 }
 
+// RlpEncodeIBFT returns rlp encoded block header from an IBFT consensus chain
+func RlpEncodeIBFT(blockHeader *types.Header) (proposalBlock []byte, commitBlock []byte, commitSeals []byte) {
+
+	// Generate an interface to encode the blockheader without the signature in the extraData
+	commitSeals = extractSeals(blockHeader)
+	commitBlock = encodeCommitBlock(blockHeader)
+	proposalBlock = encodeProposalBlock(blockHeader)
+
+	return
+}
+
+// RlpEncode returns a blockheader in RLP encoding
 func RlpEncode(blockHeader *types.Header) (rlpBlock []byte, err error) {
 	// Encode the orginal block header
 	rlpBlock, err = rlp.EncodeToBytes(&blockHeader)
@@ -146,6 +158,96 @@ func RlpEncode(blockHeader *types.Header) (rlpBlock []byte, err error) {
 		fmt.Println("can't RLP encode requested block:", err)
 		return
 	}
+	return
+}
+
+// extractSeals
+func extractSeals(block *types.Header) (commitSeals []byte) {
+	// extract istanbul extraData from the block header
+	istanbul := block.Extra[32:]
+
+	var istanbulExtra *types.IstanbulExtra
+	err := rlp.DecodeBytes(istanbul, &istanbulExtra)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+
+	commitSeals, err = rlp.EncodeToBytes(&istanbulExtra.CommittedSeal)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+
+	return
+}
+
+// encodeProposalBlock returns the block signed by the block proposer of an IBFT chain
+func encodeProposalBlock(block *types.Header) (encodedBlock []byte) {
+	// extract istanbul extraData from the block header
+	istanbul := block.Extra[32:]
+
+	var istanbulExtra *types.IstanbulExtra
+	err := rlp.DecodeBytes(istanbul, &istanbulExtra)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+
+	// remove proposal seal and commit seals
+	istanbulExtra.Seal = make([]byte, 0)
+	istanbulExtra.CommittedSeal = make([][]byte, 0)
+
+	// Encode istanbulExtra
+	encodedIstanbulExtra, err := rlp.EncodeToBytes(&istanbulExtra)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+	block.Extra = append(block.Extra[:32], encodedIstanbulExtra[:]...)
+
+	encodedBlock, err = rlp.EncodeToBytes(&block)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+
+	// return extradata to original so we can
+
+	return
+}
+
+// encodeCommitBlock returns the block signed by the block proposer of an IBFT chain
+func encodeCommitBlock(block *types.Header) (encodedBlock []byte) {
+	// extract istanbul extraData from the block header
+	istanbul := block.Extra[32:]
+	// fmt.Printf("%x\n", istanbul)
+
+	var istanbulExtra *types.IstanbulExtra
+	err := rlp.DecodeBytes(istanbul, &istanbulExtra)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+
+	// remove proposal seal and commit seals
+	istanbulExtra.CommittedSeal = make([][]byte, 0)
+
+	// Encode istanbulExtra
+	encodedIstanbulExtra, err := rlp.EncodeToBytes(&istanbulExtra)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+	block.Extra = append(block.Extra[:32], encodedIstanbulExtra[:]...)
+	// fmt.Printf("%x\n", block.Extra)
+
+	encodedBlock, err = rlp.EncodeToBytes(&block)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+
 	return
 }
 

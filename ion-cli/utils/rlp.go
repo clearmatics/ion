@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/clearmatics/autonity/rlp"
 )
 
 // Header used to marshall blocks into a string based struct

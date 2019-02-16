@@ -9,8 +9,8 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/clearmatics/autonity/accounts/abi/bind"
+	"github.com/clearmatics/autonity/ethclient"
 )
 
 func GetNonce(client *ethclient.Client, auth *bind.TransactOpts) {
