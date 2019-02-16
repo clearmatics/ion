@@ -124,7 +124,7 @@ func getProof(eth *EthClient, transactionHash string) {
 	fmt.Printf("Proof: 0x%x\n", proof)
 }
 
-func RlpEncode(blockHeader *types.Header) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
+func RlpEncodeClique(blockHeader *types.Header) (rlpSignedBlock []byte, rlpUnsignedBlock []byte) {
 	// Encode the orginal block header
 	_, err := rlp.EncodeToBytes(&blockHeader)
 	if err != nil {
@@ -137,7 +137,16 @@ func RlpEncode(blockHeader *types.Header) (rlpSignedBlock []byte, rlpUnsignedBlo
 	rlpUnsignedBlock = encodeUnsignedBlock(blockHeader)
 
 	return rlpSignedBlock, rlpUnsignedBlock
+}
 
+func RlpEncode(blockHeader *types.Header) (rlpBlock []byte, err error) {
+	// Encode the orginal block header
+	rlpBlock, err = rlp.EncodeToBytes(&blockHeader)
+	if err != nil {
+		fmt.Println("can't RLP encode requested block:", err)
+		return
+	}
+	return
 }
 
 // EncodePrefix calculate prefix of the entire signed block
