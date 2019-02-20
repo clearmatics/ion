@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/clearmatics/autonity/accounts/abi"
-	"github.com/clearmatics/autonity/common"
-	"github.com/clearmatics/autonity/ethclient"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/abiosoft/ishell"
 

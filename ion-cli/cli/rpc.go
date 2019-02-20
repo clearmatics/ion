@@ -9,12 +9,12 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/clearmatics/autonity/common"
-	"github.com/clearmatics/autonity/core/types"
-	"github.com/clearmatics/autonity/ethclient"
-	"github.com/clearmatics/autonity/rlp"
-	"github.com/clearmatics/autonity/rpc"
 	"github.com/clearmatics/ion/ion-cli/utils"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // Header used to marshall blocks into a string based struct
@@ -34,6 +34,12 @@ type header struct {
 	Extra       string `json:"extraData"`
 	MixDigest   string `json:"mixHash"`
 	Nonce       string `json:"nonce"`
+}
+
+type IstanbulExtra struct {
+	Validators    []common.Address
+	Seal          []byte
+	CommittedSeal [][]byte
 }
 
 type EthClient struct {
@@ -166,7 +172,7 @@ func extractSeals(block *types.Header) (commitSeals []byte) {
 	// extract istanbul extraData from the block header
 	istanbul := block.Extra[32:]
 
-	var istanbulExtra *types.IstanbulExtra
+	var istanbulExtra *IstanbulExtra
 	err := rlp.DecodeBytes(istanbul, &istanbulExtra)
 	if err != nil {
 		fmt.Println("can't RLP encode requested block:", err)
@@ -187,7 +193,7 @@ func encodeProposalBlock(block *types.Header) (encodedBlock []byte) {
 	// extract istanbul extraData from the block header
 	istanbul := block.Extra[32:]
 
-	var istanbulExtra *types.IstanbulExtra
+	var istanbulExtra *IstanbulExtra
 	err := rlp.DecodeBytes(istanbul, &istanbulExtra)
 	if err != nil {
 		fmt.Println("can't RLP encode requested block:", err)
@@ -223,7 +229,7 @@ func encodeCommitBlock(block *types.Header) (encodedBlock []byte) {
 	istanbul := block.Extra[32:]
 	// fmt.Printf("%x\n", istanbul)
 
-	var istanbulExtra *types.IstanbulExtra
+	var istanbulExtra *IstanbulExtra
 	err := rlp.DecodeBytes(istanbul, &istanbulExtra)
 	if err != nil {
 		fmt.Println("can't RLP encode requested block:", err)

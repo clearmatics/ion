@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/clearmatics/autonity/accounts/abi/bind"
-	"github.com/clearmatics/autonity/accounts/keystore"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 )
 
 // Settings
