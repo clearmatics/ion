@@ -534,36 +534,36 @@ func Launch() {
 		Help: "use: \tgetEncodedBlockByHash [optional rpc url] [hash] \n\t\t\t\tdescription: Returns RLP-encoded block header specified by hash from connected client or from specific endpoint",
 		Func: func(c *ishell.Context) {
 			if len(c.Args) == 1 {
-                if ethClient != nil {
-                    block, _, err := getBlockByHash(ethClient, c.Args[0])
-                    if err != nil {
-                        c.Println(err)
-                        return
-                    }
-                    encodedBlock, err := RlpEncode(block)
-                    c.Printf("Encoded Block: %+x\n", encodedBlock)
-                } else {
-                    c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
-                    return
-                }
-            } else if len(c.Args) == 2 {
-                client, err := getClient(c.Args[0])
-                if err != nil {
-                    c.Println(err)
-                    return
-                }
-                block, _, err := getBlockByHash(client, c.Args[0])
-                if err != nil {
-                    c.Println(err)
-                    return
-                }
-                encodedBlock, err := RlpEncode(block)
-                c.Printf("Encoded Block:\n %+x\n", encodedBlock)
-            } else {
-                c.Println("Usage: \tgetEncodedBlockByHash [optional rpc url] [integer]\n")
-                return
-            }
-            c.Println("===============================================================")
+				if ethClient != nil {
+					block, _, err := getBlockByHash(ethClient, c.Args[0])
+					if err != nil {
+						c.Println(err)
+						return
+					}
+					encodedBlock, err := RlpEncode(block)
+					c.Printf("Encoded Block: %+x\n", encodedBlock)
+				} else {
+					c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+					return
+				}
+			} else if len(c.Args) == 2 {
+				client, err := getClient(c.Args[0])
+				if err != nil {
+					c.Println(err)
+					return
+				}
+				block, _, err := getBlockByHash(client, c.Args[0])
+				if err != nil {
+					c.Println(err)
+					return
+				}
+				encodedBlock, err := RlpEncode(block)
+				c.Printf("Encoded Block:\n %+x\n", encodedBlock)
+			} else {
+				c.Println("Usage: \tgetEncodedBlockByHash [optional rpc url] [integer]\n")
+				return
+			}
+			c.Println("===============================================================")
 		},
 	})
 
@@ -571,36 +571,36 @@ func Launch() {
 		Name: "getEncodedBlockByNumber",
 		Help: "use: \tgetEncodedBlockByNumber [optional rpc url] [hash] \n\t\t\t\tdescription: Returns RLP-encoded block header specified by number from connected client or from specific endpoint",
 		Func: func(c *ishell.Context) {
-		    if len(c.Args) == 1 {
-                if ethClient != nil {
+			if len(c.Args) == 1 {
+				if ethClient != nil {
 					block, _, err := getBlockByNumber(ethClient, c.Args[0])
 					if err != nil {
 						c.Println(err)
 						return
 					}
 					encodedBlock, err := RlpEncode(block)
-                    c.Printf("Encoded Block: %+x\n", encodedBlock)
-                } else {
-                    c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
-                    return
-                }
-            } else if len(c.Args) == 2 {
-                client, err := getClient(c.Args[0])
-                if err != nil {
-                    c.Println(err)
-                    return
-                }
-                block, _, err := getBlockByNumber(client, c.Args[0])
-                if err != nil {
-                    c.Println(err)
-                    return
-                }
-                encodedBlock, err := RlpEncode(block)
-                c.Printf("Encoded Block:\n %+x\n", encodedBlock)
-            } else {
-                c.Println("Usage: \tgetEncodedBlockByNumber [optional rpc url] [integer]\n")
-                return
-            }
+					c.Printf("Encoded Block: %+x\n", encodedBlock)
+				} else {
+					c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+					return
+				}
+			} else if len(c.Args) == 2 {
+				client, err := getClient(c.Args[0])
+				if err != nil {
+					c.Println(err)
+					return
+				}
+				block, _, err := getBlockByNumber(client, c.Args[0])
+				if err != nil {
+					c.Println(err)
+					return
+				}
+				encodedBlock, err := RlpEncode(block)
+				c.Printf("Encoded Block:\n %+x\n", encodedBlock)
+			} else {
+				c.Println("Usage: \tgetEncodedBlockByNumber [optional rpc url] [integer]\n")
+				return
+			}
 			c.Println("===============================================================")
 		},
 	})
@@ -709,6 +709,94 @@ func Launch() {
 				c.Printf("Unsigned Block:\n %+x\n", unsignedBlock)
 			} else {
 				c.Println("Usage: \tgetBlockByHash_Clique [optional rpc url] [hash]\n")
+				return
+			}
+			c.Println("===============================================================")
+		},
+	})
+
+	//---------------------------------------------------------------------------------------------
+	// 	IBFT Specific Commands
+	//---------------------------------------------------------------------------------------------
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "getBlockByNumber_IBFT",
+		Help: "use: \tgetBlockByNumber_IBFT [optional rpc url] [integer]\n\t\t\t\tdescription: Returns proposal, commital RLP-encoded block headers and commit seals by block number required for submission to IBFT validation from connected client or specified endpoint",
+		Func: func(c *ishell.Context) {
+			if len(c.Args) == 1 {
+				if ethClient != nil {
+					block, _, err := getBlockByNumber(ethClient, c.Args[0])
+					if err != nil {
+						c.Println(err)
+						return
+					}
+					proposalBlock, commitBlock, seals := RlpEncodeIBFT(block)
+					c.Printf("Proposal Block:\n %+x\n", proposalBlock)
+					c.Printf("Commital Block:\n %+x\n", commitBlock)
+					c.Printf("Commit Seals:\n %+x\n", seals)
+				} else {
+					c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+					return
+				}
+			} else if len(c.Args) == 2 {
+				client, err := getClient(c.Args[0])
+				if err != nil {
+					c.Println(err)
+					return
+				}
+				block, _, err := getBlockByNumber(client, c.Args[1])
+				if err != nil {
+					c.Println(err)
+					return
+				}
+				proposalBlock, commitBlock, seals := RlpEncodeIBFT(block)
+				c.Printf("Proposal Block:\n %+x\n", proposalBlock)
+				c.Printf("Commital Block:\n %+x\n", commitBlock)
+				c.Printf("Commit Seals:\n %+x\n", seals)
+			} else {
+				c.Println("Usage: \tgetBlockByNumber_IBFT [optional rpc url] [integer]\n")
+				return
+			}
+			c.Println("===============================================================")
+		},
+	})
+
+	shell.AddCmd(&ishell.Cmd{
+		Name: "getBlockByHash_IBFT",
+		Help: "use: \tgetBlockByHash_IBFT [optional rpc url] [integer]\n\t\t\t\tdescription: Returns proposal, commital RLP-encoded block headers and commit seals by block hash required for submission to IBFT validation from connected client or specified endpoint",
+		Func: func(c *ishell.Context) {
+			if len(c.Args) == 1 {
+				if ethClient != nil {
+					block, _, err := getBlockByHash(ethClient, c.Args[0])
+					if err != nil {
+						c.Println(err)
+						return
+					}
+					proposalBlock, commitBlock, seals := RlpEncodeIBFT(block)
+					c.Printf("Proposal Block:\n %+x\n", proposalBlock)
+					c.Printf("Commital Block:\n %+x\n", commitBlock)
+					c.Printf("Commit Seals:\n %+x\n", seals)
+				} else {
+					c.Println("Please connect to a Client before invoking this function.\nUse \tconnectToClient [rpc url] \n")
+					return
+				}
+			} else if len(c.Args) == 2 {
+				client, err := getClient(c.Args[0])
+				if err != nil {
+					c.Println(err)
+					return
+				}
+				block, _, err := getBlockByHash(client, c.Args[1])
+				if err != nil {
+					c.Println(err)
+					return
+				}
+				proposalBlock, commitBlock, seals := RlpEncodeIBFT(block)
+				c.Printf("Proposal Block:\n %+x\n", proposalBlock)
+				c.Printf("Commital Block:\n %+x\n", commitBlock)
+				c.Printf("Commit Seals:\n %+x\n", seals)
+			} else {
+				c.Println("Usage: \tgetBlockByHash_IBFT [optional rpc url] [integer]\n")
 				return
 			}
 			c.Println("===============================================================")
