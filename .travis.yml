@@ -21,9 +21,10 @@ matrix:
 
     - name: "Ion-CLI Tests"
       language: go
-      go: 1.9.x
+      go: 1.11.x
       script:
         - cd ./ion-cli
+        - go mod init .
         - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         - dep ensure
         - cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
@@ -31,7 +32,6 @@ matrix:
         - make test
       
       before_install:
-        - sudo add-apt-repository ppa:ethereum/ethereum -y
         - sudo apt-get update
         - sudo apt-get install solc -y
 
