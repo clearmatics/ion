@@ -24,7 +24,6 @@ matrix:
       go: 1.9.x
       script:
         - cd ./ion-cli
-        - go get github.com/ethereum/go-ethereum
         - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         - dep ensure
         - cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
