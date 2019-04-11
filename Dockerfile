@@ -1,5 +1,7 @@
 FROM golang:1.8
 
+RUN printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y \
         vim \
         curl \
@@ -8,8 +10,7 @@ RUN apt-get update && apt-get install -y \
 
 
 # Install a recent version of nodejs
-RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo bash - && sudo apt-get install -y nodejs=10.15.1-1nodesource1
-
+RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo bash - && sudo apt-get install -y nodejs
 COPY . /go/src/github.com/clearmatics/ion
 
 # Install the current compatible solc version
