@@ -24,7 +24,7 @@ matrix:
         - docker
         
       script:
-        - docker run testrpc /bin/sh -c "cd ./ion-cli; make build; make test"
+        - docker exec -d -it testrpc /bin/bash -c "cd ./ion-cli; make build; make test"
       
       before_install:
         - docker build . -t node
