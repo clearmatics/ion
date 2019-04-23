@@ -24,11 +24,12 @@ matrix:
         - docker
         
       script:
-        - docker exec -it testrpc /bin/bash -c "cd ./ion-cli & make build & make test"
+        - make test
       
       before_install:
         - docker build . -t node
         - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
+        - docker exec -it testrpc /bin/bash -c "cd ./ion-cli; make build; make test;"
 
 
 notifications:
