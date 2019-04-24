@@ -6,14 +6,13 @@ The Command-Line Interface reference.
 
 Clean the directory: `make clean`.
 
+Run `make build` to fetch sources and compile the binary. This will error if attempted to be built outside of your `GOPATH`.
+
 ### Requirements
 
 * [`solc`](https://github.com/ethereum/solidity/releases) ensure matching compiler version with target solidity code as 0.4.x will not be compatible with solc 0.5
 
-Run `make build` to fetch sources and compile the binary. This will error if attempted to be built outside of your `GOPATH`.
-
 ## Usage
-
 Run `./ion-cli` to launch the interface.
 
 ```
@@ -111,7 +110,7 @@ Retrieves the transaction data of a specified transaction by hash.
 help                        display help
 ```
 ```
-linkAndDeployContract       use:   deployContract [contract name] [account name] [gas limit]
+linkAndDeployContract       use:   linkAndDeployContract [contract name] [account name] [gas limit]
                             description: Deploys specified contract instance to connected client
 
 Links any required libraries to a contract instance before deploying to the connect client.
