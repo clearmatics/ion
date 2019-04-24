@@ -33,7 +33,6 @@ matrix:
         - docker build . -t node
         - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
         - docker exec -d -it testrpc /bin/bash -c "cd $GOPATH/src/github.com/ethereum/go-ethereum; git checkout 225171a4bfcc16bd12a1906b1e0d43d0b18c353b;"
-        - git checkout 225171a4bfcc16bd12a1906b1e0d43d0b18c353b
 
 
 notifications:
