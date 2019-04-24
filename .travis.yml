@@ -1,5 +1,5 @@
 os: linux
-dist: trusty
+dist: 1:0.5.1-0ubuntu1~trusty
 
 matrix:
  include:
@@ -20,21 +20,18 @@ matrix:
         - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
 
     - name: "Ion-CLI Tests"
-      language: go
-      go: 1.9.x
+      services:
+        - docker
+        
+      before_script:
+        - docker exec -it testrpc /bin/bash -c "cd /go/src/github.com/clearmatics/ion/ion-cli; make build; cd /go/src/github.com/ethereum/go-ethereum; git checkout 225171a4bfcc16bd12a1906b1e0d43d0b18c353b;"
+      
       script:
-        - cd ./ion-cli
-        - go get github.com/ethereum/go-ethereum
-        - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-        - dep ensure
-        - cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
-        - make build
-        - make test
+        - docker exec -it testrpc /bin/bash -c "cd /go/src/github.com/clearmatics/ion/ion-cli; make test;"
       
       before_install:
-        - sudo add-apt-repository ppa:ethereum/ethereum -y
-        - sudo apt-get update
-        - sudo apt-get install solc -y
+        - docker build . -t node
+        - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
 
 
 notifications:

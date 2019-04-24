@@ -168,7 +168,7 @@ library RLP {
     /// @dev Return the RLP encoded bytes.
     /// @param self The RLPItem.
     /// @return The bytes.
-    function toBytes(RLPItem memory self) internal returns (bytes memory bts) {
+    function toBytes(RLPItem memory self) internal view returns (bytes memory bts) {
         uint len = self._unsafe_length;
         if (len == 0)
             return;
@@ -180,7 +180,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toData(RLPItem memory self) internal returns (bytes memory bts) {
+    function toData(RLPItem memory self) internal view returns (bytes memory bts) {
         if(!isData(self))
             revert();
         uint rStartPos;
@@ -211,7 +211,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toAscii(RLPItem memory self) internal returns (string memory str) {
+    function toAscii(RLPItem memory self) internal view returns (string memory str) {
         if(!isData(self))
             revert();
         uint rStartPos;
@@ -232,8 +232,10 @@ library RLP {
         uint rStartPos;
         uint len;
         (rStartPos, len) = _decode(self);
-        if (len > 32 || len == 0)
+        if (len > 32)
             revert();
+        else if (len == 0)
+            return 0;
         assembly {
             data := div(mload(rStartPos), exp(256, sub(32, len)))
         }

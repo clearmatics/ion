@@ -12,8 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-func GenerateProof(ctx context.Context, client *rpc.Client, txHash common.Hash) (txTriggerPath []byte, txTriggerRLP []byte, txTriggerProofArr []byte, receiptTrigger []byte, receiptTriggerProofArr []byte) {
-	blockNumberStr, txTrigger, err := BlockNumberByTransactionHash(ctx, client, txHash)
+func GenerateProof(ctx context.Context, client *rpc.Client, txHash common.Hash) ([]byte, error) {
+	blockNumberStr, tx, err := BlockNumberByTransactionHash(ctx, client, txHash)
 	if err != nil {
 		fmt.Printf("Error: couldn't find block by tx hash: %s\n", err)
 	}
@@ -30,23 +30,33 @@ func GenerateProof(ctx context.Context, client *rpc.Client, txHash common.Hash) 
 	}
 
 	var idx byte
-	tx := block.Transactions()
-	txTrie := TxTrie(tx)
+	txs := block.Transactions()
+	txTrie := TxTrie(txs)
 	blockReceipts := GetBlockTxReceipts(clientETH, block)
 	receiptTrie := ReceiptTrie(blockReceipts)
 
 	// Calculate transaction index)
-	for i := 0; i < len(tx); i++ {
-		if txHash == tx[i].Hash() {
+	for i := 0; i < len(txs); i++ {
+		if txHash == txs[i].Hash() {
 			idx = byte(i)
 		}
 	}
 
-	txTriggerPath = append(txTriggerPath, idx)
-	txTriggerRLP, _ = rlp.EncodeToBytes(txTrigger)
-	txTriggerProofArr = Proof(txTrie, txTriggerPath[:])
-	receiptTrigger, _ = rlp.EncodeToBytes(blockReceipts[txTriggerPath[0]])
-	receiptTriggerProofArr = Proof(receiptTrie, txTriggerPath[:])
+	txPath := []byte{idx}
+	txRLP, _ := rlp.EncodeToBytes(tx)
+	txProof := Proof(txTrie, txPath[:])
+	receiptRLP, _ := rlp.EncodeToBytes(blockReceipts[txPath[0]])
+	receiptProof := Proof(receiptTrie, txPath[:])
 
-	return
+	var decodedTx, decodedTxProof, decodedReceipt, decodedReceiptProof []interface{}
+
+	rlp.DecodeBytes(txRLP, &decodedTx)
+	rlp.DecodeBytes(txProof, &decodedTxProof)
+	rlp.DecodeBytes(receiptRLP, &decodedReceipt)
+	rlp.DecodeBytes(receiptProof, &decodedReceiptProof)
+
+	proof := make([]interface{}, 0)
+	proof = append(proof, txPath, decodedTx, decodedTxProof, decodedReceipt, decodedReceiptProof)
+
+	return rlp.EncodeToBytes(proof)
 }

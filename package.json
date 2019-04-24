@@ -1,5 +1,5 @@
 {
-  "name": "ion-truffle",
+  "name": "ion",
   "version": "1.0.0",
   "description": "Inter Operability Network",
   "main": "truffle.js",
@@ -7,7 +7,6 @@
   "author": "opensource@clearmatics.com",
   "license": "LGPL-3.0+",
   "dependencies": {
-    "babel-preset-node6": "^11.0.0",
     "bignumber.js": "^8.0.1",
     "ethereumjs-block": "^2.0.0",
     "ethereumjs-tx": "^1.3.5",
@@ -20,21 +19,16 @@
     "web3-eth-accounts": "^1.0.0-beta.34"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.6.1",
-    "babel-register": "^6.26.0",
-    "bluebird": "^3.5.1",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
-    "chai-bignumber": "^2.0.2",
     "ganache-cli": "^6.0.0",
     "json-bigint-string": "^1.0.0",
+    "lodash": ">=4.17.11",
     "solidity-coverage": "^0.5.0",
     "truffle": "^4.1.7",
-    "web3": "^1.0.0-beta.33",
-    "web3-eth-abi": "^1.0.0-beta.33",
-    "web3-utils": "^1.0.0-beta.33"
+    "web3": "1.0.0-beta.33",
+    "web3-eth-abi": "1.0.0-beta.33",
+    "web3-utils": "1.0.0-beta.33"
   },
   "scripts": {
     "testrpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
