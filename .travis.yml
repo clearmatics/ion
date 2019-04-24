@@ -24,10 +24,10 @@ matrix:
         - docker
         
       before_script:
-        - docker exec -it testrpc /bin/bash -c "cd /go/src/github.com/clearmatics/ion/ion-cli; make build; cd /go/src/github.com/ethereum/go-ethereum; git checkout 225171a4bfcc16bd12a1906b1e0d43d0b18c353b; cd /go/src/github.com/clearmatics/ion/ion-cli; make test;"
+        - docker exec -it testrpc /bin/bash -c "cd /go/src/github.com/clearmatics/ion/ion-cli; make build; cd /go/src/github.com/ethereum/go-ethereum; git checkout 225171a4bfcc16bd12a1906b1e0d43d0b18c353b;"
       
       script:
-        - make test
+        - docker exec -it testrpc /bin/bash -c "cd /go/src/github.com/clearmatics/ion/ion-cli; make test;"
       
       before_install:
         - docker build . -t node
