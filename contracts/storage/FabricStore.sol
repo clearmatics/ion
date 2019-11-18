@@ -1,13 +1,13 @@
 pragma solidity ^0.5.12;
 
 import "./BlockStore.sol";
-import "../libraries/RLPReader.sol";
+import "../libraries/RLP.sol";
 import "../libraries/SolidityUtils.sol";
 
 contract FabricStore is BlockStore {
-    using RLPReader for RLPReader.RLPItem;
-    using RLPReader for RLPReader.Iterator;
-    using RLPReader for bytes;
+    using RLP for RLP.RLPItem;
+    using RLP for RLP.Iterator;
+    using RLP for bytes;
 
     struct Chain {
         bytes32 id;
@@ -90,7 +90,7 @@ contract FabricStore is BlockStore {
         onlyIon
         onlyRegisteredChains(_chainId)
     {
-        RLPReader.RLPItem[] memory data = _blockBlob.toRLPItem().toList();
+        RLP.RLPItem[] memory data = _blockBlob.toRLPItem().toList();
 
         // Iterate all channel objects in the data structure
         for (uint i = 0; i < data.length; i++) {
@@ -99,9 +99,9 @@ contract FabricStore is BlockStore {
     }
 
     function decodeChannelObject(bytes32 _chainId, bytes memory _channelRLP) internal {
-        RLPReader.RLPItem[] memory channelRLP = _channelRLP.toRLPItem().toList();
+        RLP.RLPItem[] memory channelRLP = _channelRLP.toRLPItem().toList();
 
-        string memory channelId = string(channelRLP[0].toBytes());
+        string memory channelId = channelRLP[0].toAscii();
         Channel storage channel = m_networks[_chainId].m_channels[channelId];
 
         // Currently adds the channel if it does not exist. This may need changing.
@@ -109,17 +109,17 @@ contract FabricStore is BlockStore {
             channel.id = channelId;
         }
 
-//        RLPReader.RLPItem[] memory blocksRLP = channelRLP[1].toList();
-//
-//        // Iterate all blocks in the channel structure. Currently not used as we only focus on parsing single blocks
-//        for (uint i = 0; i < blocksRLP.length; i++) {
-//            Block memory block = decodeBlockObject(_chainId, channelId, channelRLP[1].toBytes());
-//            require(!channel.blocks[block.hash], "Block with identical hash already exists");
-//            channel.blocks[block.hash] = true;
-//            channel.m_blocks[block.hash] = block;
-//
-//            emit BlockAdded(_chainId, channelId, block.hash);
-//        }
+        //        RLP.RLPItem[] memory blocksRLP = channelRLP[1].toList();
+        //
+        //        // Iterate all blocks in the channel structure. Currently not used as we only focus on parsing single blocks
+        //        for (uint i = 0; i < blocksRLP.length; i++) {
+        //            Block memory block = decodeBlockObject(_chainId, channelId, channelRLP[1].toBytes());
+        //            require(!channel.blocks[block.hash], "Block with identical hash already exists");
+        //            channel.blocks[block.hash] = true;
+        //            channel.m_blocks[block.hash] = block;
+        //
+        //            emit BlockAdded(_chainId, channelId, block.hash);
+        //        }
 
         Block memory blk = decodeBlockObject(_chainId, channelId, channelRLP[1].toBytes());
         require(!channel.blocks[blk.hash], "Block with identical hash already exists");
@@ -133,20 +133,20 @@ contract FabricStore is BlockStore {
     }
 
     function decodeBlockObject(bytes32 _chainId, string memory _channelId, bytes memory _blockRLP) internal returns (Block memory) {
-        RLPReader.RLPItem[] memory blockRLP = _blockRLP.toRLPItem().toList();
+        RLP.RLPItem[] memory blockRLP = _blockRLP.toRLPItem().toList();
 
-        string memory blockHash = string(blockRLP[0].toBytes());
+        string memory blockHash = blockRLP[0].toAscii();
 
         Block memory blk;
 
         blk.number = blockRLP[1].toUint();
         blk.hash = blockHash;
-        blk.prevHash = string(blockRLP[2].toBytes());
-        blk.dataHash = string(blockRLP[3].toBytes());
+        blk.prevHash = blockRLP[2].toAscii();
+        blk.dataHash = blockRLP[3].toAscii();
         blk.timestamp_s = blockRLP[4].toUint();
         blk.timestamp_nanos = blockRLP[5].toUint();
 
-        RLPReader.RLPItem[] memory txnsRLP = blockRLP[6].toList();
+        RLP.RLPItem[] memory txnsRLP = blockRLP[6].toList();
 
         blk.transactions = new string[](txnsRLP.length);
 
@@ -163,35 +163,35 @@ contract FabricStore is BlockStore {
     }
 
     function decodeTxObject(bytes memory _txRLP, bytes32 _chainId, string memory _channelId) internal returns (string memory) {
-        RLPReader.RLPItem[] memory txRLP = _txRLP.toRLPItem().toList();
+        RLP.RLPItem[] memory txRLP = _txRLP.toRLPItem().toList();
 
-        Transaction storage txn = m_networks[_chainId].m_channels[_channelId].m_transactions[string(txRLP[0].toBytes())];
-        txn.id = string(txRLP[0].toBytes());
+        Transaction storage txn = m_networks[_chainId].m_channels[_channelId].m_transactions[txRLP[0].toAscii()];
+        txn.id = txRLP[0].toAscii();
 
-        RLPReader.RLPItem[] memory namespacesRLP = txRLP[1].toList();
+        RLP.RLPItem[] memory namespacesRLP = txRLP[1].toList();
 
         // Iterate all namespace rwsets in the transaction
         for (uint i = 0; i < namespacesRLP.length; i++) {
-            RLPReader.RLPItem[] memory nsrwRLP = namespacesRLP[i].toList();
+            RLP.RLPItem[] memory nsrwRLP = namespacesRLP[i].toList();
 
-            Namespace storage namespace = txn.m_nsrw[string(nsrwRLP[0].toBytes())];
-            namespace.namespace = string(nsrwRLP[0].toBytes());
-            txn.namespaces.push(string(nsrwRLP[0].toBytes()));
+            Namespace storage namespace = txn.m_nsrw[nsrwRLP[0].toAscii()];
+            namespace.namespace = nsrwRLP[0].toAscii();
+            txn.namespaces.push(nsrwRLP[0].toAscii());
 
             // Iterate all read sets in the namespace
-            RLPReader.RLPItem[] memory readsetsRLP = nsrwRLP[1].toList();
+            RLP.RLPItem[] memory readsetsRLP = nsrwRLP[1].toList();
             for (uint j = 0; j < readsetsRLP.length; j++) {
                 namespace.reads.push(decodeReadset(readsetsRLP[j].toBytes()));
             }
 
             // Iterate all write sets in the namespace
-            RLPReader.RLPItem[] memory writesetsRLP = nsrwRLP[2].toList();
+            RLP.RLPItem[] memory writesetsRLP = nsrwRLP[2].toList();
             for (uint k = 0; k < writesetsRLP.length; k++) {
                 namespace.writes.push(decodeWriteset(writesetsRLP[k].toBytes()));
             }
         }
 
-        return string(txRLP[0].toBytes());
+        return txRLP[0].toAscii();
     }
 
     function mutateState(bytes32 _chainId, string memory _channelId, Block memory _blk) internal {
@@ -232,11 +232,11 @@ contract FabricStore is BlockStore {
     }
 
     function decodeReadset(bytes memory _readsetRLP) internal pure returns (ReadSet memory) {
-        RLPReader.RLPItem[] memory readsetRLP = _readsetRLP.toRLPItem().toList();
+        RLP.RLPItem[] memory readsetRLP = _readsetRLP.toRLPItem().toList();
 
-        string memory key = string(readsetRLP[0].toBytes());
+        string memory key = readsetRLP[0].toAscii();
 
-        RLPReader.RLPItem[] memory rsv = readsetRLP[1].toList();
+        RLP.RLPItem[] memory rsv = readsetRLP[1].toList();
 
         uint blockNo = rsv[0].toUint();
         uint txNo = 0;
@@ -250,13 +250,13 @@ contract FabricStore is BlockStore {
     }
 
     function decodeWriteset(bytes memory _writesetRLP) internal pure returns (WriteSet memory){
-        RLPReader.RLPItem[] memory writesetRLP = _writesetRLP.toRLPItem().toList();
+        RLP.RLPItem[] memory writesetRLP = _writesetRLP.toRLPItem().toList();
 
-        string memory key = string(writesetRLP[0].toBytes());
-        string memory value = string(writesetRLP[2].toBytes());
+        string memory key = writesetRLP[0].toAscii();
+        string memory value = writesetRLP[2].toAscii();
 
         bool isDelete = false;
-        string memory isDeleteStr = string(writesetRLP[1].toBytes());
+        string memory isDeleteStr = writesetRLP[1].toAscii();
         if (keccak256(abi.encodePacked(isDeleteStr)) == keccak256(abi.encodePacked("true"))) {
             isDelete = true;
         }

@@ -3,7 +3,7 @@
 pragma solidity ^0.5.12;
 
 import "../libraries/ECVerify.sol";
-import "../libraries/RLPReader.sol";
+import "../libraries/RLP.sol";
 import "../libraries/SolidityUtils.sol";
 import "../IonCompatible.sol";
 import "../storage/BlockStore.sol";
@@ -14,9 +14,9 @@ import "../storage/BlockStore.sol";
 */
 
 contract IBFT is IonCompatible {
-    using RLPReader for RLPReader.RLPItem;
-    using RLPReader for RLPReader.Iterator;
-    using RLPReader for bytes;
+    using RLP for RLP.RLPItem;
+    using RLP for RLP.Iterator;
+    using RLP for bytes;
 
     /*
     * @description    persists the last submitted block of a chain being validated
@@ -95,18 +95,18 @@ contract IBFT is IonCompatible {
     * Submission of block headers from another chain. 
     */
     function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, bytes memory _commitSeals, address _storageAddr) onlyRegisteredChains(_chainId) public {
-        RLPReader.RLPItem[] memory header = _rlpSignedBlockHeader.toRLPItem().toList();
+        RLP.RLPItem[] memory header = _rlpSignedBlockHeader.toRLPItem().toList();
 
         // Check the parent hash is the same as the previous block submitted
 		bytes32 parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
 		require(m_chainHeads[_chainId] == parentBlockHash, "Not child of previous block!");
 
         // Verify that validator and sealers are correct
-        require(checkSignature(_chainId, header[12].toBytes(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash), "Signer is not validator");
+        require(checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash), "Signer is not validator");
         require(checkSeals(_chainId, _commitSeals, _rlpSignedBlockHeader, parentBlockHash), "Sealer(s) not valid");
 
         // Append new block to the struct
-        addValidators(_chainId, header[12].toBytes(), keccak256(_rlpSignedBlockHeader));
+        addValidators(_chainId, header[12].toData(), keccak256(_rlpSignedBlockHeader));
         storeBlock(_chainId, keccak256(_rlpSignedBlockHeader), parentBlockHash, header[8].toUint(), _rlpSignedBlockHeader, _storageAddr);
 
         emit BlockSubmitted(_chainId, keccak256(_rlpSignedBlockHeader));
@@ -154,7 +154,7 @@ contract IBFT is IonCompatible {
         bytes memory istanbulExtra = new bytes(_extraData.length - 32);
         SolUtils.BytesToBytes(istanbulExtra, _extraData, 32);
 
-        RLPReader.RLPItem[] memory signature = istanbulExtra.toRLPItem().toList();
+        RLP.RLPItem[] memory signature = istanbulExtra.toRLPItem().toList();
 
         bytes memory extraDataSig = new bytes(65);
         SolUtils.BytesToBytes(extraDataSig, signature[1].toBytes(), signature[1].toBytes().length-65);
@@ -182,10 +182,10 @@ contract IBFT is IonCompatible {
         uint256 validSeals = 0;
 
         // Check if signature is a validator that exists in previous block
-        RLPReader.RLPItem[] memory seals = _seals.toRLPItem().toList();
+        RLP.RLPItem[] memory seals = _seals.toRLPItem().toList();
         for (uint i = 0; i < seals.length; i++) {
             // Recover the signature
-            address sigAddr = ECVerify.ecrecovery(signedHash, seals[i].toBytes());
+            address sigAddr = ECVerify.ecrecovery(signedHash, seals[i].toData());
             if (!isValidator(parentBlock.validators, sigAddr))
                 return false;
             validSeals++;
@@ -221,8 +221,8 @@ contract IBFT is IonCompatible {
         bytes memory rlpIstanbulExtra = new bytes(_extraData.length - 32);
         SolUtils.BytesToBytes(rlpIstanbulExtra, _extraData, 32);
 
-        RLPReader.RLPItem[] memory istanbulExtra = rlpIstanbulExtra.toRLPItem().toList();
-        RLPReader.RLPItem[] memory decodedExtra = istanbulExtra[0].toBytes().toRLPItem().toList();
+        RLP.RLPItem[] memory istanbulExtra = rlpIstanbulExtra.toRLPItem().toList();
+        RLP.RLPItem[] memory decodedExtra = istanbulExtra[0].toBytes().toRLPItem().toList();
 
         for (uint i = 0; i < decodedExtra.length; i++) {
             address validator = decodedExtra[i].toAddress();

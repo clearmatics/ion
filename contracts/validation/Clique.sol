@@ -3,7 +3,7 @@
 pragma solidity ^0.5.12;
 
 import "../libraries/ECVerify.sol";
-import "../libraries/RLPReader.sol";
+import "../libraries/RLP.sol";
 import "../libraries/SolidityUtils.sol";
 import "../IonCompatible.sol";
 import "../storage/BlockStore.sol";
@@ -14,9 +14,9 @@ import "../storage/BlockStore.sol";
 */
 
 contract Clique is IonCompatible {
-    using RLPReader for RLPReader.RLPItem;
-    using RLPReader for RLPReader.Iterator;
-    using RLPReader for bytes;
+    using RLP for RLP.RLPItem;
+    using RLP for RLP.Iterator;
+    using RLP for bytes;
 
     /*
     *   @description    persists the last submitted block of a chain being validated
@@ -104,8 +104,8 @@ contract Clique is IonCompatible {
     * and if valid the block is persisted as BlockHeader structs defined above.
     */
     function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, address _storageAddr) onlyRegisteredChains(_chainId) public {
-        RLPReader.RLPItem[] memory header = _rlpUnsignedBlockHeader.toRLPItem().toList();
-        RLPReader.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
+        RLP.RLPItem[] memory header = _rlpUnsignedBlockHeader.toRLPItem().toList();
+        RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
         require( header.length == signedHeader.length, "Header properties length mismatch" );
 
         // Check header and signedHeader contain the same data

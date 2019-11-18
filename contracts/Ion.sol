@@ -3,7 +3,7 @@
 pragma solidity ^0.5.12;
 
 import "./libraries/ECVerify.sol";
-import "./libraries/RLPReader.sol";
+import "./libraries/RLP.sol";
 import "./libraries/PatriciaTrie.sol";
 import "./libraries/SolidityUtils.sol";
 import "./storage/BlockStore.sol";

@@ -8,9 +8,9 @@ contract Base is IonCompatible {
     constructor (address _ionAddr) IonCompatible(_ionAddr) public {}
 
     function register() public returns (bool) {
-    ion.registerValidationModule();
-    return true;
-}
+        ion.registerValidationModule();
+        return true;
+    }
 
     function RegisterChain(bytes32 _chainId, address _storeAddr) public {
         require( _chainId != ion.chainId(), "Cannot add this chain id to chain register" );

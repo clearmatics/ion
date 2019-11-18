@@ -3,15 +3,15 @@
 pragma solidity ^0.5.12;
 
 import "../libraries/ECVerify.sol";
-import "../libraries/RLPReader.sol";
+import "../libraries/RLP.sol";
 import "../libraries/PatriciaTrie.sol";
 import "../libraries/SolidityUtils.sol";
 import "./BlockStore.sol";
 
 contract EthereumStore is BlockStore {
-    using RLPReader for RLPReader.RLPItem;
-    using RLPReader for RLPReader.Iterator;
-    using RLPReader for bytes;
+    using RLP for RLP.RLPItem;
+    using RLP for RLP.Iterator;
+    using RLP for bytes;
 
     /*
     *   @description    BlockHeader struct containing trie root hashes for tx verifications
@@ -58,7 +58,7 @@ contract EthereumStore is BlockStore {
         bytes32 blockHash = keccak256(_blockBlob);
         require(!m_blockhashes[blockHash], "Block already exists" );
 
-        RLPReader.RLPItem[] memory header = _blockBlob.toRLPItem().toList();
+        RLP.RLPItem[] memory header = _blockBlob.toRLPItem().toList();
         require(header.length == 15, "Block Header parameter mismatch");
 
         m_blockhashes[blockHash] = true;
@@ -69,7 +69,7 @@ contract EthereumStore is BlockStore {
     }
 
     function CheckProofs(bytes32 _chainId, bytes32 _blockHash, bytes memory _proof) public returns (bytes memory) {
-        RLPReader.RLPItem[] memory proof = _proof.toRLPItem().toList();
+        RLP.RLPItem[] memory proof = _proof.toRLPItem().toList();
 
         require(proof.length == 5, "Malformed proof");
 
@@ -202,9 +202,9 @@ contract EthereumStore is BlockStore {
 	* @returns          root hash
 	*/
     function getRootNodeHash(bytes memory _rlpNodes) private pure returns (bytes32) {
-        RLPReader.RLPItem[] memory nodeList = _rlpNodes.toRLPItem().toList();
+        RLP.RLPItem[] memory nodeList = _rlpNodes.toRLPItem().toList();
 
-        bytes memory b_nodeRoot = RLPReader.toBytes(nodeList[0]);
+        bytes memory b_nodeRoot = RLP.toBytes(nodeList[0]);
 
         return keccak256(b_nodeRoot);
     }

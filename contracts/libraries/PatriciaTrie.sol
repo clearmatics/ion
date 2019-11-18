@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.5.12;
 
-import "./RLPReader.sol";
+import "./RLP.sol";
 
 library PatriciaTrie {
 
     function verifyProof(bytes memory _value, bytes memory _parentNodes, bytes memory _path, bytes32 _root) internal returns (bool) {
-        RLPReader.RLPItem memory nodes = RLPReader.toRLPItem(_parentNodes);
-        RLPReader.RLPItem[] memory parentNodes = RLPReader.toList(nodes);
+        RLP.RLPItem memory nodes = RLP.toRLPItem(_parentNodes);
+        RLP.RLPItem[] memory parentNodes = RLP.toList(nodes);
 
         bytes32 currentNodeKey = _root;
 
@@ -16,11 +16,11 @@ library PatriciaTrie {
         bytes memory path = toNibbleArray(_path, false);
 
         for (uint i = 0; i < parentNodes.length; i++) {
-            if (currentNodeKey != keccak256(RLPReader.toBytes(parentNodes[i]))) {
+            if (currentNodeKey != keccak256(RLP.toBytes(parentNodes[i]))) {
                 return false;
             }
 
-            RLPReader.RLPItem[] memory currentNode = RLPReader.toList(parentNodes[i]);
+            RLP.RLPItem[] memory currentNode = RLP.toList(parentNodes[i]);
 
             if (currentNode.length == 17) {
                 // Branch Node
@@ -60,36 +60,36 @@ library PatriciaTrie {
 
     */
 
-    function processBranchNode(RLPReader.RLPItem[] memory _currentNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private returns (bytes32, uint) {
+    function processBranchNode(RLP.RLPItem[] memory _currentNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private returns (bytes32, uint) {
         if (_traversedNibbles == _path.length) {
-            return (0x0, checkNodeValue(_value, RLPReader.toBytes(_currentNode[16])) ? 1 : 0);
+            return (0x0, checkNodeValue(_value, RLP.toBytes(_currentNode[16])) ? 1 : 0);
         }
 
         uint16 nextPathNibble = nibbleToUint16(_path[_traversedNibbles]);
-        RLPReader.RLPItem memory nextNode = _currentNode[nextPathNibble];
+        RLP.RLPItem memory nextNode = _currentNode[nextPathNibble];
         _traversedNibbles += 1;
 
         bytes32 currentNodeKey;
-        if (RLPReader.toBytes(nextNode).length < 32) {
+        if (RLP.toBytes(nextNode).length < 32) {
             //Nested 'Node'
             (currentNodeKey, _traversedNibbles) = processNestedNode(nextNode, _traversedNibbles, _path, _value);
         } else {
-            currentNodeKey = RLPReader.toBytes32(_currentNode[nextPathNibble]);
+            currentNodeKey = RLP.toBytes32(_currentNode[nextPathNibble]);
         }
         return (currentNodeKey, _traversedNibbles);
     }
 
     function processExtensionLeafNode(
-        RLPReader.RLPItem[] memory _currentNode,
+        RLP.RLPItem[] memory _currentNode,
         uint _traversedNibbles,
         bytes memory _path,
         bytes memory _value
     ) private pure returns (bytes32, uint) {
-        bytes memory nextPathNibbles = RLPReader.toBytes(_currentNode[0]);
+        bytes memory nextPathNibbles = RLP.toData(_currentNode[0]);
         _traversedNibbles += toNibbleArray(nextPathNibbles, true).length;
 
         if (_traversedNibbles == _path.length) {
-            return (0x0, checkNodeValue(_value, RLPReader.toBytes(_currentNode[1])) ? 1 : 0);
+            return (0x0, checkNodeValue(_value, RLP.toData(_currentNode[1])) ? 1 : 0);
         }
 
         // Reached a leaf before end of the path. Proof false.
@@ -97,14 +97,14 @@ library PatriciaTrie {
             return (0x0, 0);
         }
 
-        bytes memory nextNodeKey = RLPReader.toBytes(_currentNode[1]);
+        bytes memory nextNodeKey = RLP.toData(_currentNode[1]);
         bytes32 currentNodeKey = bytesToBytes32(nextNodeKey, 0);
 
         return (currentNodeKey, _traversedNibbles);
     }
 
-    function processNestedNode(RLPReader.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private returns (bytes32, uint) {
-        RLPReader.RLPItem[] memory currentNode = RLPReader.toList(_nextNode);
+    function processNestedNode(RLP.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private returns (bytes32, uint) {
+        RLP.RLPItem[] memory currentNode = RLP.toList(_nextNode);
         if (currentNode.length == 17) {
             // Branch Node
             return processBranchNode(currentNode, _traversedNibbles, _path, _value);
