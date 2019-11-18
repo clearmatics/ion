@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.12;
 
 import "../Ion.sol";
 import "../storage/BlockStore.sol";
@@ -20,7 +20,7 @@ contract MockIon is Ion {
         store.addChain(_chainId);
     }
 
-    function storeBlock(address _storageAddress, bytes32 _chainId, bytes _blockBlob) public {
+    function storeBlock(address _storageAddress, bytes32 _chainId, bytes memory _blockBlob) public {
         BlockStore store = BlockStore(_storageAddress);
         store.addBlock(_chainId, _blockBlob);
     }

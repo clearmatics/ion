@@ -11,7 +11,6 @@ utils.bufToStr = b => '0x' + b.toString('hex')
 
 utils.gasPrice = 100000000000 // truffle fixed gas price
 utils.joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('')
-utils.oneFinney = web3.toWei(1, 'finney')
 
 utils.hexToBytes = (hex) => {
   for (var bytes = [], c = 0; c < hex.length; c += 2)

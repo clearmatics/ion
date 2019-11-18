@@ -1,9 +1,9 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.12;
 
 import "../libraries/ECVerify.sol";
-import "../libraries/RLP.sol";
+import "../libraries/RLPReader.sol";
 import "../libraries/SolidityUtils.sol";
 import "../IonCompatible.sol";
 import "../storage/BlockStore.sol";
@@ -14,9 +14,9 @@ import "../storage/BlockStore.sol";
 */
 
 contract Clique is IonCompatible {
-    using RLP for RLP.RLPItem;
-    using RLP for RLP.Iterator;
-    using RLP for bytes;
+    using RLPReader for RLPReader.RLPItem;
+    using RLPReader for RLPReader.Iterator;
+    using RLPReader for bytes;
 
     /*
     *   @description    persists the last submitted block of a chain being validated
@@ -80,7 +80,7 @@ contract Clique is IonCompatible {
     * the initialising of genesis blocks and their validator sets for chains. Multiple may be submitted and built upon
     * and is not opinionated on how they are used.
     */
-    function RegisterChain(bytes32 _chainId, address[] _validators, bytes32 _genesisBlockHash, address _storeAddr) public {
+    function RegisterChain(bytes32 _chainId, address[] memory _validators, bytes32 _genesisBlockHash, address _storeAddr) public {
         require( _chainId != ion.chainId(), "Cannot add this chain id to chain register" );
 
         if (chains[_chainId]) {
@@ -90,7 +90,7 @@ contract Clique is IonCompatible {
             ion.addChain(_storeAddr, _chainId);
         }
 
-        addGenesisBlock(_chainId, _validators, _genesisBlockHash);
+        setGenesisBlock(_chainId, _validators, _genesisBlockHash);
     }
 
 	/*
@@ -103,9 +103,9 @@ contract Clique is IonCompatible {
     * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
     * and if valid the block is persisted as BlockHeader structs defined above.
     */
-    function SubmitBlock(bytes32 _chainId, bytes _rlpUnsignedBlockHeader, bytes _rlpSignedBlockHeader, address _storageAddr) onlyRegisteredChains(_chainId) public {
-        RLP.RLPItem[] memory header = _rlpUnsignedBlockHeader.toRLPItem().toList();
-        RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
+    function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, address _storageAddr) onlyRegisteredChains(_chainId) public {
+        RLPReader.RLPItem[] memory header = _rlpUnsignedBlockHeader.toRLPItem().toList();
+        RLPReader.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
         require( header.length == signedHeader.length, "Header properties length mismatch" );
 
         // Check header and signedHeader contain the same data
@@ -144,14 +144,14 @@ contract Clique is IonCompatible {
 */
 
     /*
-    * addGenesisBlock
+    * setGenesisBlock
     * param: _chainId (bytes32) Unique id of another chain to interoperate with
     * param: _validators (address[]) Array containing the validators at the genesis block
     * param: _genesisHash (bytes32) Hash of the genesis block for the chain being registered with Ion
     *
     * Adds a genesis block with the validators and other metadata for this genesis block
     */
-    function addGenesisBlock(bytes32 _chainId, address[] _validators, bytes32 _genesisBlockHash) internal {
+    function setGenesisBlock(bytes32 _chainId, address[] memory _validators, bytes32 _genesisBlockHash) internal {
         BlockHeader storage header = m_blockheaders[_chainId][_genesisBlockHash];
         header.blockNumber = 0;
         header.blockHash = _genesisBlockHash;
@@ -181,7 +181,7 @@ contract Clique is IonCompatible {
     * Checks that the submitted block has actually been signed, recovers the signer and checks if they are validator in
     * parent block
     */
-    function checkSignature(bytes32 _chainId, bytes _extraData, bytes _rlpBlockHeader, bytes32 _parentBlockHash) internal view returns (bool) {
+    function checkSignature(bytes32 _chainId, bytes memory _extraData, bytes memory _rlpBlockHeader, bytes32 _parentBlockHash) internal view returns (bool) {
         bytes memory extraDataSig = new bytes(65);
         uint256 length = _extraData.length;
         SolUtils.BytesToBytes(extraDataSig, _extraData, length-65);
@@ -207,7 +207,7 @@ contract Clique is IonCompatible {
         Metadata storage parentMetadata = m_blockmetadata[_chainId][_parentBlockHash];
         Metadata storage metadata = m_blockmetadata[_chainId][_blockHash];
 
-        if (_candidate != 0x0) {
+        if (_candidate != address(0)) {
             uint newVoteCount;
             uint newThreshold = metadata.threshold;
             address[] storage newValidators = metadata.validators;
@@ -277,7 +277,7 @@ contract Clique is IonCompatible {
         bytes32 _txRootHash,
         bytes32 _receiptRootHash,
         uint256 _height,
-        bytes _rlpBlockHeader,
+        bytes memory _rlpBlockHeader,
         address _storageAddr
     ) internal {
         m_blockhashes[_chainId][_hash] = true;
@@ -322,7 +322,7 @@ contract Clique is IonCompatible {
         chainHeads.push(_childHash);
     }
 
-    function getValidators(bytes32 _chainId, bytes32 _blockHash) public view returns (address[]) {
+    function getValidators(bytes32 _chainId, bytes32 _blockHash) public view returns (address[] memory) {
         return m_blockmetadata[_chainId][_blockHash].validators;
     }
 

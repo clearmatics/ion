@@ -1,11 +1,11 @@
     // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.12;
 
 import "../storage/EthereumStore.sol";
 
 contract TriggerEventVerifier {
-    function verify(bytes20 _contractEmittedAddress, bytes _rlpReceipt, bytes20 _expectedAddress) public returns (bool);
+    function verify(bytes20 _contractEmittedAddress, bytes memory _rlpReceipt, bytes20 _expectedAddress) public returns (bool);
 }
 
 /*
@@ -77,7 +77,7 @@ contract Function {
         bytes32 _chainId,
         bytes32 _blockHash,
         bytes20 _contractEmittedAddress,
-        bytes _proof,
+        bytes memory _proof,
         bytes20 _expectedAddress
     ) public {
         bytes memory receipt =  blockStore.CheckProofs(_chainId, _blockHash, _proof);

@@ -1,8 +1,8 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.12;
 
-import "../libraries/RLP.sol";
+import "../libraries/RLPReader.sol";
 import "../libraries/SolidityUtils.sol";
 import "../EventVerifier.sol";
 
@@ -21,14 +21,14 @@ import "../EventVerifier.sol";
 contract TriggerEventVerifier is EventVerifier {
     bytes32 eventSignature = keccak256("Triggered(address)");
 
-    function verify(bytes20 _contractEmittedAddress, bytes _rlpReceipt, bytes20 _expectedAddress) public view returns (bool) {
+    function verify(bytes20 _contractEmittedAddress, bytes memory _rlpReceipt, bytes20 _expectedAddress) public view returns (bool) {
         // Retrieve specific log for given event signature
-        RLP.RLPItem[] memory log = retrieveLog(eventSignature, _contractEmittedAddress, _rlpReceipt);
+        RLPReader.RLPItem[] memory log = retrieveLog(eventSignature, _contractEmittedAddress, _rlpReceipt);
 
         // Split logs into constituents. Not all constituents are used here
-        bytes memory contractEmittedEvent = RLP.toData(log[0]);
-        RLP.RLPItem[] memory topics = RLP.toList(log[1]);
-        bytes memory data = RLP.toData(log[2]);
+        bytes memory contractEmittedEvent = RLPReader.toBytes(log[0]);
+        RLPReader.RLPItem[] memory topics = RLPReader.toList(log[1]);
+        bytes memory data = RLPReader.toBytes(log[2]);
 
         /*
         This section below is specific to this event verifier and checks the relevant data.

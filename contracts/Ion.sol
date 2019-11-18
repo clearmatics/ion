@@ -1,9 +1,9 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.12;
 
 import "./libraries/ECVerify.sol";
-import "./libraries/RLP.sol";
+import "./libraries/RLPReader.sol";
 import "./libraries/PatriciaTrie.sol";
 import "./libraries/SolidityUtils.sol";
 import "./storage/BlockStore.sol";
@@ -64,7 +64,7 @@ contract Ion {
     * param:
     *
     */
-    function storeBlock(address _storageAddress, bytes32 _chainId, bytes _blockBlob) onlyRegisteredValidation public {
+    function storeBlock(address _storageAddress, bytes32 _chainId, bytes memory _blockBlob) onlyRegisteredValidation public {
         require( isContract(_storageAddress), "Storage address provided is not contract.");
         BlockStore store = BlockStore(_storageAddress);
 

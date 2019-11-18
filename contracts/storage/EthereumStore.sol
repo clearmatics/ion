@@ -1,17 +1,17 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.12;
 
 import "../libraries/ECVerify.sol";
-import "../libraries/RLP.sol";
+import "../libraries/RLPReader.sol";
 import "../libraries/PatriciaTrie.sol";
 import "../libraries/SolidityUtils.sol";
 import "./BlockStore.sol";
 
 contract EthereumStore is BlockStore {
-    using RLP for RLP.RLPItem;
-    using RLP for RLP.Iterator;
-    using RLP for bytes;
+    using RLPReader for RLPReader.RLPItem;
+    using RLPReader for RLPReader.Iterator;
+    using RLPReader for bytes;
 
     /*
     *   @description    BlockHeader struct containing trie root hashes for tx verifications
@@ -50,7 +50,7 @@ contract EthereumStore is BlockStore {
     * @param _blockHash     Block hash of the block being added
     * @param _blockBlob     Bytes blob of the RLP-encoded block header being added
     */
-    function addBlock(bytes32 _chainId, bytes _blockBlob)
+    function addBlock(bytes32 _chainId, bytes memory _blockBlob)
         public
         onlyIon
         onlyRegisteredChains(_chainId)
@@ -58,7 +58,7 @@ contract EthereumStore is BlockStore {
         bytes32 blockHash = keccak256(_blockBlob);
         require(!m_blockhashes[blockHash], "Block already exists" );
 
-        RLP.RLPItem[] memory header = _blockBlob.toRLPItem().toList();
+        RLPReader.RLPItem[] memory header = _blockBlob.toRLPItem().toList();
         require(header.length == 15, "Block Header parameter mismatch");
 
         m_blockhashes[blockHash] = true;
@@ -68,8 +68,8 @@ contract EthereumStore is BlockStore {
         emit BlockAdded(_chainId, blockHash);
     }
 
-    function CheckProofs(bytes32 _chainId, bytes32 _blockHash, bytes _proof) public returns (bytes memory) {
-        RLP.RLPItem[] memory proof = _proof.toRLPItem().toList();
+    function CheckProofs(bytes32 _chainId, bytes32 _blockHash, bytes memory _proof) public returns (bytes memory) {
+        RLPReader.RLPItem[] memory proof = _proof.toRLPItem().toList();
 
         require(proof.length == 5, "Malformed proof");
 
@@ -100,9 +100,9 @@ contract EthereumStore is BlockStore {
     function CheckTxProof(
         bytes32 _chainId,
         bytes32 _blockHash,
-        bytes _value,
-        bytes _parentNodes,
-        bytes _path
+        bytes memory _value,
+        bytes memory _parentNodes,
+        bytes memory _path
     )
         onlyRegisteredChains(_chainId)
         onlyExistingBlocks(_blockHash)
@@ -135,9 +135,9 @@ contract EthereumStore is BlockStore {
     function CheckReceiptProof(
         bytes32 _chainId,
         bytes32 _blockHash,
-        bytes _value,
-        bytes _parentNodes,
-        bytes _path
+        bytes memory _value,
+        bytes memory _parentNodes,
+        bytes memory _path
     )
         onlyRegisteredChains(_chainId)
         onlyExistingBlocks(_blockHash)
@@ -169,8 +169,8 @@ contract EthereumStore is BlockStore {
     function CheckRootsProof(
         bytes32 _chainId,
         bytes32 _blockHash,
-        bytes _txNodes,
-        bytes _receiptNodes
+        bytes memory _txNodes,
+        bytes memory _receiptNodes
     )
         onlyRegisteredChains(_chainId)
         onlyExistingBlocks(_blockHash)
@@ -184,7 +184,7 @@ contract EthereumStore is BlockStore {
         return true;
     }
 
-    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _hash) internal {
+    function verifyProof(bytes memory _value, bytes memory _parentNodes, bytes memory _path, bytes32 _hash) internal {
         assert( PatriciaTrie.verifyProof(_value, _parentNodes, _path, _hash) );
     }
 
@@ -201,10 +201,10 @@ contract EthereumStore is BlockStore {
 	* @param _rlpNodes  RLP encoded trie
 	* @returns          root hash
 	*/
-    function getRootNodeHash(bytes _rlpNodes) private view returns (bytes32) {
-        RLP.RLPItem[] memory nodeList = _rlpNodes.toRLPItem().toList();
+    function getRootNodeHash(bytes memory _rlpNodes) private pure returns (bytes32) {
+        RLPReader.RLPItem[] memory nodeList = _rlpNodes.toRLPItem().toList();
 
-        bytes memory b_nodeRoot = RLP.toBytes(nodeList[0]);
+        bytes memory b_nodeRoot = RLPReader.toBytes(nodeList[0]);
 
         return keccak256(b_nodeRoot);
     }

@@ -1,14 +1,14 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.12;
 
-import "./RLP.sol";
+import "./RLPReader.sol";
 
 library PatriciaTrie {
 
-    function verifyProof(bytes _value, bytes _parentNodes, bytes _path, bytes32 _root) internal returns (bool) {
-        RLP.RLPItem memory nodes = RLP.toRLPItem(_parentNodes);
-        RLP.RLPItem[] memory parentNodes = RLP.toList(nodes);
+    function verifyProof(bytes memory _value, bytes memory _parentNodes, bytes memory _path, bytes32 _root) internal returns (bool) {
+        RLPReader.RLPItem memory nodes = RLPReader.toRLPItem(_parentNodes);
+        RLPReader.RLPItem[] memory parentNodes = RLPReader.toList(nodes);
 
         bytes32 currentNodeKey = _root;
 
@@ -16,11 +16,11 @@ library PatriciaTrie {
         bytes memory path = toNibbleArray(_path, false);
 
         for (uint i = 0; i < parentNodes.length; i++) {
-            if (currentNodeKey != keccak256(RLP.toBytes(parentNodes[i]))) {
+            if (currentNodeKey != keccak256(RLPReader.toBytes(parentNodes[i]))) {
                 return false;
             }
 
-            RLP.RLPItem[] memory currentNode = RLP.toList(parentNodes[i]);
+            RLPReader.RLPItem[] memory currentNode = RLPReader.toList(parentNodes[i]);
 
             if (currentNode.length == 17) {
                 // Branch Node
@@ -60,36 +60,36 @@ library PatriciaTrie {
 
     */
 
-    function processBranchNode(RLP.RLPItem[] memory _currentNode, uint _traversedNibbles, bytes memory _path, bytes _value) private returns (bytes32, uint) {
+    function processBranchNode(RLPReader.RLPItem[] memory _currentNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private returns (bytes32, uint) {
         if (_traversedNibbles == _path.length) {
-            return (0x0, checkNodeValue(_value, RLP.toBytes(_currentNode[16])) ? 1 : 0);
+            return (0x0, checkNodeValue(_value, RLPReader.toBytes(_currentNode[16])) ? 1 : 0);
         }
 
-        uint16 nextPathNibble = uint16(_path[_traversedNibbles]);
-        RLP.RLPItem memory nextNode = _currentNode[nextPathNibble];
+        uint16 nextPathNibble = nibbleToUint16(_path[_traversedNibbles]);
+        RLPReader.RLPItem memory nextNode = _currentNode[nextPathNibble];
         _traversedNibbles += 1;
 
         bytes32 currentNodeKey;
-        if (RLP.toBytes(nextNode).length < 32) {
+        if (RLPReader.toBytes(nextNode).length < 32) {
             //Nested 'Node'
             (currentNodeKey, _traversedNibbles) = processNestedNode(nextNode, _traversedNibbles, _path, _value);
         } else {
-            currentNodeKey = RLP.toBytes32(_currentNode[nextPathNibble]);
+            currentNodeKey = RLPReader.toBytes32(_currentNode[nextPathNibble]);
         }
         return (currentNodeKey, _traversedNibbles);
     }
 
     function processExtensionLeafNode(
-        RLP.RLPItem[] memory _currentNode,
+        RLPReader.RLPItem[] memory _currentNode,
         uint _traversedNibbles,
         bytes memory _path,
-        bytes _value
-    ) private view returns (bytes32, uint) {
-        bytes memory nextPathNibbles = RLP.toData(_currentNode[0]);
+        bytes memory _value
+    ) private pure returns (bytes32, uint) {
+        bytes memory nextPathNibbles = RLPReader.toBytes(_currentNode[0]);
         _traversedNibbles += toNibbleArray(nextPathNibbles, true).length;
 
         if (_traversedNibbles == _path.length) {
-            return (0x0, checkNodeValue(_value, RLP.toData(_currentNode[1])) ? 1 : 0);
+            return (0x0, checkNodeValue(_value, RLPReader.toBytes(_currentNode[1])) ? 1 : 0);
         }
 
         // Reached a leaf before end of the path. Proof false.
@@ -97,14 +97,14 @@ library PatriciaTrie {
             return (0x0, 0);
         }
 
-        bytes memory nextNodeKey = RLP.toData(_currentNode[1]);
+        bytes memory nextNodeKey = RLPReader.toBytes(_currentNode[1]);
         bytes32 currentNodeKey = bytesToBytes32(nextNodeKey, 0);
 
         return (currentNodeKey, _traversedNibbles);
     }
 
-    function processNestedNode(RLP.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes _value) private returns (bytes32, uint) {
-        RLP.RLPItem[] memory currentNode = RLP.toList(_nextNode);
+    function processNestedNode(RLPReader.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private returns (bytes32, uint) {
+        RLPReader.RLPItem[] memory currentNode = RLPReader.toList(_nextNode);
         if (currentNode.length == 17) {
             // Branch Node
             return processBranchNode(currentNode, _traversedNibbles, _path, _value);
@@ -116,11 +116,11 @@ library PatriciaTrie {
         }
     }
 
-    function checkNodeValue(bytes _expected, bytes _nodeValue) private pure returns (bool) {
+    function checkNodeValue(bytes memory _expected, bytes memory _nodeValue) private pure returns (bool) {
         return keccak256(_expected) == keccak256(_nodeValue);
     }
 
-    function toNibbleArray(bytes b, bool hexPrefixed) private pure returns (bytes) {
+    function toNibbleArray(bytes memory b, bool hexPrefixed) private pure returns (bytes memory) {
         bytes memory nibbleArray = new bytes(255);
 
         uint8 nibblesFound = 0;
@@ -128,7 +128,7 @@ library PatriciaTrie {
             byte[2] memory nibbles = byteToNibbles(b[i]);
 
             if (hexPrefixed && i == 0) {
-                if (nibbles[0] == 1 || nibbles[0] == 3) {
+                if (nibbles[0] == byte(0x01) || nibbles[0] == byte(0x03)) {
                     nibbleArray[nibblesFound] = nibbles[1];
                     nibblesFound += 1;
                 }
@@ -146,11 +146,21 @@ library PatriciaTrie {
         return finiteNibbleArray;
     }
 
-    function byteToNibbles(byte b) private pure returns (byte[2]) {
+    function byteToNibbles(byte b) private pure returns (byte[2] memory) {
         byte firstNibble = rightShift(b, 4);
-        byte secondNibble = b & 0xf;
+        byte secondNibble = b & byte(0x0f);
 
         return [firstNibble, secondNibble];
+    }
+
+    function nibbleToUint16(byte nibble) private pure returns (uint16) {
+        uint16 nibbleInt;
+
+        assembly {
+            nibbleInt := mload(add(nibble, 0x2))
+        }
+
+        return nibbleInt;
     }
 
     function leftShift(byte i, uint8 bits) private pure returns (byte) {
@@ -161,7 +171,7 @@ library PatriciaTrie {
         return byte(uint8(i) / uint8(2) ** uint8(bits));
     }
 
-    function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
+    function bytesToBytes32(bytes memory b, uint offset) private pure returns (bytes32) {
         bytes32 out;
 
         for (uint i = 0; i < 32; i++) {
