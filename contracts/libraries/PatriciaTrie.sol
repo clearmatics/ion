@@ -6,7 +6,7 @@ import "./RLP.sol";
 
 library PatriciaTrie {
 
-    function verifyProof(bytes memory _value, bytes memory _parentNodes, bytes memory _path, bytes32 _root) internal returns (bool) {
+    function verifyProof(bytes memory _value, bytes memory _parentNodes, bytes memory _path, bytes32 _root) internal pure returns (bool) {
         RLP.RLPItem memory nodes = RLP.toRLPItem(_parentNodes);
         RLP.RLPItem[] memory parentNodes = RLP.toList(nodes);
 
@@ -60,7 +60,7 @@ library PatriciaTrie {
 
     */
 
-    function processBranchNode(RLP.RLPItem[] memory _currentNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private returns (bytes32, uint) {
+    function processBranchNode(RLP.RLPItem[] memory _currentNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private pure returns (bytes32, uint) {
         if (_traversedNibbles == _path.length) {
             return (0x0, checkNodeValue(_value, RLP.toBytes(_currentNode[16])) ? 1 : 0);
         }
@@ -103,7 +103,7 @@ library PatriciaTrie {
         return (currentNodeKey, _traversedNibbles);
     }
 
-    function processNestedNode(RLP.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private returns (bytes32, uint) {
+    function processNestedNode(RLP.RLPItem memory _nextNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private pure returns (bytes32, uint) {
         RLP.RLPItem[] memory currentNode = RLP.toList(_nextNode);
         if (currentNode.length == 17) {
             // Branch Node

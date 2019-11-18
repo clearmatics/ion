@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0+
 
 const crypto = require('crypto')
+const Web3 = require('web3');
+var web3;
 
 const utils = {};
   // Format required for sending bytes through eth client:
@@ -87,6 +89,35 @@ utils.signHeader = (headerHash, privateKey, extraData) => {
   }
 
   return newSig;
+}
+
+
+
+utils.initWeb3 = (callback, provider) => {
+    web3 = new Web3();
+    var host = process.env.STANDARD_CONTRACTS_RPC_HOST || "localhost";
+    if (provider == null) {
+        web3.setProvider(new web3.providers.HttpProvider('http://' + host + ':8545'));
+    } else {
+        web3.setProvider(provider);
+    }
+    web3.eth.getAccounts(function (err, accs) {
+        if (err)
+            return callback(err);
+        web3.eth.defaultAccount = accs[0];
+        callback();
+    });
+}
+
+utils.deploy = (ABI, bytecode, callback) => {
+    new web3.eth.Contract(ABI, {data: bytecode, gas: "0xFFFFFFFFFFFF"}, function (err, contract) {
+        if (err) {
+            callback(err);
+            // callback fires twice, we only want the second call when the contract is deployed
+        } else if (contract.address) {
+            callback(null, contract);
+        }
+    });
 }
 
 module.exports = utils;
