@@ -153,7 +153,7 @@ contract('Ion.js', (accounts) => {
             await validation.register();
 
             const tx = await validation.SubmitBlock(storage.address, TESTCHAINID, TEST_SIGNED_HEADER);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
             assert.ok(event, "Block not stored");
         })
 
