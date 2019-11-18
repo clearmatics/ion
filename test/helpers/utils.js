@@ -63,4 +63,30 @@ utils.txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
 utils.txLoggedArgs = txReceipt => txReceipt.logs[0].args
 utils.txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
 
+// Takes a header and private key returning the signed data
+// Needs extraData just to be sure of the final byte
+utils.signHeader = (headerHash, privateKey, extraData) => {
+  const sig = eth_util.ecsign(headerHash, privateKey)
+  if (this._chainId > 0) {
+    sig.v += this._chainId * 2 + 8
+  }
+
+  const pubKey  = eth_util.ecrecover(headerHash, sig.v, sig.r, sig.s);
+  const addrBuf = eth_util.pubToAddress(pubKey);
+
+  const newSigBytes = Buffer.concat([sig.r, sig.s]);
+  let newSig;
+
+  const bytes = utils.hexToBytes(extraData)
+  const finalByte = bytes.splice(bytes.length-1)
+  if (finalByte.toString('hex')=="0") {
+    newSig = newSigBytes.toString('hex') + '00';
+  }
+  if (finalByte.toString('hex')=="1") {
+    newSig = newSigBytes.toString('hex') + '01';
+  }
+
+  return newSig;
+}
+
 module.exports = utils;
