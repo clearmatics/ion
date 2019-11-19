@@ -1,6 +1,6 @@
 pragma solidity ^0.5.12;
 
-import "../contracts/libraries/PatriciaTrie.sol";
+import "../libraries/PatriciaTrie.sol";
 
 contract PatriciaTrieTest {
     event Result(bool result);

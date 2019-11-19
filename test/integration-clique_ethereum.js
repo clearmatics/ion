@@ -233,7 +233,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             assert.equal(block.hash, signedHeaderHash);
 
             let tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
             assert.ok(event, "BlockAdded event not emitted");
 
             let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
@@ -254,7 +254,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             assert.equal(block.hash, signedHeaderHash);
 
             let tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
             assert.ok(event, "BlockAdded event not emitted");
 
             let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
@@ -325,10 +325,10 @@ contract('Clique-Ethereum Integration', (accounts) => {
             assert.equal(block.hash, signedHeaderHash);
 
             let tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
             assert.ok(event, "BlockAdded event not emitted");
 
-            let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
+            let submittedEvent = tx.logs.find(l => l.event == 'BlockSubmitted' );
             let blockHash = submittedEvent.args.blockHash;
             assert.equal(signedHeaderHash, blockHash);
 
@@ -350,7 +350,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             assert.equal(block.hash, signedHeaderHash);
 
             let tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
             assert.ok(event, "BlockAdded event not emitted");
 
             let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
@@ -374,7 +374,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             assert.equal(block.hash, signedHeaderHash);
 
             let tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
             assert.ok(event, "BlockAdded event not emitted");
 
             let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
@@ -408,7 +408,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             assert.equal(block.hash, signedHeaderHash);
 
             let tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
             assert.ok(event, "BlockAdded event not emitted");
 
             let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
@@ -418,7 +418,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             compressedProof = generateProof();
 
             tx = await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, "0x" + compressedProof.toString('hex'), TRIG_CALLED_BY);
-            event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("Executed()") });
+            event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("Executed()") });
             assert.ok(event, "Executed event not emitted");
 
             console.log("\tGas used to verify all proofs against ion, verify logs against the verifier and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
@@ -439,7 +439,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             assert.equal(block.hash, signedHeaderHash);
 
             let tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
             assert.ok(event, "BlockAdded event not emitted");
 
             let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });

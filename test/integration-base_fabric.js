@@ -316,7 +316,7 @@ contract('Base-Fabric Integration', (accounts) => {
 
             assert.equal(log.args.blockNo, TESTDATA[0].blocks[0].number);
             assert.equal(log.args.txNo, 0);
-            assert.equal(log.args.value, TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].value);
+            assert.equal(log.args.mvalue, TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[0].value);
 
             tx = await functionContract.retrieveAndExecute(TESTCHAINID, TESTDATA[0].channelId, TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].key);
             event = tx.logs.some(l => { return l.event == "State" });
@@ -327,7 +327,7 @@ contract('Base-Fabric Integration', (accounts) => {
 
             assert.equal(log.args.blockNo, TESTDATA[0].blocks[0].number);
             assert.equal(log.args.txNo, 0);
-            assert.equal(log.args.value, TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].value);
+            assert.equal(log.args.mvalue, TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].value);
         })
 
         it('Fail Function Execution', async () => {
