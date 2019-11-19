@@ -37,6 +37,8 @@ library PatriciaTrie {
                 return traversedNibbles == 1;
             }
         }
+
+        return false;
     }
 
     /**
@@ -61,11 +63,12 @@ library PatriciaTrie {
     */
 
     function processBranchNode(RLP.RLPItem[] memory _currentNode, uint _traversedNibbles, bytes memory _path, bytes memory _value) private pure returns (bytes32, uint) {
+        // Return the value at the current node if we have reached the end of the path
         if (_traversedNibbles == _path.length) {
             return (0x0, checkNodeValue(_value, RLP.toBytes(_currentNode[16])) ? 1 : 0);
         }
 
-        uint16 nextPathNibble = nibbleToUint16(_path[_traversedNibbles]);
+        uint8 nextPathNibble = nibbleToUint8(_path[_traversedNibbles]);
         RLP.RLPItem memory nextNode = _currentNode[nextPathNibble];
         _traversedNibbles += 1;
 
@@ -153,14 +156,8 @@ library PatriciaTrie {
         return [firstNibble, secondNibble];
     }
 
-    function nibbleToUint16(byte nibble) private pure returns (uint16) {
-        uint16 nibbleInt;
-
-        assembly {
-            nibbleInt := mload(add(nibble, 0x2))
-        }
-
-        return nibbleInt;
+    function nibbleToUint8(byte nibble) private pure returns (uint8) {
+        return uint8(nibble);
     }
 
     function leftShift(byte i, uint8 bits) private pure returns (byte) {
