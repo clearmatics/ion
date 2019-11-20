@@ -1,7 +1,7 @@
 # Ion Interoperability Framework <img align="right" src="https://raw.githubusercontent.com/wiki/clearmatics/ion/images/ionlogo.png" height="120px" />
-![Ion Version](https://img.shields.io/badge/ion-v2.1.0-brightgreen.svg)
+![Ion Version](https://img.shields.io/badge/ion-v2.2.0-brightgreen.svg)
 [![Build Status](https://travis-ci.org/clearmatics/ion.svg?branch=master)](https://travis-ci.org/clearmatics/ion)
-[![Solidity Version](https://img.shields.io/badge/solidity-v0.4.24-blue.svg)](https://solidity.readthedocs.io/en/v0.4.24/installing-solidity.html)
+[![Solidity Version](https://img.shields.io/badge/solidity-v0.5.12-blue.svg)](https://solidity.readthedocs.io/en/v0.5.12/installing-solidity.html)
 [![LGPLv3](https://img.shields.io/badge/license-LGPL%20v3-brightgreen.svg)](./LICENSE)
 [![Gitter](https://img.shields.io/badge/%E2%8A%AA%20GITTER%20-JOIN%20CHAT%20%E2%86%92-orange.svg)](https://gitter.im/clearmatics/ion)
 
@@ -88,6 +88,8 @@ We'll now use these example contracts to show you exactly how interoperation wit
 ## Interoperate with Rinkeby!
 
 This is a quick tutorial using our example contracts included to be able to verify a state transition in a block and call a function that depends on it. We'll demonstrate that you can use the following instructions below to interoperate from the listed systems with Rinkeby.
+
+On the Rinkeby test network, we've already deployed a contract and executed a transaction there `Trigger.sol`. The example we will run you through will attempt to interact with that transaction by proving that it occurred on that chain and use the transaction data in a subsequent 'interactive' transaction on a local network. The transaction on Rinkeby has called the `fire()` function of the `Trigger.sol` contract, which emits an event containing the address of the caller. We will attempt to use the caller address by extracting it from the Rinkeby block using merkle proofs.
 
 ### Ethereum to Rinkeby
 
