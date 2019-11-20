@@ -145,7 +145,7 @@ Fabric Block Store: `0x7cc9155EB4a12783bE5aBa9dcaA698d695D19A7D`
 We will deploy our own instance of the `FabricFunction.sol` contract and retrieve data from a submitted fabric block to use in an Ethereum contract function call. The Fabric block submitted contains two key-value pairs currently, `A: 0` and `B: 3`. We'll show that we can retrieve the value of `B` and emit this in an event thus demonstrating usage of Fabric block state in an Ethereum transaction.
 
 Procedure:
-1. We'll need the CLI here, if you are using the docker container build the CLI with `cd ion-cli/ && make build` else follow instructions to build the CLI [here](./ion-cli/)..
+1. We'll need the Ion CLI here. Build the CLI by following instructions found on the [repository](https://github.com/clearmatics/ion-cli)
 2. `./ion-cli` Starts the CLI
 3. `>>> connectToClient https://rinkeby.infura.io` Connect to the Rinkeby Testnet
 4. `>>> addAccount me ./keystore/UTC--2018-11-14T13-34-31.599642840Z--b8844cf76df596e746f360957aa3af954ef51605` Add an account to be signing transactions with. We've included one that already has Rinkeby ETH for you :) Password to the keystore is `test`. If you arrived late to the party and there is no ETH left, tough luck, try creating your own account and requesting ETH from a faucet. Alternatively you can run this exact thread of commands on a `ganache-cli` instance but make sure you connect to the correct endpoint in step 2.
@@ -254,7 +254,7 @@ To start developing on Ion, you'll need access to at least two different network
 
 ### Deploy the Ion stack
 
-Use to CLI to deploy the Ion stack to your own chain.
+Use the [CLI](https://github.com/clearmatics/ion-cli) to deploy the Ion stack to your own chain.
 
 1. Deploy `Ion.sol`.
 2. Deploy storage and validation contracts.
@@ -377,10 +377,9 @@ We would love contributors to help evolve Ion into a universal framework for int
 
 Functional use-case smart contracts should not live in this repository. Please create use-cases in your own repositories and we'll include a link to them in our Ion-based contract catalogue.
 
-The repository is segmented into three main sections that require work:
+The repository is segmented into two main sections that require work:
 * Validation
 * Storage
-* CLI
 
 #### Validation
 
@@ -397,12 +396,6 @@ Each system holds its data in different formats, and subsequently proving that t
 Storage contracts for the data format and state verification mechanisms of an interoperating chain would be required in order to interact with it.
 
 These should live in the `contracts/storage/` directory.
-
-#### CLI
-
-As the developments of the above two layers progress, there may be requirements to extend the CLI to ease the use of those functions i.e. block retrieval methods, data formatting etc. With that we encourage that the CLI is extended in tandem with additions contributed to the validation or storage sections for processes that may be more cumbersome to perform manually.
-
-
 
 With the above, we aim to expand our system-specific implementations for verification of both data validity and state transitions to allow the easier development of smart contracts using these interfaces.
 
