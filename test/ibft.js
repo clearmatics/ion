@@ -31,32 +31,6 @@ require('chai')
  .use(require('chai-as-promised'))
  .should();
 
-// Takes a header and private key returning the signed data
-// Needs extraData just to be sure of the final byte
-signHeader = (headerHash, privateKey, extraData) => {
-  const sig = eth_util.ecsign(headerHash, privateKey)
-  if (this._chainId > 0) {
-    sig.v += this._chainId * 2 + 8
-  }
-  
-  const pubKey  = eth_util.ecrecover(headerHash, sig.v, sig.r, sig.s);
-  const addrBuf = eth_util.pubToAddress(pubKey);
-  
-  const newSigBytes = Buffer.concat([sig.r, sig.s]);
-  let newSig;
-  
-  const bytes = utils.hexToBytes(extraData)
-  const finalByte = bytes.splice(bytes.length-1)
-  if (finalByte.toString('hex')=="0") {
-    newSig = newSigBytes.toString('hex') + '00';
-  }
-  if (finalByte.toString('hex')=="1") {
-    newSig = newSigBytes.toString('hex') + '01';
-  }
-
-  return newSig;
-}
-
 function pad(n, width, z) {
   z = z || '0';
   n = n + '';
@@ -201,7 +175,7 @@ contract('Ibft.js', (accounts) => {
       let registeredValidators = await ibft.getValidators.call(TESTCHAINID);
 
       for (let i = 0; i < VALIDATORS_BEFORE.length; i++) {
-          let validatorExists = registeredValidators.some(v => { return v == VALIDATORS_BEFORE[i] });;
+          let validatorExists = registeredValidators.map(v => v.toLowerCase()).some(v => { return v == VALIDATORS_BEFORE[i] });;
           assert(validatorExists);
       }
     })
@@ -228,7 +202,7 @@ contract('Ibft.js', (accounts) => {
         const validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
         console.log("\tGas used to submit block = " + validationReceipt.receipt.gasUsed.toString() + " gas");
 
-        let event = validationReceipt.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        let event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
         const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
@@ -257,13 +231,13 @@ contract('Ibft.js', (accounts) => {
         // Submit block should succeed
         let validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
         console.log("\tGas used to submit block = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-        let event = validationReceipt.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        let event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
         rlpHeader = encoder.encodeIbftHeader(block_add);
 
         validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
-        event = validationReceipt.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
         const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
@@ -283,7 +257,7 @@ contract('Ibft.js', (accounts) => {
         // Check new validators
         let registeredValidators = await ibft.getValidators.call(TESTCHAINID);
         for (let i = 0; i < VALIDATORS_AFTER.length; i++) {
-          let validatorExists = registeredValidators.some(v => { return v == VALIDATORS_AFTER[i] });;
+          let validatorExists = registeredValidators.map(v => v.toLowerCase()).some(v => { return v == VALIDATORS_AFTER[i] });;
           assert(validatorExists);
         }
       })

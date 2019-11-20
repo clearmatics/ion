@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.12;
 
 import "./BlockStore.sol";
 import "../libraries/RLP.sol";
@@ -85,7 +85,7 @@ contract FabricStore is BlockStore {
 
     // Function name is inaccurate for Fabric due to blocks being a sub-structure to a channel
     // Will need refactoring
-    function addBlock(bytes32 _chainId, bytes _blockBlob)
+    function addBlock(bytes32 _chainId, bytes memory _blockBlob)
         public
         onlyIon
         onlyRegisteredChains(_chainId)
@@ -98,7 +98,7 @@ contract FabricStore is BlockStore {
         }
     }
 
-    function decodeChannelObject(bytes32 _chainId, bytes _channelRLP) internal {
+    function decodeChannelObject(bytes32 _chainId, bytes memory _channelRLP) internal {
         RLP.RLPItem[] memory channelRLP = _channelRLP.toRLPItem().toList();
 
         string memory channelId = channelRLP[0].toAscii();
@@ -109,17 +109,17 @@ contract FabricStore is BlockStore {
             channel.id = channelId;
         }
 
-//        RLP.RLPItem[] memory blocksRLP = channelRLP[1].toList();
-//
-//        // Iterate all blocks in the channel structure. Currently not used as we only focus on parsing single blocks
-//        for (uint i = 0; i < blocksRLP.length; i++) {
-//            Block memory block = decodeBlockObject(_chainId, channelId, channelRLP[1].toBytes());
-//            require(!channel.blocks[block.hash], "Block with identical hash already exists");
-//            channel.blocks[block.hash] = true;
-//            channel.m_blocks[block.hash] = block;
-//
-//            emit BlockAdded(_chainId, channelId, block.hash);
-//        }
+        //        RLP.RLPItem[] memory blocksRLP = channelRLP[1].toList();
+        //
+        //        // Iterate all blocks in the channel structure. Currently not used as we only focus on parsing single blocks
+        //        for (uint i = 0; i < blocksRLP.length; i++) {
+        //            Block memory block = decodeBlockObject(_chainId, channelId, channelRLP[1].toBytes());
+        //            require(!channel.blocks[block.hash], "Block with identical hash already exists");
+        //            channel.blocks[block.hash] = true;
+        //            channel.m_blocks[block.hash] = block;
+        //
+        //            emit BlockAdded(_chainId, channelId, block.hash);
+        //        }
 
         Block memory blk = decodeBlockObject(_chainId, channelId, channelRLP[1].toBytes());
         require(!channel.blocks[blk.hash], "Block with identical hash already exists");
@@ -132,7 +132,7 @@ contract FabricStore is BlockStore {
         emit BlockAdded(_chainId, channelId, blk.hash);
     }
 
-    function decodeBlockObject(bytes32 _chainId, string _channelId, bytes _blockRLP) internal returns (Block memory) {
+    function decodeBlockObject(bytes32 _chainId, string memory _channelId, bytes memory _blockRLP) internal returns (Block memory) {
         RLP.RLPItem[] memory blockRLP = _blockRLP.toRLPItem().toList();
 
         string memory blockHash = blockRLP[0].toAscii();
@@ -162,7 +162,7 @@ contract FabricStore is BlockStore {
         return blk;
     }
 
-    function decodeTxObject(bytes _txRLP, bytes32 _chainId, string _channelId) internal returns (string) {
+    function decodeTxObject(bytes memory _txRLP, bytes32 _chainId, string memory _channelId) internal returns (string memory) {
         RLP.RLPItem[] memory txRLP = _txRLP.toRLPItem().toList();
 
         Transaction storage txn = m_networks[_chainId].m_channels[_channelId].m_transactions[txRLP[0].toAscii()];
@@ -194,7 +194,7 @@ contract FabricStore is BlockStore {
         return txRLP[0].toAscii();
     }
 
-    function mutateState(bytes32 _chainId, string _channelId, Block memory _blk) internal {
+    function mutateState(bytes32 _chainId, string memory _channelId, Block memory _blk) internal {
         string[] memory txIds = _blk.transactions;
 
         // Iterate across all transactions
@@ -222,16 +222,16 @@ contract FabricStore is BlockStore {
         }
     }
 
-    function injectBlockHashToTx(bytes32 _chainId, string _channelId, string _txId, string _blockHash) internal {
+    function injectBlockHashToTx(bytes32 _chainId, string memory _channelId, string memory _txId, string memory _blockHash) internal {
         Transaction storage txn = m_networks[_chainId].m_channels[_channelId].m_transactions[_txId];
         txn.blockHash = _blockHash;
     }
 
-    function flagTx(bytes32 _chainId, string _channelId, string _txId) internal {
+    function flagTx(bytes32 _chainId, string memory _channelId, string memory _txId) internal {
         m_networks[_chainId].m_channels[_channelId].m_transactions_exist[_txId] = true;
     }
 
-    function decodeReadset(bytes _readsetRLP) internal view returns (ReadSet memory) {
+    function decodeReadset(bytes memory _readsetRLP) internal pure returns (ReadSet memory) {
         RLP.RLPItem[] memory readsetRLP = _readsetRLP.toRLPItem().toList();
 
         string memory key = readsetRLP[0].toAscii();
@@ -249,7 +249,7 @@ contract FabricStore is BlockStore {
         return ReadSet(key, version);
     }
 
-    function decodeWriteset(bytes _writesetRLP) internal view returns (WriteSet memory){
+    function decodeWriteset(bytes memory _writesetRLP) internal pure returns (WriteSet memory){
         RLP.RLPItem[] memory writesetRLP = _writesetRLP.toRLPItem().toList();
 
         string memory key = writesetRLP[0].toAscii();
@@ -264,7 +264,7 @@ contract FabricStore is BlockStore {
         return WriteSet(key, isDelete, value);
     }
 
-    function isExpectedReadVersion(Namespace memory _namespace, RSVersion memory _version, string _key) internal pure returns (bool) {
+    function isExpectedReadVersion(Namespace memory _namespace, RSVersion memory _version, string memory _key) internal pure returns (bool) {
         ReadSet[] memory reads = _namespace.reads;
 
         for (uint i = 0; i < reads.length; i++) {
@@ -287,7 +287,7 @@ contract FabricStore is BlockStore {
         return true;
     }
 
-    function getBlock(bytes32 _chainId, string _channelId, string _blockHash) public view returns (uint, string, string, string, uint, uint, string) {
+    function getBlock(bytes32 _chainId, string memory _channelId, string memory _blockHash) public view returns (uint, string memory, string memory, string memory, uint, uint, string memory) {
         Block storage blk = m_networks[_chainId].m_channels[_channelId].m_blocks[_blockHash];
 
         require(keccak256(abi.encodePacked(blk.hash)) != keccak256(abi.encodePacked("")), "Block does not exist.");
@@ -301,7 +301,7 @@ contract FabricStore is BlockStore {
         return (blk.number, blk.hash, blk.prevHash, blk.dataHash, blk.timestamp_s, blk.timestamp_nanos, txs);
     }
 
-    function getTransaction(bytes32 _chainId, string _channelId, string _txId) public view returns (string, string) {
+    function getTransaction(bytes32 _chainId, string memory _channelId, string memory _txId) public view returns (string memory, string memory) {
         Transaction storage txn = m_networks[_chainId].m_channels[_channelId].m_transactions[_txId];
 
         require(isTransactionExists(_chainId, _channelId, _txId), "Transaction does not exist.");
@@ -315,11 +315,11 @@ contract FabricStore is BlockStore {
         return (txn.blockHash, ns);
     }
 
-    function isTransactionExists(bytes32 _chainId, string _channelId, string _txId) public view returns (bool) {
+    function isTransactionExists(bytes32 _chainId, string memory _channelId, string memory _txId) public view returns (bool) {
         return m_networks[_chainId].m_channels[_channelId].m_transactions_exist[_txId];
     }
 
-    function getNSRW(bytes32 _chainId, string _channelId, string _txId, string _namespace) public view returns (string, string) {
+    function getNSRW(bytes32 _chainId, string memory _channelId, string memory _txId, string memory _namespace) public view returns (string memory, string memory) {
         Namespace storage ns = m_networks[_chainId].m_channels[_channelId].m_transactions[_txId].m_nsrw[_namespace];
 
         require(keccak256(abi.encodePacked(ns.namespace)) != keccak256(abi.encodePacked("")), "Namespace does not exist.");
@@ -338,7 +338,7 @@ contract FabricStore is BlockStore {
         return (reads, writes);
     }
 
-    function getState(bytes32 _chainId, string _channelId, string _key) public view returns (uint, uint, string) {
+    function getState(bytes32 _chainId, string memory _channelId, string memory _key) public view returns (uint, uint, string memory) {
         State storage state = m_networks[_chainId].m_channels[_channelId].m_state[_key];
 
         require(keccak256(abi.encodePacked(state.key)) != keccak256(abi.encodePacked("")), "Key unrecognised.");

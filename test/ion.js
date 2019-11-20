@@ -140,11 +140,11 @@ contract('Ion.js', (accounts) => {
             assert(registered);
 
             // Fail second attempt to register validation
-            validation.register.call().should.be.rejected;
+            await validation.register.call().should.be.rejected;
         })
 
         it('Fail registration by non-contract', async () => {
-            ion.registerValidationModule().should.be.rejected;
+            await ion.registerValidationModule().should.be.rejected;
         })
     })
 
@@ -153,20 +153,20 @@ contract('Ion.js', (accounts) => {
             await validation.register();
 
             const tx = await validation.SubmitBlock(storage.address, TESTCHAINID, TEST_SIGNED_HEADER);
-            let event = tx.receipt.logs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
             assert.ok(event, "Block not stored");
         })
 
         it('Fail Store Block by unregistered validation', async () => {
-            validation.SubmitBlock(storage.address, TESTCHAINID, TEST_SIGNED_HEADER).should.be.rejected;
+            await validation.SubmitBlock(storage.address, TESTCHAINID, TEST_SIGNED_HEADER).should.be.rejected;
         })
 
         it('Fail Store Block by non-contract', async () => {
-            ion.storeBlock(storage.address, TESTCHAINID, TEST_SIGNED_HEADER).should.be.rejected;
+            await ion.storeBlock(storage.address, TESTCHAINID, TEST_SIGNED_HEADER).should.be.rejected;
         })
 
         it('Fail Store Block with non contract storage address', async () => {
-            ion.storeBlock(accounts[0], TESTCHAINID, TEST_SIGNED_HEADER).should.be.rejected;
+            await ion.storeBlock(accounts[0], TESTCHAINID, TEST_SIGNED_HEADER).should.be.rejected;
         })
     })
 })

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.12;
 
 import "../storage/BlockStore.sol";
 
@@ -19,7 +19,7 @@ contract MockStorage is BlockStore {
     constructor(address _ionAddr) BlockStore(_ionAddr) public {}
 
     event AddedBlock();
-    function addBlock(bytes32 _chainId, bytes _blockBlob) public {
+    function addBlock(bytes32 _chainId, bytes memory _blockBlob) public {
         emit AddedBlock();
     }
 }

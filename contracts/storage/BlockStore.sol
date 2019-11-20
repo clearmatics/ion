@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.12;
 
 import "../IonCompatible.sol";
 
@@ -52,5 +52,5 @@ contract BlockStore is IonCompatible {
         return true;
     }
 
-    function addBlock(bytes32 _chainId, bytes _blockBlob) public onlyIon onlyRegisteredChains(_chainId);
+    function addBlock(bytes32 _chainId, bytes memory _blockBlob) public;
 }

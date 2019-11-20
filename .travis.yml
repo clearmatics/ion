@@ -19,21 +19,6 @@ matrix:
         - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
         - docker exec -d -it testrpc /bin/bash ./docker_build/launch_geth.sh
 
-    - name: "Ion-CLI Tests"
-      services:
-        - docker
-        
-      before_script:
-        - docker exec -it testrpc /bin/bash -c "cd /go/src/github.com/clearmatics/ion/ion-cli; make build; cd /go/src/github.com/ethereum/go-ethereum; git checkout 225171a4bfcc16bd12a1906b1e0d43d0b18c353b;"
-      
-      script:
-        - docker exec -it testrpc /bin/bash -c "cd /go/src/github.com/clearmatics/ion/ion-cli; make test;"
-      
-      before_install:
-        - docker build . -t node
-        - docker run --name testrpc --rm -d -it -p 127.0.0.1:8501:8545 node bash
-
-
 notifications:
   slack:
     on_failure: always

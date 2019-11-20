@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0+
 
 const crypto = require('crypto')
+const Web3 = require('web3');
+var web3;
 
 const utils = {};
   // Format required for sending bytes through eth client:
@@ -11,7 +13,6 @@ utils.bufToStr = b => '0x' + b.toString('hex')
 
 utils.gasPrice = 100000000000 // truffle fixed gas price
 utils.joinHex = arr => '0x' + arr.map(el => el.slice(2)).join('')
-utils.oneFinney = web3.toWei(1, 'finney')
 
 utils.hexToBytes = (hex) => {
   for (var bytes = [], c = 0; c < hex.length; c += 2)
@@ -63,5 +64,60 @@ utils.sleep = ms => {
 utils.txGas = txReceipt => txReceipt.receipt.gasUsed * gasPrice
 utils.txLoggedArgs = txReceipt => txReceipt.logs[0].args
 utils.txContractId = txReceipt => txLoggedArgs(txReceipt).contractId
+
+// Takes a header and private key returning the signed data
+// Needs extraData just to be sure of the final byte
+utils.signHeader = (headerHash, privateKey, extraData) => {
+  const sig = eth_util.ecsign(headerHash, privateKey)
+  if (this._chainId > 0) {
+    sig.v += this._chainId * 2 + 8
+  }
+
+  const pubKey  = eth_util.ecrecover(headerHash, sig.v, sig.r, sig.s);
+  const addrBuf = eth_util.pubToAddress(pubKey);
+
+  const newSigBytes = Buffer.concat([sig.r, sig.s]);
+  let newSig;
+
+  const bytes = utils.hexToBytes(extraData)
+  const finalByte = bytes.splice(bytes.length-1)
+  if (finalByte.toString('hex')=="0") {
+    newSig = newSigBytes.toString('hex') + '00';
+  }
+  if (finalByte.toString('hex')=="1") {
+    newSig = newSigBytes.toString('hex') + '01';
+  }
+
+  return newSig;
+}
+
+
+
+utils.initWeb3 = (callback, provider) => {
+    web3 = new Web3();
+    var host = process.env.STANDARD_CONTRACTS_RPC_HOST || "localhost";
+    if (provider == null) {
+        web3.setProvider(new web3.providers.HttpProvider('http://' + host + ':8545'));
+    } else {
+        web3.setProvider(provider);
+    }
+    web3.eth.getAccounts(function (err, accs) {
+        if (err)
+            return callback(err);
+        web3.eth.defaultAccount = accs[0];
+        callback();
+    });
+}
+
+utils.deploy = (ABI, bytecode, callback) => {
+    new web3.eth.Contract(ABI, {data: bytecode, gas: "0xFFFFFFFFFFFF"}, function (err, contract) {
+        if (err) {
+            callback(err);
+            // callback fires twice, we only want the second call when the contract is deployed
+        } else if (contract.address) {
+            callback(null, contract);
+        }
+    });
+}
 
 module.exports = utils;

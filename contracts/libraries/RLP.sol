@@ -1,10 +1,10 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.12;
 /**
 * @title RLPReader
 *
 * RLPReader is used to read and parse RLP encoded data in memory.
 *
-* @author Andreas Olofsson (androlo1980@gmail.com) from https://github.com/androlo/standard-contracts/blob/master/contracts/src/codec/RLP.sol
+* @author Andreas Olofsson (androlo1980@gmail.com)
 */
 library RLP {
 
@@ -45,7 +45,6 @@ library RLP {
         subItem = next(self);
         if(strict && !_validate(subItem))
             revert();
-        return;
     }
 
     function hasNext(Iterator memory self) internal pure returns (bool) {
@@ -168,19 +167,19 @@ library RLP {
     /// @dev Return the RLP encoded bytes.
     /// @param self The RLPItem.
     /// @return The bytes.
-    function toBytes(RLPItem memory self) internal view returns (bytes memory bts) {
+    function toBytes(RLPItem memory self) internal pure returns (bytes memory bts) {
         uint len = self._unsafe_length;
-        if (len == 0)
-            return;
         bts = new bytes(len);
-        _copyToBytes(self._unsafe_memPtr, bts, len);
+        if (len != 0) {
+            _copyToBytes(self._unsafe_memPtr, bts, len);
+        }
     }
 
     /// @dev Decode an RLPItem into bytes. This will not work if the
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toData(RLPItem memory self) internal view returns (bytes memory bts) {
+    function toData(RLPItem memory self) internal pure returns (bytes memory bts) {
         if(!isData(self))
             revert();
         uint rStartPos;
@@ -211,7 +210,7 @@ library RLP {
     /// RLPItem is a list.
     /// @param self The RLPItem.
     /// @return The decoded string.
-    function toAscii(RLPItem memory self) internal view returns (string memory str) {
+    function toAscii(RLPItem memory self) internal pure returns (string memory str) {
         if(!isData(self))
             revert();
         uint rStartPos;
@@ -274,11 +273,11 @@ library RLP {
         (rStartPos, len) = _decode(self);
         if (len != 1)
             revert();
-        uint temp;
+        byte temp;
         assembly {
             temp := byte(0, mload(rStartPos))
         }
-        return byte(temp);
+        return temp;
     }
 
     /// @dev Decode an RLPItem into an int. This will not work if the
@@ -372,7 +371,7 @@ library RLP {
         if (b0 < DATA_SHORT_START) {
             memPtr = start;
             len = 1;
-            return;
+            return (memPtr, len);
         }
         if (b0 < DATA_LONG_START) {
             len = self._unsafe_length - 1;
@@ -385,28 +384,26 @@ library RLP {
             len = self._unsafe_length - 1 - bLen;
             memPtr = start + bLen + 1;
         }
-        return;
+        return (memPtr, len);
     }
 
     // Assumes that enough memory has been allocated to store in target.
-    function _copyToBytes(uint btsPtr, bytes memory tgt, uint btsLen) private view {
+    function _copyToBytes(uint btsPtr, bytes memory tgt, uint btsLen) private pure {
         // Exploiting the fact that 'tgt' was the last thing to be allocated,
         // we can write entire words, and just overwrite any excess.
         assembly {
             {
-                let i := 0 // Start at arr + 0x20
                 let words := div(add(btsLen, 31), 32)
                 let rOffset := btsPtr
                 let wOffset := add(tgt, 0x20)
-                tag_loop:
-                jumpi(end, eq(i, words))
+                for
+                { let i := 0 } // Start at arr + 0x20
+                lt(i, words)
+                { i := add(i, 1) }
                 {
                     let offset := mul(i, 0x20)
                     mstore(add(wOffset, offset), mload(add(rOffset, offset)))
-                    i := add(i, 1)
                 }
-                jump(tag_loop)
-                end:
                 mstore(add(tgt, add(0x20, mload(tgt))), 0)
             }
         }

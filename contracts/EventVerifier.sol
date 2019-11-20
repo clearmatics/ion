@@ -1,6 +1,6 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.12;
 
 import "./libraries/RLP.sol";
 import "./libraries/SolidityUtils.sol";
@@ -31,8 +31,8 @@ contract EventVerifier {
         If a log is not found, an `assert(false)` consumes all the gas and fails the transaction in order to incentivise
         submission of proper data.
     */
-    function retrieveLog(bytes32 _eventSignature, bytes20 _contractEmittedAddress, bytes _rlpReceipt)
-        internal view returns (RLP.RLPItem[])
+    function retrieveLog(bytes32 _eventSignature, bytes20 _contractEmittedAddress, bytes memory _rlpReceipt)
+        internal pure returns (RLP.RLPItem[] memory)
     {
         /*  Decode the receipt into it's consituents and grab the logs with it's known position in the receipt
             object and proceed to decode the logs also.
