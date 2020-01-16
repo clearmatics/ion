@@ -35,6 +35,7 @@
   "scripts": {
     "testrpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "istanbulRpc": "ganache-cli --hardfork istanbul --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
+    "petersburgRpc": "ganache-cli --hardfork petersburg --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "debugRpc": "node /usr/local/bin/ganache-cli --max-old-space-size=5000 --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "clirpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "compile": "truffle compile",
