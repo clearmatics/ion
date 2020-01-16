@@ -25,6 +25,8 @@ require('chai')
  .use(require('chai-as-promised'))
  .should();
 
+const BENCHMARK_FILEPATH = "./benchmark.json"
+
 const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
 const TESTCHAINID = "0x22b55e8a4f7c03e1689da845dd463b09299cb3a574e64c68eafc4e99077a7254"
 
@@ -165,6 +167,7 @@ contract('Base-Fabric Integration', (accounts) => {
 
             let tx = await validation.RegisterChain(TESTCHAINID, storage.address);
             console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
+            utils.saveGas(BENCHMARK_FILEPATH, tx.tx, "fabric-registerChain", tx.receipt.gasUsed.toString())
 
             let chainRegistered = await storage.m_chains(TESTCHAINID);
             assert(chainRegistered);
@@ -201,6 +204,7 @@ contract('Base-Fabric Integration', (accounts) => {
 
             let receipt = await validation.SubmitBlock(TESTCHAINID, rlpEncodedBlock, storage.address);
             console.log("\tGas used to store fabric block: %d", receipt.receipt.gasUsed);
+            utils.saveGas(BENCHMARK_FILEPATH, receipt.tx, "fabric-submitBlock-1", receipt.receipt.gasUsed)
 
             let block = await storage.getBlock.call(TESTCHAINID, TESTDATA[0].channelId, TESTDATA[0].blocks[0].hash);
 
@@ -313,6 +317,7 @@ contract('Base-Fabric Integration', (accounts) => {
 
             log = tx.logs.find(l => l.event == "State");
             console.log("\tGas used to fetch data and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
+            utils.saveGas(BENCHMARK_FILEPATH, tx.tx, "fabric-read&Execute-1", tx.receipt.gasUsed.toString())
 
             assert.equal(log.args.blockNo, TESTDATA[0].blocks[0].number);
             assert.equal(log.args.txNo, 0);
@@ -324,7 +329,8 @@ contract('Base-Fabric Integration', (accounts) => {
 
             log = tx.logs.find(l => l.event == "State");
             console.log("\tGas used to fetch data and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
-
+            utils.saveGas(BENCHMARK_FILEPATH, tx.tx, "fabric-read&Execute-2", tx.receipt.gasUsed.toString())
+            
             assert.equal(log.args.blockNo, TESTDATA[0].blocks[0].number);
             assert.equal(log.args.txNo, 0);
             assert.equal(log.args.mvalue, TESTDATA[0].blocks[0].transactions[0].nsrw[0].writesets[1].value);

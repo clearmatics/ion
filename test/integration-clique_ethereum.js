@@ -27,6 +27,8 @@ require('chai')
  .use(require('chai-as-promised'))
  .should();
 
+
+const BENCHMARK_FILEPATH = "./benchmark.json"
 const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
 const TESTCHAINID = "0x22b55e8a4f7c03e1689da845dd463b09299cb3a574e64c68eafc4e99077a7254"
 
@@ -193,6 +195,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
             let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
             console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
+            
             let chain = await clique.chains(TESTCHAINID);
 
             assert(chain);
@@ -336,6 +339,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
 
             tx = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
             console.log("\tGas used to submit check proofs = " + tx.receipt.gasUsed.toString() + " gas");
+            utils.saveGas(BENCHMARK_FILEPATH, tx.tx, "clique-submitCheckProofs", tx.receipt.gasUsed.toString())
         })
 
         it('Fail Proofs with wrong proofs value', async () => {
@@ -422,6 +426,7 @@ contract('Clique-Ethereum Integration', (accounts) => {
             assert.ok(event, "Executed event not emitted");
 
             console.log("\tGas used to verify all proofs against ion, verify logs against the verifier and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
+            utils.saveGas(BENCHMARK_FILEPATH, tx.tx, "clique-verifyProof", tx.receipt.gasUsed.toString())
         })
 
         it('Fail Function Execution', async () => {
