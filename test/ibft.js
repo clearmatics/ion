@@ -17,7 +17,7 @@ const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
 const rlp = require('rlp');
 const sha3 = require('js-sha3').keccak_256
-
+const config = require("./helpers/config.json")
 
 const Ibft = artifacts.require("IBFT");
 const MockIon = artifacts.require("MockIon");
@@ -36,8 +36,6 @@ function pad(n, width, z) {
   n = n + '';
   return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 }
-
-const BENCHMARK_FILEPATH = "./benchmark.json"
 
 const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
 const TESTCHAINID = "0x22b55e8a4f7c03e1689da845dd463b09299cb3a574e64c68eafc4e99077a7254"
@@ -144,7 +142,7 @@ contract('Ibft.js', (accounts) => {
       // Successfully add id of another chain
       let tx = await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
       console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(BENCHMARK_FILEPATH, tx.tx, "ibft-registerChain", tx.receipt.gasUsed.toString())
+      utils.saveGas(config.BENCHMARK_FILEPATH, tx.tx, "ibft-registerChain", tx.receipt.gasUsed.toString())
 
       let chainExists = await ibft.chains(TESTCHAINID);
 
@@ -205,7 +203,7 @@ contract('Ibft.js', (accounts) => {
         // Submit block should succeed
         const validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
         console.log("\tGas used to submit block = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-        utils.saveGas(BENCHMARK_FILEPATH, validationReceipt.tx, "ibft-submitBlock-1", validationReceipt.receipt.gasUsed.toString())
+        utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "ibft-submitBlock-1", validationReceipt.receipt.gasUsed.toString())
 
         let event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
@@ -236,7 +234,7 @@ contract('Ibft.js', (accounts) => {
         // Submit block should succeed
         let validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
         console.log("\tGas used to submit block = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-        utils.saveGas(BENCHMARK_FILEPATH, validationReceipt.tx, "ibft-submitBlock-2", validationReceipt.receipt.gasUsed.toString())
+        utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "ibft-submitBlock-2", validationReceipt.receipt.gasUsed.toString())
 
         let event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");

@@ -16,6 +16,7 @@ const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
 const rlp = require('rlp');
+const config = require("./helpers/config.json")
 const truffleAssert = require('truffle-assertions');
 const sha3 = require('js-sha3').keccak_256
 const Clique = artifacts.require("Clique");
@@ -57,9 +58,6 @@ signHeader = (headerHash, privateKey, extraData) => {
 
   return newSig;
 }
-
-const BENCHMARK_FILEPATH = "./benchmark.json"
-
 const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
 const TESTCHAINID = "0x22b55e8a4f7c03e1689da845dd463b09299cb3a574e64c68eafc4e99077a7254"
 
@@ -104,7 +102,7 @@ contract('Clique.js', (accounts) => {
         // Successfully add id of another chain
         let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
         console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
-        utils.saveGas(BENCHMARK_FILEPATH, tx.tx, "clique-registerChain", tx.receipt.gasUsed.toString())
+        utils.saveGas(config.BENCHMARK_FILEPATH, tx.tx, "clique-registerChain", tx.receipt.gasUsed.toString())
 
         let chainExists = await clique.chains(TESTCHAINID);
 
@@ -286,7 +284,7 @@ contract('Clique.js', (accounts) => {
       // Submit block should succeed
       let validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
       console.log("\tGas used to submit block 873982 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-1", validationReceipt.receipt.gasUsed.toString())
+      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-1", validationReceipt.receipt.gasUsed.toString())
 
       // Fetch block 873983 from rinkeby
       block = await rinkeby.eth.getBlock(873983);
@@ -295,7 +293,7 @@ contract('Clique.js', (accounts) => {
       // Submit block should succeed
       validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
       console.log("\tGas used to submit block 873983 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-2", validationReceipt.receipt.gasUsed.toString())
+      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-2", validationReceipt.receipt.gasUsed.toString())
 
       let submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
       let blockHash = submittedEvent.args.blockHash;
@@ -311,7 +309,7 @@ contract('Clique.js', (accounts) => {
       // Submit block should succeed
       validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
       console.log("\tGas used to submit block 873984 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-3", validationReceipt.receipt.gasUsed.toString())
+      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-3", validationReceipt.receipt.gasUsed.toString())
 
       // Fetch block 873985 from rinkeby
       block = await rinkeby.eth.getBlock(873985);
@@ -320,7 +318,7 @@ contract('Clique.js', (accounts) => {
       // Submit block should succeed
       validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
       console.log("\tGas used to submit block 873985 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-4", validationReceipt.receipt.gasUsed.toString())
+      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-4", validationReceipt.receipt.gasUsed.toString())
 
       // Fetch block 873986 from rinkeby
       block = await rinkeby.eth.getBlock(873986);
@@ -329,7 +327,7 @@ contract('Clique.js', (accounts) => {
       // Submit block should succeed
       validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
       console.log("\tGas used to submit block 873986 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-5", validationReceipt.receipt.gasUsed.toString())
+      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-5", validationReceipt.receipt.gasUsed.toString())
 
       submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
       blockHash = submittedEvent.args.blockHash;

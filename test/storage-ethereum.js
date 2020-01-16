@@ -14,6 +14,7 @@ const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
 const BN = require('bignumber.js')
 const encoder = require('./helpers/encoder.js')
+const config = require("./helpers/config.json")
 const rlp = require('rlp');
 const async = require('async')
 const sha3 = require('js-sha3').keccak_256
@@ -31,7 +32,6 @@ require('chai')
     .use(require('chai-as-promised'))
     .should();
 
-const BENCHMARK_FILEPATH = "./benchmark.json"    
 const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
 
 const TESTCHAINID = "0x22b55e8a4f7c03e1689da845dd463b09299cb3a574e64c68eafc4e99077a7254"
@@ -245,7 +245,7 @@ contract('EthereumStore.js', (accounts) => {
             tx = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
 
             console.log("\tGas used to submit check all proofs = " + tx.receipt.gasUsed.toString() + " gas");
-            utils.saveGas(BENCHMARK_FILEPATH, tx.tx, "ethStorage-checkProofs", tx.receipt.gasUsed.toString())
+            utils.saveGas(config.BENCHMARK_FILEPATH, tx.tx, "ethStorage-checkProofs", tx.receipt.gasUsed.toString())
         })
 
         it('Fail Proofs with wrong chain id', async () => {
