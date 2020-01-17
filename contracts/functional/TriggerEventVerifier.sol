@@ -21,7 +21,7 @@ import "../EventVerifier.sol";
 contract TriggerEventVerifier is EventVerifier {
     bytes32 eventSignature = keccak256("Triggered(address)");
 
-    function verify(bytes20 _contractEmittedAddress, bytes memory _rlpReceipt, bytes20 _expectedAddress) public view returns (bool) {
+    function verify(bytes20 _contractEmittedAddress, bytes calldata _rlpReceipt, bytes20 _expectedAddress) external view returns (bool) {
         // Retrieve specific log for given event signature
         RLP.RLPItem[] memory log = retrieveLog(eventSignature, _contractEmittedAddress, _rlpReceipt);
 

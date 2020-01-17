@@ -46,7 +46,7 @@ contract Ion {
     }
 
 
-    function registerValidationModule() public {
+    function registerValidationModule() external {
         require( isContract(msg.sender), "Caller address is not a valid contract. Please inherit the BlockStore contract for proper usage." );
         require( !m_registered_validation[msg.sender], "Validation module has already been registered." );
 
@@ -54,7 +54,7 @@ contract Ion {
         validation_modules.push(msg.sender);
     }
 
-    function addChain(address _storageAddress, bytes32 _chainId) onlyRegisteredValidation public {
+    function addChain(address _storageAddress, bytes32 _chainId) onlyRegisteredValidation external {
         BlockStore store = BlockStore(_storageAddress);
         store.addChain(_chainId);
     }
@@ -64,7 +64,7 @@ contract Ion {
     * param:
     *
     */
-    function storeBlock(address _storageAddress, bytes32 _chainId, bytes memory _blockBlob) onlyRegisteredValidation public {
+    function storeBlock(address _storageAddress, bytes32 _chainId, bytes calldata _blockBlob) onlyRegisteredValidation external {
         require( isContract(_storageAddress), "Storage address provided is not contract.");
         BlockStore store = BlockStore(_storageAddress);
 

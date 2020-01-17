@@ -52,5 +52,5 @@ contract BlockStore is IonCompatible {
         return true;
     }
 
-    function addBlock(bytes32 _chainId, bytes memory _blockBlob) public;
+    function addBlock(bytes32 _chainId, bytes calldata _blockBlob) external;
 }

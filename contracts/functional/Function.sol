@@ -77,9 +77,9 @@ contract Function {
         bytes32 _chainId,
         bytes32 _blockHash,
         bytes20 _contractEmittedAddress,
-        bytes memory _proof,
+        bytes calldata _proof,
         bytes20 _expectedAddress
-    ) public {
+    ) external {
         bytes memory receipt =  blockStore.CheckProofs(_chainId, _blockHash, _proof);
 
         require( verifier.verify(_contractEmittedAddress, receipt, _expectedAddress), "Event verification failed." );
