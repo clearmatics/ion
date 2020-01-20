@@ -1,6 +1,22 @@
 const fs = require("fs-extra")
-const Debug = require('web3-eth-debug').Debug
+// const Debug = require('web3-eth-debug').Debug
 const Web3 = require('web3');
+const web3 = new Web3();
+web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545', {timeout:100000}));
+
+const FILEPATH = "./test.json"
+
+options = {disableStorage:true, disableStack:true, disableMemory:true}
+
+// data = fs.readJsonSync("./txMaps.json")
+
+// for (var key of Object.keys(data)) {
+//     benchmarkTx(data[key], key, options, web3)
+// }
+
+// benchmarkTx("0x22eb8a81dd3d949b2e36e38a9f5221c399c3faf0b4d07e56ca3ee8673a97fa7b", "register", options, web3)
+
+// compare("./stats/initial-petersburgRpc.json", "./stats/initial-istanbulRpc.json")
 
 benchmarkTx = (txHash, name, options, web3) => {
     web3.currentProvider.send({
@@ -37,6 +53,24 @@ aggregate = (txTrace, name, options) => {
         }
     }
 
+    traceOpcodes(txTrace, aggregateObj)
+}
+
+// calculate percentage of difference in gas consumption functions
+compare = (benchmarkFileBefore, benchmarkFileAfter) => {
+    before = fs.readJSONSync(benchmarkFileBefore)
+    after = fs.readJSONSync(benchmarkFileAfter)
+    
+    for (method of Object.keys(before)){
+        gasDelta = before[method].gas - after[method].gas
+        percentage = Number(gasDelta * 100 / before[method].gas).toFixed(2)
+        console.log("Method", method, " improvement:", percentage, "%")
+    }
+}
+
+// trace and aggregate the opcodes calls 
+traceOpcodes = (txTrace, aggregateObj) => {
+
     // word count the opcodes
     for (log of txTrace.structLogs) {
         aggregateObj[log.op] = aggregateObj[log.op] ? aggregateObj[log.op] += 1 : 1
@@ -54,21 +88,3 @@ aggregate = (txTrace, name, options) => {
       console.error(err)
     })
 }
-
-// ENTRYPOINT 
-const web3 = new Web3();
-web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545', {timeout:100000}));
-
-const FILEPATH = "./gas-public.json"
-
-options = {disableStorage:true, disableStack:true, disableMemory:true}
-
-// data = fs.readJsonSync("./txMaps.json")
-
-// for (var key of Object.keys(data)) {
-//     benchmarkTx(data[key], key, options, web3)
-// }
-
-benchmarkTx("0x22eb8a81dd3d949b2e36e38a9f5221c399c3faf0b4d07e56ca3ee8673a97fa7b", "register", options, web3)
-
-module.exports = benchmarkTx
