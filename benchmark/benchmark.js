@@ -48,9 +48,15 @@ compare = (benchmarkFileBefore, benchmarkFileAfter) => {
     before = fs.readJSONSync(benchmarkFileBefore)
     after = fs.readJSONSync(benchmarkFileAfter)
     
+    if (!Object.keys(after).length || !Object.keys(before).length){
+        console.log("Empty input files!")
+        return
+    }
+
     for (method of Object.keys(before)){
         gasDelta = before[method].gas - after[method].gas
-        percentage = Number(gasDelta * 100 / before[method].gas).toFixed(2)
+        percentage = Number(gasDelta * 100 / before[method].gas).toFixed(3)
+
         console.log("\n" + method, "gas costs:")
         console.log("Before:", before[method].gas, "After", after[method].gas)
         console.log("Saving:", percentage + "%")
