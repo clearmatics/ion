@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y \
         wget
 
 
-# Install nodejs 8
-RUN curl -sL https://deb.nodesource.com/setup_8.x | sudo bash - && sudo apt-get install -y nodejs=8.0.0
+# Install a recent version of nodejs
+RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo bash - && sudo apt-get install -y nodejs
 COPY . /go/src/github.com/clearmatics/ion
 
 # Install the current compatible solc version

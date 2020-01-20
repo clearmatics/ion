@@ -11,7 +11,7 @@
     "ethereumjs-block": "^2.0.0",
     "ethereumjs-tx": "^1.3.5",
     "merkle-patricia-tree": "^2.3.1",
-    "node-gyp": "^3.8.0",
+    "node-gyp": "^6.1.0",
     "rlp": "^2.0.0",
     "solc": "^0.5.12",
     "solhint": "^1.1.10",
