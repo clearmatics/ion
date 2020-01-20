@@ -1,0 +1,220 @@
+{
+  "clique-registerChain": {
+    "gas": "374573",
+    "txHash": "0xa25af9770115da1223fc6355b95cf4a55dff71d33a5f1f9f58dda3397fb183b9",
+    "opcodes": {
+      "MSTORE": 51,
+      "CALLDATASIZE": 8,
+      "CALLDATALOAD": 13,
+      "MLOAD": 38,
+      "CALLDATACOPY": 1,
+      "SLOAD": 21,
+      "SSTORE": 17
+    }
+  },
+  "clique-submitBlock-1": {
+    "gas": "448651",
+    "txHash": "0xa9dbc0616c0a064aa8b88c6081fcb03114ff01fd6948ddaa61f5b560e5a1d596",
+    "opcodes": {
+      "MSTORE": 876,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 16,
+      "MLOAD": 971,
+      "CALLDATACOPY": 4,
+      "SLOAD": 44,
+      "SSTORE": 19
+    }
+  },
+  "clique-submitBlock-2": {
+    "gas": "470917",
+    "txHash": "0x63d64b70f5e188df832232059e36bf92c047108b9089f43dbd57a7ec5bf6bc06",
+    "opcodes": {
+      "MSTORE": 891,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 16,
+      "MLOAD": 971,
+      "CALLDATACOPY": 4,
+      "SLOAD": 67,
+      "SSTORE": 21
+    }
+  },
+  "clique-submitBlock-3": {
+    "gas": "429780",
+    "txHash": "0x543f7bff9dcc0b6436c16948afa4c9e87713f47c8f42cb64a74c2d183d6de58f",
+    "opcodes": {
+      "MSTORE": 876,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 16,
+      "MLOAD": 971,
+      "CALLDATACOPY": 4,
+      "SLOAD": 44,
+      "SSTORE": 19
+    }
+  },
+  "clique-submitBlock-4": {
+    "gas": "429648",
+    "txHash": "0x1b011041eb8cbd6006d079a9a9f0f109958d5c45cc194495c7700d1f9d734447",
+    "opcodes": {
+      "MSTORE": 876,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 16,
+      "MLOAD": 971,
+      "CALLDATACOPY": 4,
+      "SLOAD": 44,
+      "SSTORE": 19
+    }
+  },
+  "clique-submitBlock-5": {
+    "gas": "497888",
+    "txHash": "0xf7161835877d2e20b483a89c81be32ecc7377abcf8fd89735ebdd605961f06a2",
+    "opcodes": {
+      "MSTORE": 894,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 16,
+      "MLOAD": 971,
+      "CALLDATACOPY": 4,
+      "SLOAD": 73,
+      "SSTORE": 24
+    }
+  },
+  "ibft-registerChain": {
+    "gas": "310828",
+    "txHash": "0x6c0b229a14615f4c1fb936f979c0bda1f52d9b59910fb567fe9cf380bac451a3",
+    "opcodes": {
+      "MSTORE": 36,
+      "CALLDATASIZE": 8,
+      "CALLDATALOAD": 13,
+      "MLOAD": 30,
+      "CALLDATACOPY": 1,
+      "SLOAD": 17,
+      "SSTORE": 14
+    }
+  },
+  "ibft-submitBlock-1": {
+    "gas": "285422",
+    "txHash": "0x005e5cfa67140314b853032c582fe98f15e4b4a3eaf6ee9ef22b25bd16e29125",
+    "opcodes": {
+      "MSTORE": 827,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 18,
+      "MLOAD": 963,
+      "CALLDATACOPY": 5,
+      "SLOAD": 42,
+      "SSTORE": 23
+    }
+  },
+  "ibft-submitBlock-2": {
+    "gas": "285422",
+    "txHash": "0x2b4e774112d845f301cc35d0de49542d6ec807fa299aa0ab7b8a5ec0a271b967",
+    "opcodes": {
+      "MSTORE": 827,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 18,
+      "MLOAD": 963,
+      "CALLDATACOPY": 5,
+      "SLOAD": 42,
+      "SSTORE": 23
+    }
+  },
+  "fabric-registerChain": {
+    "gas": "120416",
+    "txHash": "0x42993483d56be5726fe60d58d8e49044ae17acbc23ebb21edb62f5383395c72c",
+    "opcodes": {
+      "MSTORE": 24,
+      "CALLDATASIZE": 8,
+      "CALLDATALOAD": 10,
+      "SLOAD": 11,
+      "MLOAD": 20,
+      "SSTORE": 4
+    }
+  },
+  "fabric-submitBlock-1": {
+    "gas": "1269590",
+    "txHash": "0x484daabfda3f414f60ed914dc756cd93c536edceb59c2f90ddf947b643eda967",
+    "opcodes": {
+      "MSTORE": 1647,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 14,
+      "MLOAD": 2173,
+      "CALLDATACOPY": 3,
+      "SLOAD": 100,
+      "SSTORE": 59
+    }
+  },
+  "fabric-read&Execute-1": {
+    "gas": "38284",
+    "txHash": "0xfed550768a9df358a76157ff747e17f97fe8e0eba2e11880c636c40ceec03d00",
+    "opcodes": {
+      "MSTORE": 55,
+      "CALLDATASIZE": 4,
+      "CALLDATALOAD": 12,
+      "MLOAD": 52,
+      "CALLDATACOPY": 4,
+      "SLOAD": 8
+    }
+  },
+  "fabric-read&Execute-2": {
+    "gas": "38284",
+    "txHash": "0x6c5c63cd41cdb5757f071d1e2b4940959e4f1793d65ce4eee29c961d1acb9767",
+    "opcodes": {
+      "MSTORE": 55,
+      "CALLDATASIZE": 4,
+      "CALLDATALOAD": 12,
+      "MLOAD": 52,
+      "CALLDATACOPY": 4,
+      "SLOAD": 8
+    }
+  },
+  "clique-submitCheckProofs": {
+    "gas": "247084",
+    "txHash": "0xc2b68e121640d9226fcd9692016945c6e0c6ea07f440407badd86ba9c0d2d5dd",
+    "opcodes": {
+      "MSTORE": 2127,
+      "CALLDATASIZE": 2,
+      "CALLDATALOAD": 5,
+      "MLOAD": 2365,
+      "CALLDATACOPY": 1,
+      "SLOAD": 10,
+      "MSTORE8": 8
+    }
+  },
+  "clique-verifyProof": {
+    "gas": "297974",
+    "txHash": "0xfad597165cd47b5b8047629876e6b2c21262fc15b62cbf1b31ecb14ae802ea07",
+    "opcodes": {
+      "MSTORE": 2518,
+      "CALLDATASIZE": 6,
+      "CALLDATALOAD": 17,
+      "MLOAD": 2930,
+      "CALLDATACOPY": 3,
+      "SLOAD": 13,
+      "MSTORE8": 8
+    }
+  },
+  "ethStorage-checkProofs": {
+    "gas": "247084",
+    "txHash": "0x46f42b7f71de622cb2de717e2b40be369965268549172b26322f56a7d9ff00c3",
+    "opcodes": {
+      "MSTORE": 2127,
+      "CALLDATASIZE": 2,
+      "CALLDATALOAD": 5,
+      "MLOAD": 2365,
+      "CALLDATACOPY": 1,
+      "SLOAD": 10,
+      "MSTORE8": 8
+    }
+  },
+  "fabric-storeBlock": {
+    "gas": "1262833",
+    "txHash": "0xb1b97126df6261b3ca77db0fce096a12afe22cd2162124ced2d99e9424697475",
+    "opcodes": {
+      "MSTORE": 1625,
+      "CALLDATASIZE": 4,
+      "CALLDATALOAD": 9,
+      "MLOAD": 2157,
+      "CALLDATACOPY": 2,
+      "SLOAD": 98,
+      "SSTORE": 59
+    }
+  }
+}

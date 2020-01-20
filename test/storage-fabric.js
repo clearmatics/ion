@@ -14,7 +14,7 @@ const rlp = require('rlp');
 const async = require('async')
 const util = require('util');
 const utils = require('./helpers/utils.js');
-const config = require("./helpers/config.json")
+const config = require("../benchmark/config.json")
 // Connect to the Test RPC running
 const Web3 = require('web3');
 const web3 = new Web3();

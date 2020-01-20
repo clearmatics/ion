@@ -17,7 +17,7 @@ const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
 const rlp = require('rlp');
 const sha3 = require('js-sha3').keccak_256
-const config = require("./helpers/config.json")
+const config = require("../benchmark/config.json")
 
 const Ibft = artifacts.require("IBFT");
 const MockIon = artifacts.require("MockIon");

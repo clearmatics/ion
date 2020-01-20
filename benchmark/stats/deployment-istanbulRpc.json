@@ -1,0 +1,42 @@
+{
+  "Ion": {
+    "gas": 606641,
+    "txHash": "0x01168c6b113f5db9992e42258e66c382e9e359a0982ead62ee1ade938a64e70c"
+  },
+  "Ethereum Store": {
+    "gas": 1892725,
+    "txHash": "0xa9bc6f3d761524d825359529f8028338fddeead625292370f0fc18d365ebf7e6"
+  },
+  "Clique Validation": {
+    "gas": 2317235,
+    "txHash": "0xb7c17421565906f363fcd44a5dae9f02144f810cdccb55acfdc332affe85dd3f"
+  },
+  "Event verifier": {
+    "gas": 614356,
+    "txHash": "0x93c73b0081eb7165842174cfe071749f299f3a2b4fdb32ff359f2e44d8bb71a1"
+  },
+  "Event Function": {
+    "gas": 394835,
+    "txHash": "0xe73b78f45ea5a529d8093c29eb688b1237b722f520a31446e4c1cc77ae8a65dc"
+  },
+  "Deploy Ion": {
+    "gas": 606641,
+    "txHash": "0x2de51ab1deb879e4e8ac0455e7db94fc23411787c4cdac5350a8c8e84ad20eba"
+  },
+  "Deploy Ethereum Store": {
+    "gas": 1892725,
+    "txHash": "0x1fb5644bbf708d16f8aef63c1c746a3631510604e1534f96ed0ccdd8c74f54b0"
+  },
+  "Deploy Clique Validation": {
+    "gas": 2317235,
+    "txHash": "0xededd35382bf3621441b182fe693b83d8b44218b26a0e2191b0d51547481fe62"
+  },
+  "Deploy Event verifier": {
+    "gas": 614356,
+    "txHash": "0x4aebfaa92df406121460bdf951ac1c3ce64b9a11a61995e4e9aa2df1157b8233"
+  },
+  "Deploy Event Function": {
+    "gas": 394835,
+    "txHash": "0xa6d5270001c6f7c7b87c2e834b9fc8eec50f642f1b5f9bd1ed0ceaa836f38a0b"
+  }
+}

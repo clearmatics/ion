@@ -1,4 +1,0 @@
-{
-    "BENCHMARK_FILEPATH" : "./stats/initial-istanbulRpc.json",
-    "BENCHMARK_DEPLOYMENT_FILEPATH": "./stats/deployment-istanbulRpc.json"
-}

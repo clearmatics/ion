@@ -1,0 +1,22 @@
+{
+  "Ion": {
+    "gas": 727073,
+    "txHash": "0x91c7bd4f7ad5e8eb69f20f711871c65aeec1c5ca334ca11075528078bd32c8c6"
+  },
+  "Ethereum Store": {
+    "gas": 2300521,
+    "txHash": "0x3f98a275724768ec11ad610a511b533d245f08e1b470b226a0fa83314675b004"
+  },
+  "Clique Validation": {
+    "gas": 2829187,
+    "txHash": "0xb292b89a6c820d659437f9c96a14f78f9970308e93db8cb43b5eaa35e6e15ca3"
+  },
+  "Event verifier": {
+    "gas": 742432,
+    "txHash": "0xf2a3fc60a421d297cbf373cd1bc482146bc2fe204febe5503ddebb224ebfd528"
+  },
+  "Event Function": {
+    "gas": 473223,
+    "txHash": "0x3fb719daa3d0a6fce3d582cb940892236d48d89831039d4548dbd26a31681f4a"
+  }
+}
