@@ -5,20 +5,20 @@ const EventFunction = artifacts.require("Function");
 const EventVerifier = artifacts.require("TriggerEventVerifier");
 
 const saveGasInfo = require("../test/helpers/utils").saveGas
-const BENCHMARK_PATH = "./stats/deployment-petersburg.json" //fs-extra pwd is project root
+const config = require("../benchmark/config.json")
 
 module.exports = async (deployer, network) => {
   try {
       deployer.deploy(Ion, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
-      .then((res) => writeGasToFile(res.transactionHash, "Ion"))
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Ion"))
       .then(() => deployer.deploy(EthereumStore, Ion.address))
-      .then((res) => writeGasToFile(res.transactionHash, "Ethereum Store"))
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Ethereum Store"))
       .then(() => deployer.deploy(Clique, Ion.address))
-      .then((res) => writeGasToFile(res.transactionHash, "Clique Validation"))
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Clique Validation"))
       .then(() => deployer.deploy(EventVerifier))
-      .then((res) => writeGasToFile(res.transactionHash, "Event verifier"))
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Event verifier"))
       .then(() => deployer.deploy(EventFunction, Ion.address, EventVerifier.address))
-      .then((res) => writeGasToFile(res.transactionHash, "Event Function"))
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Event Function"))
   } catch(err) {
     console.log('ERROR on deploy:',err);
   }
@@ -27,5 +27,5 @@ module.exports = async (deployer, network) => {
 
 writeGasToFile = async (txHash, contractName) => {
   receipt = await web3.eth.getTransactionReceipt(txHash)
-  saveGasInfo(BENCHMARK_PATH, txHash, contractName, receipt.cumulativeGasUsed)
+  saveGasInfo(config.BENCHMARK_DEPLOYMENT_FILEPATH, txHash, contractName, receipt.cumulativeGasUsed)
 }

@@ -10,7 +10,7 @@ const async = require('async')
 const levelup = require('levelup');
 const sha3 = require('js-sha3').keccak_256
 const util = require('util');
-const config = require("./helpers/config.json")
+const config = require("../benchmark/config.json")
 
 // Connect to the Test RPC running
 const Web3 = require('web3');

@@ -4,7 +4,7 @@ const Web3 = require('web3');
 const web3 = new Web3();
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545', {timeout:100000}));
 
-const config = require("./test/helpers/config.json")
+const config = require("./config.json")
 
 benchmarkTx = (txHash, name, options, web3) => {
     web3.currentProvider.send({
@@ -15,7 +15,7 @@ benchmarkTx = (txHash, name, options, web3) => {
         if(err===null && !res.error){
             aggregate(res.result, name, options)
         } else {
-            console.log(err, name + "-" + res.error.message)
+            console.log(err, name)
         }
     })
 
@@ -51,7 +51,9 @@ compare = (benchmarkFileBefore, benchmarkFileAfter) => {
     for (method of Object.keys(before)){
         gasDelta = before[method].gas - after[method].gas
         percentage = Number(gasDelta * 100 / before[method].gas).toFixed(2)
-        console.log("Method", method, "gas difference:", percentage, "%")
+        console.log("\n" + method, "gas costs:")
+        console.log("Before:", before[method].gas, "After", after[method].gas)
+        console.log("Saving:", percentage + "%")
     }
 }
 

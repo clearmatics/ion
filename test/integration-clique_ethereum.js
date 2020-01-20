@@ -8,7 +8,7 @@ const encoder = require('./helpers/encoder.js')
 const rlp = require('rlp');
 const async = require('async')
 const sha3 = require('js-sha3').keccak_256
-const config = require("./helpers/config.json")
+const config = require("../benchmark/config.json")
 // Connect to the Test RPC running
 const Web3 = require('web3');
 const web3 = new Web3();
