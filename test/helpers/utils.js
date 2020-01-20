@@ -4,6 +4,7 @@
 const crypto = require('crypto')
 const Web3 = require('web3');
 const fs = require("fs-extra")
+
 var web3;
 
 const utils = {};
@@ -122,17 +123,16 @@ utils.deploy = (ABI, bytecode, callback) => {
 }
 
 utils.saveGas = (file, txHash, name, gas) => {
-    fs.ensureFile(file)
-    .then(() => {
-      data = fs.readFileSync(file)
-      data = data.length === 0 ? {} : JSON.parse(data)
-      data[name] = {gas, txHash}
-      
-      fs.writeJsonSync(file, data)
-    })
-    .catch(err => {
-      console.error(err)
-    })
+  fs.ensureFile(file, err => {
+    if (err)
+      console.log(err)
+
+    data = fs.readFileSync(file)
+    data = data.length === 0 ? {} : JSON.parse(data)
+    data[name] = {gas, txHash}
+    
+    fs.writeJsonSync(file, data)
+  })
    
 }
 
