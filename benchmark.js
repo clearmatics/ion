@@ -6,10 +6,6 @@ web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545', {timeo
 
 const config = require("./test/helpers/config.json")
 
-options = {disableStorage:true, disableStack:true, disableMemory:true}
-
-benchmarkObj = fs.readJsonSync(config.BENCHMARK_FILEPATH)
-
 benchmarkTx = (txHash, name, options, web3) => {
     web3.currentProvider.send({
        "jsonrcp":"2.0",
@@ -44,7 +40,7 @@ aggregate = (txTrace, name, options) => {
         }
     }
 
-    traceOpcodes(txTrace, name, aggregateObj)
+    traceOpcodes(txTrace, name)
 }
 
 // calculate percentage of difference in gas consumption functions
@@ -55,7 +51,7 @@ compare = (benchmarkFileBefore, benchmarkFileAfter) => {
     for (method of Object.keys(before)){
         gasDelta = before[method].gas - after[method].gas
         percentage = Number(gasDelta * 100 / before[method].gas).toFixed(2)
-        console.log("Method", method, " comparison gas consumption:", percentage, "%")
+        console.log("Method", method, "gas difference:", percentage, "%")
     }
 }
 
@@ -63,9 +59,10 @@ compare = (benchmarkFileBefore, benchmarkFileAfter) => {
 traceOpcodes = (txTrace, name) => {
     opcodeCount = {}
 
-    // word count the opcodes - TODO group them in some more meaningful way
+    // word count the opcodes specified in watchedOpcodes
     for (log of txTrace.structLogs) {
-        opcodeCount[log.op] = opcodeCount[log.op] ? opcodeCount[log.op] += 1 : 1
+        if (watchedOpcodes.indexOf(log.op) > -1)
+            opcodeCount[log.op] = opcodeCount[log.op] ? opcodeCount[log.op] += 1 : 1
     }
 
     benchmarkObj[name]["opcodes"] = opcodeCount
@@ -76,12 +73,25 @@ traceOpcodes = (txTrace, name) => {
 
 
 // ENTRYPOINT 
-for (var key of Object.keys(benchmarkObj)) {
-    benchmarkTx(benchmarkObj[key].txHash, key, options, web3)
+options = {disableStorage:true, disableStack:true, disableMemory:true}
+benchmarkObj = fs.readJsonSync(config.BENCHMARK_FILEPATH)
+
+watchedOpcodes = ["MLOAD", "MSTORE", "MSTORE8", "SLOAD", "SSTORE", "CALLDATACOPY", "CALLDATASIZE", "CALLDATALOAD"]
+
+switch(process.argv[2]){
+    default:
+    case "trace": 
+        for (var key of Object.keys(benchmarkObj)) {
+            benchmarkTx(benchmarkObj[key].txHash, key, options, web3)
+        }
+    break;
+    
+    case "compare":
+        compare(process.argv[3], process.argv[4])
+    break;
 }
 
 // benchmarkTx("0x22eb8a81dd3d949b2e36e38a9f5221c399c3faf0b4d07e56ca3ee8673a97fa7b", "register", options, web3)
-
 // compare("./stats/initial-petersburgRpc.json", "./stats/initial-istanbulRpc.json")
 
 
