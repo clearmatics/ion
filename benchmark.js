@@ -4,19 +4,11 @@ const Web3 = require('web3');
 const web3 = new Web3();
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545', {timeout:100000}));
 
-const FILEPATH = "./test.json"
+const config = require("./test/helpers/config.json")
 
 options = {disableStorage:true, disableStack:true, disableMemory:true}
 
-// data = fs.readJsonSync("./txMaps.json")
-
-// for (var key of Object.keys(data)) {
-//     benchmarkTx(data[key], key, options, web3)
-// }
-
-// benchmarkTx("0x22eb8a81dd3d949b2e36e38a9f5221c399c3faf0b4d07e56ca3ee8673a97fa7b", "register", options, web3)
-
-// compare("./stats/initial-petersburgRpc.json", "./stats/initial-istanbulRpc.json")
+benchmarkObj = fs.readJsonSync(config.BENCHMARK_FILEPATH)
 
 benchmarkTx = (txHash, name, options, web3) => {
     web3.currentProvider.send({
@@ -33,27 +25,26 @@ benchmarkTx = (txHash, name, options, web3) => {
 
 }
 
+// get stack, memory storage info potentially but run out of heap fairly quickly
+// plus gotta find a meaning out of this info
 aggregate = (txTrace, name, options) => {
-    aggregateObj = {}
-    aggregateObj.gas = txTrace.gas
-    aggregateObj.maxStackDepth = 0
 
     if(!options.disableStack){
         // stack max depth
         for (log of txTrace.structLogs) {
             if (log.stack.length > aggregateObj.maxStackDepth)
-                aggregateObj.maxStackDepth = log.stack.length
+            benchmarkObj.maxStackDepth = log.stack.length
 
         }
     } else if(!options.disableMemory){
         // memory max depth
         for (log of txTrace.structLogs) {
             if (log.memory.length > aggregateObj.maxMemoryDepth)
-                aggregateObj.maxMemoryDepth = log.memory.length
+                benchmarkObj.maxMemoryDepth = log.memory.length
         }
     }
 
-    traceOpcodes(txTrace, aggregateObj)
+    traceOpcodes(txTrace, name, aggregateObj)
 }
 
 // calculate percentage of difference in gas consumption functions
@@ -64,27 +55,34 @@ compare = (benchmarkFileBefore, benchmarkFileAfter) => {
     for (method of Object.keys(before)){
         gasDelta = before[method].gas - after[method].gas
         percentage = Number(gasDelta * 100 / before[method].gas).toFixed(2)
-        console.log("Method", method, " improvement:", percentage, "%")
+        console.log("Method", method, " comparison gas consumption:", percentage, "%")
     }
 }
 
 // trace and aggregate the opcodes calls 
-traceOpcodes = (txTrace, aggregateObj) => {
+traceOpcodes = (txTrace, name) => {
+    opcodeCount = {}
 
-    // word count the opcodes
+    // word count the opcodes - TODO group them in some more meaningful way
     for (log of txTrace.structLogs) {
-        aggregateObj[log.op] = aggregateObj[log.op] ? aggregateObj[log.op] += 1 : 1
+        opcodeCount[log.op] = opcodeCount[log.op] ? opcodeCount[log.op] += 1 : 1
     }
 
-    fs.ensureFile(FILEPATH)
-    .then(() => {
-      data = fs.readFileSync(FILEPATH)
-      data = data.length === 0 ? {} : JSON.parse(data)
-      data[name] = aggregateObj
-      
-      fs.writeJsonSync(FILEPATH, data)
-    })
-    .catch(err => {
-      console.error(err)
-    })
+    benchmarkObj[name]["opcodes"] = opcodeCount
+
+    fs.writeJsonSync(config.BENCHMARK_FILEPATH, benchmarkObj)
+
 }
+
+
+// ENTRYPOINT 
+for (var key of Object.keys(benchmarkObj)) {
+    benchmarkTx(benchmarkObj[key].txHash, key, options, web3)
+}
+
+// benchmarkTx("0x22eb8a81dd3d949b2e36e38a9f5221c399c3faf0b4d07e56ca3ee8673a97fa7b", "register", options, web3)
+
+// compare("./stats/initial-petersburgRpc.json", "./stats/initial-istanbulRpc.json")
+
+
+module.exports = {benchmarkTx, compare}
