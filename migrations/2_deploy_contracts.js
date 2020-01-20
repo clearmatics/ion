@@ -5,7 +5,7 @@ const EventFunction = artifacts.require("Function");
 const EventVerifier = artifacts.require("TriggerEventVerifier");
 
 const saveGasInfo = require("../test/helpers/utils").saveGas
-const BENCHMARK_PATH = "./stats/deployment-petersburg.json" //fs-extra pwd is project root
+const config = require("../test/helpers/config.json")
 
 module.exports = async (deployer, network) => {
   try {
@@ -27,5 +27,5 @@ module.exports = async (deployer, network) => {
 
 writeGasToFile = async (txHash, contractName) => {
   receipt = await web3.eth.getTransactionReceipt(txHash)
-  saveGasInfo(BENCHMARK_PATH, txHash, contractName, receipt.cumulativeGasUsed)
+  saveGasInfo(config.BENCHMARK_DEPLOYMENT_FILEPATH, txHash, contractName, receipt.cumulativeGasUsed)
 }
