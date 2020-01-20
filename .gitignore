@@ -6,6 +6,7 @@
 /coverage
 /.idea
 coverage.json
+package-lock.json
 *.pyc
 docs/deps-files.dot
 docs/deps-modules.dot
