@@ -10,15 +10,16 @@ if [ ! -z "$1" ]; then
     NETWORK="$1"
 fi 
 
-# COMMAND="$1" # compare || run&compare
 COMPARE_A="$2" # before-changes benchmark file
 COMPARE_B="$3" # after-changes benchmark file
 
 runComparison() {
     
-    if [ ! -z COMPARE_A ] && [ ! -z COMPARE_B ]; then
+    if [ ! -z $COMPARE_A ] && [ ! -z $COMPARE_B ]; then
       node ./benchmark/benchmark.js compare $COMPARE_A $COMPARE_B
-    fi  
+    else
+      printf "Please provide the two benchmark files path you intend to compare"
+    fi   
 }
 
 runTests() {
@@ -27,6 +28,7 @@ runTests() {
         npm run test "$entry" || ( printf "\nPlease provide a script name that runs an rpc network from package.json\n"; exit )
         node ./benchmark/benchmark.js trace 
     done
+
 
     runComparison
     
