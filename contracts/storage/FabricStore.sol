@@ -85,8 +85,8 @@ contract FabricStore is BlockStore {
 
     // Function name is inaccurate for Fabric due to blocks being a sub-structure to a channel
     // Will need refactoring
-    function addBlock(bytes32 _chainId, bytes calldata _blockBlob)
-        external
+    function addBlock(bytes32 _chainId, bytes memory _blockBlob)
+        public
         onlyIon
         onlyRegisteredChains(_chainId)
     {

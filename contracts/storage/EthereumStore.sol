@@ -50,8 +50,8 @@ contract EthereumStore is BlockStore {
     * @param _blockHash     Block hash of the block being added
     * @param _blockBlob     Bytes blob of the RLP-encoded block header being added
     */
-    function addBlock(bytes32 _chainId, bytes calldata _blockBlob)
-        external
+    function addBlock(bytes32 _chainId, bytes memory _blockBlob)
+        public
         onlyIon
         onlyRegisteredChains(_chainId)
     {
@@ -68,7 +68,7 @@ contract EthereumStore is BlockStore {
         emit BlockAdded(_chainId, blockHash);
     }
 
-    function CheckProofs(bytes32 _chainId, bytes32 _blockHash, bytes calldata _proof) external returns (bytes memory) {
+    function CheckProofs(bytes32 _chainId, bytes32 _blockHash, bytes memory _proof) public returns (bytes memory) {
         RLP.RLPItem[] memory proof = _proof.toRLPItem().toList();
 
         require(proof.length == 5, "Malformed proof");

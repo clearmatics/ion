@@ -15,7 +15,7 @@ contract FabricFunction {
         emit State(_blockNo, _txNo, _value);
     }
 
-    function retrieveAndExecute(bytes32 _chainId, string calldata _channelId, string calldata _key) external {
+    function retrieveAndExecute(bytes32 _chainId, string memory _channelId, string memory _key) public {
         uint blockVersion;
         uint txVersion;
         string memory value;

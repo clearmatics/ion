@@ -71,7 +71,7 @@ contract IBFT is IonCompatible {
     * the initialising of genesis blocks and their validator sets for chains. Multiple may be submitted and built upon
     * and is not opinionated on how they are used.
     */
-    function RegisterChain(bytes32 _chainId, address[] calldata _validators, bytes32 _genesisBlockHash, address _storeAddr) external {
+    function RegisterChain(bytes32 _chainId, address[] memory _validators, bytes32 _genesisBlockHash, address _storeAddr) public {
         require(_chainId != ion.chainId(), "Cannot add this chain id to chain register");
 
         if (chains[_chainId]) {
@@ -94,7 +94,7 @@ contract IBFT is IonCompatible {
     *
     * Submission of block headers from another chain. 
     */
-    function SubmitBlock(bytes32 _chainId, bytes calldata _rlpUnsignedBlockHeader, bytes calldata _rlpSignedBlockHeader, bytes calldata _commitSeals, address _storageAddr) onlyRegisteredChains(_chainId) external {
+    function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, bytes memory _commitSeals, address _storageAddr) onlyRegisteredChains(_chainId) public {
         RLP.RLPItem[] memory header = _rlpSignedBlockHeader.toRLPItem().toList();
 
         // Check the parent hash is the same as the previous block submitted

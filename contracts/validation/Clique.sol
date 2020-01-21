@@ -80,7 +80,7 @@ contract Clique is IonCompatible {
     * the initialising of genesis blocks and their validator sets for chains. Multiple may be submitted and built upon
     * and is not opinionated on how they are used.
     */
-    function RegisterChain(bytes32 _chainId, address[] calldata _validators, bytes32 _genesisBlockHash, address _storeAddr) external {
+    function RegisterChain(bytes32 _chainId, address[] memory _validators, bytes32 _genesisBlockHash, address _storeAddr) public {
         require( _chainId != ion.chainId(), "Cannot add this chain id to chain register" );
 
         if (chains[_chainId]) {
@@ -103,7 +103,7 @@ contract Clique is IonCompatible {
     * Submission of block headers from another chain. Signatures held in the extraData field of _rlpSignedBlockHeader is recovered
     * and if valid the block is persisted as BlockHeader structs defined above.
     */
-    function SubmitBlock(bytes32 _chainId, bytes calldata _rlpUnsignedBlockHeader, bytes calldata _rlpSignedBlockHeader, address _storageAddr) onlyRegisteredChains(_chainId) external {
+    function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, address _storageAddr) onlyRegisteredChains(_chainId) public {
         RLP.RLPItem[] memory header = _rlpUnsignedBlockHeader.toRLPItem().toList();
         RLP.RLPItem[] memory signedHeader = _rlpSignedBlockHeader.toRLPItem().toList();
         require( header.length == signedHeader.length, "Header properties length mismatch" );
