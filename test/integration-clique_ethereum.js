@@ -157,7 +157,7 @@ const TRIG_CALLED_BY = "0x279884e133f9346f2fad9cc158222068221b613e";
 const TRIG_GENESIS_HASH = TESTBLOCK.parentHash;
 
 
-contract('Clique-Ethereum Integration', (accounts) => {
+contract('Clique-Ethereum Integration', async (accounts) => {
     let genesisBlock;
     let VALIDATORS;
     let GENESIS_HASH;
@@ -166,14 +166,17 @@ contract('Clique-Ethereum Integration', (accounts) => {
     let clique;
     let storage;
 
+    before("Get genesis and validator from rinkeby once", async () => {
+        genesisBlock = await rinkeby.eth.getBlock(0)
+        VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
+        GENESIS_HASH = genesisBlock.hash;
+    })
+
     beforeEach('setup contract for each test', async function () {
         ion = await Ion.new(DEPLOYEDCHAINID);
         clique = await Clique.new(ion.address);
         storage = await EthereumStore.new(ion.address);
-
-        genesisBlock = await rinkeby.eth.getBlock(0);
-        VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
-        GENESIS_HASH = genesisBlock.hash;
+    
     })
 
     describe('Register Clique Module', () => {
