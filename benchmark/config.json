@@ -1,4 +1,6 @@
 {
     "BENCHMARK_FILEPATH" : "./benchmark/stats/calldata-istanbulRpc.json",
-    "BENCHMARK_DEPLOYMENT_FILEPATH": "./benchmark/stats/deployment-calldata-istanbulRpc.json"
+    "BENCHMARK_DEPLOYMENT_FILEPATH": "./benchmark/stats/deployment-calldata-istanbulRpc.json",
+    "WATCHED_OPCODES": ["MLOAD", "MSTORE", "MSTORE8", "SLOAD", "SSTORE", "CALLDATACOPY", "CALLDATASIZE", "CALLDATALOAD"]
+
 }

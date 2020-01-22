@@ -2,7 +2,7 @@ const fs = require("fs-extra")
 // const Debug = require('web3-eth-debug').Debug
 const Web3 = require('web3');
 const web3 = new Web3();
-web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545', {timeout:100000}));
+web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
 const config = require("./config.json")
 
@@ -67,9 +67,9 @@ compare = (benchmarkFileBefore, benchmarkFileAfter) => {
 traceOpcodes = (txTrace, name) => {
     opcodeCount = {}
 
-    // word count the opcodes specified in watchedOpcodes
+    // word count the opcodes specified in watchedOpcodes in config
     for (log of txTrace.structLogs) {
-        if (watchedOpcodes.indexOf(log.op) > -1)
+        if (config.WATCHED_OPCODES.indexOf(log.op) > -1)
             opcodeCount[log.op] = opcodeCount[log.op] ? opcodeCount[log.op] += 1 : 1
     }
 
@@ -83,8 +83,6 @@ traceOpcodes = (txTrace, name) => {
 // ENTRYPOINT 
 options = {disableStorage:true, disableStack:true, disableMemory:true}
 benchmarkObj = fs.readJsonSync(config.BENCHMARK_FILEPATH)
-
-watchedOpcodes = ["MLOAD", "MSTORE", "MSTORE8", "SLOAD", "SSTORE", "CALLDATACOPY", "CALLDATASIZE", "CALLDATALOAD"]
 
 switch(process.argv[2]){
     default:
