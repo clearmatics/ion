@@ -33,6 +33,7 @@
     "web3-utils": "1.0.0-beta.33"
   },
   "scripts": {
+    "benchmark": "./benchmark/testAndBenchmark.sh",
     "testrpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "istanbulRpc": "ganache-cli --hardfork istanbul --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "petersburgRpc": "ganache-cli --hardfork petersburg --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",

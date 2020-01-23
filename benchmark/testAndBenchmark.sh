@@ -37,4 +37,4 @@ runTests() {
 trap "kill 0" EXIT
 
 # run testrpc and truffle tests, benchmarking them
-npm run $NETWORK > /dev/null & runComparison 
+npm run $NETWORK > /dev/null & runTests 
