@@ -22,6 +22,7 @@ We envision Ion to evolve to become a library of tools that developers can use o
 * [Interoperate with Rinkeby!](#interoperate-with-rinkeby)
     * [Ethereum to Rinkeby](#ethereum-to-rinkeby)
     * [Hyperledger Fabric to Rinkeby](#hyperledger-fabric-to-rinkeby)
+* [Benchmarking](#benchmarking)    
 * [Develop on Ion](#develop-on-ion)
     * [Ethereum to Ethereum Interface](#ethereum-to-ethereum-interface)
     * [Hyperledger Fabric to Ethereum Interface](#hyperledger-fabric-to-ethereum-interface)
@@ -163,6 +164,27 @@ The above leverages Fabric block state that has been submitted to the Rinkeby ch
 #### Try out your own functions!
 
 Take a look at `FabricFunction.sol` and you'll find a very simple `execute()` function. This function currently simply takes data and emits it. However you can use this state in however you choose. Try replacing the `execute` function body with your own logic to perform a transaction using Fabric block state. It's important to note that chaincode, the smart contract equivalent in Fabric, writes values as raw strings which means the stored data is arbitrary. This means that your functional contracts should be knowledgeable of these data formats to be able to use them effectively in your smart contracts on Ethereum.
+
+
+
+
+### Benchmarking 
+
+The tool under `./benchmark` (WIP) allows to benchmark gas consumption of our smart contracts and word count the desired opcodes, calculating the percentage of the improvement. It leverages the `debug_traceTransaction` RPC, which is called over the transactions produced during the tests (including the ones to deploy contracts), and aggregate the data to obtain some meaning.
+
+Other than giving statistics about ION framework, ideally this allows to speed up the optimization process, so that a new solution can be tested immediately to check whether it brings savings or more costs. 
+
+Before running the benchmarking tool, set in `./benchmark/config.json`: 
+- `BENCHMARK_FILEPATH`: path of the output file for smart contract calls stats
+- `BENCHMARK_DEPLOYMENT_FILEPATH`: path of the output file for deployment stats
+- `WATCHED_OPCODES`: list of desired opcodes to monitor and word count
+
+To run the script simply: 
+`npm run benchmark <networkScript> <benchmark_file_before> <benchmark_file_after>` , where: 
+
+- `networkScript`: npm script (must be one in `package.json`, i.e. `testRpc`) that runs an rpc network 
+- `benchmark_file_before`: optional - the benchmarking file path before changes to run the comparison. Leave empty in case no comparison is needed 
+- `benchmark_file_before`: optional - the benchmarking file path after changes (usually the one specified in `BENCHMARK_FILEPATH`, where the report will be written to) to run the comparison. Leave empty in case no comparison is needed 
 
 ## Develop on Ion
 
