@@ -1,0 +1,27 @@
+{
+    "Deploy Ion": {
+        "gas": 606641,
+        "txHash": "0xa58beefb2eeee71e7c03347fff859a6bea0b6e2498ef37a6cc495cee37c6657b",
+        "duration": "Not estimated"
+    },
+    "Deploy Ethereum Store": {
+        "gas": 1892725,
+        "txHash": "0xb97d61f912ee7629f5a126e275844793a43e2b2587706dec052f62e550619385",
+        "duration": "Not estimated"
+    },
+    "Deploy Clique Validation": {
+        "gas": 2317235,
+        "txHash": "0x4509c7da170dda24054ae3d893191276604c8364f7786bee3b2cd9db2d15874e",
+        "duration": "Not estimated"
+    },
+    "Deploy Event verifier": {
+        "gas": 614356,
+        "txHash": "0x25bffe4a4fab036d61d5e82018f802323b07086c251e838383f6f0c770701e5f",
+        "duration": "Not estimated"
+    },
+    "Deploy Event Function": {
+        "gas": 394835,
+        "txHash": "0xc1e124869b315c7d299926e0a75ad9fc2389cae17b212fd3498bc529bc43e98d",
+        "duration": "Not estimated"
+    }
+}
