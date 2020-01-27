@@ -12,6 +12,7 @@
 
 const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
+const benchmarkUtils = require("../benchmark/helpers")
 const BN = require('bignumber.js')
 const encoder = require('./helpers/encoder.js')
 const config = require("../benchmark/config.json")
@@ -161,11 +162,29 @@ contract('EthereumStore.js', (accounts) => {
     let ion;
     let validation;
     let storage;
+    let txToBenchmark, duration, currentTestName
 
     beforeEach('setup contract for each test', async function () {
         ion = await MockIon.new(DEPLOYEDCHAINID);
         validation = await MockValidation.new(ion.address);
         storage = await EthereumStore.new(ion.address);
+
+        //unset variables to check for benchmark after each test 
+        txToBenchmark = undefined
+        duration = 0
+        
+        //set current test name to use in afterEach hook
+        currentTestName = "storage-ethereum-" + this.currentTest.title
+    })
+
+    afterEach("save to file tx hash and benchmark time", async () => {
+
+        // if variables txToBenchmark has been set inside the current test
+        if(txToBenchmark){
+            duration = duration ? duration + "s" : "Not estimated"
+            benchmarkUtils.saveStatsToFile(config.BENCHMARK_FILEPATH, txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+        }
+    
     })
 
     describe('Register Chain', () => {
@@ -242,10 +261,11 @@ contract('EthereumStore.js', (accounts) => {
 
             compressedProof = generateProof();
 
-            tx = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
+            let start = Date.now()
+            txToBenchmark = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
+            duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
 
-            console.log("\tGas used to submit check all proofs = " + tx.receipt.gasUsed.toString() + " gas");
-            utils.saveGas(config.BENCHMARK_FILEPATH, tx.tx, "ethStorage-checkProofs", tx.receipt.gasUsed.toString())
+            console.log("\tGas used to submit check all proofs = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
         })
 
         it('Fail Proofs with wrong chain id', async () => {

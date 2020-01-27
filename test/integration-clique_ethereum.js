@@ -3,6 +3,7 @@
 
 const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
+const benchmarkUtils = require("../benchmark/helpers")
 const BN = require('bignumber.js')
 const encoder = require('./helpers/encoder.js')
 const rlp = require('rlp');
@@ -167,6 +168,8 @@ contract('Clique-Ethereum Integration', async (accounts) => {
     let clique;
     let storage;
 
+    let txToBenchmark, duration, currentTestName
+
     before("Get genesis and validator from rinkeby once", async () => {
         genesisBlock = await rinkeby.eth.getBlock(0)
         VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
@@ -177,7 +180,25 @@ contract('Clique-Ethereum Integration', async (accounts) => {
         ion = await Ion.new(DEPLOYEDCHAINID);
         clique = await Clique.new(ion.address);
         storage = await EthereumStore.new(ion.address);
+
+        //unset variables to check for benchmark after each test 
+        txToBenchmark = undefined
+        duration = 0
+        
+        //set current test name to use in afterEach hook
+        currentTestName = "integration-clique-" + this.currentTest.title
     
+    })
+
+  
+    afterEach("save to file tx hash and benchmark time", async () => {
+
+        // if variables txToBenchmark has been set inside the current test
+        if(txToBenchmark){
+            duration = duration ? duration + "s" : "Not estimated"
+            benchmarkUtils.saveStatsToFile(config.BENCHMARK_FILEPATH, txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+        }
+
     })
 
     describe('Register Clique Module', () => {
@@ -195,9 +216,10 @@ contract('Clique-Ethereum Integration', async (accounts) => {
         it('Successful Register Chain', async () => {
             await clique.register();
 
-            let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
-            console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
-            
+            let start = Date.now()
+            txToBenchmark = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
+            duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
             let chain = await clique.chains(TESTCHAINID);
 
             assert(chain);
@@ -207,7 +229,6 @@ contract('Clique-Ethereum Integration', async (accounts) => {
             await clique.register();
 
             let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
-            console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
             let chain = await clique.chains(TESTCHAINID);
 
             assert(chain);
@@ -237,11 +258,14 @@ contract('Clique-Ethereum Integration', async (accounts) => {
             const signedHeaderHash = Web3Utils.sha3(rlpHeaders.signed);
             assert.equal(block.hash, signedHeaderHash);
 
-            let tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
+            let start = Date.now()
+            txToBenchmark = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
+            duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+            let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("BlockAdded(bytes32,bytes32)") });
             assert.ok(event, "BlockAdded event not emitted");
 
-            let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
+            let submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
             let blockHash = submittedEvent.args.blockHash;
 
             assert.equal(signedHeaderHash, blockHash);
@@ -339,9 +363,11 @@ contract('Clique-Ethereum Integration', async (accounts) => {
 
             compressedProof = generateProof();
 
-            tx = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
-            console.log("\tGas used to submit check proofs = " + tx.receipt.gasUsed.toString() + " gas");
-            utils.saveGas(config.BENCHMARK_FILEPATH, tx.tx, "clique-submitCheckProofs", tx.receipt.gasUsed.toString())
+            let start = Date.now()
+            txToBenchmark = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
+            duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+            console.log("\tGas used to submit check proofs = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
         })
 
         it('Fail Proofs with wrong proofs value', async () => {
@@ -423,12 +449,14 @@ contract('Clique-Ethereum Integration', async (accounts) => {
 
             compressedProof = generateProof();
 
-            tx = await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, "0x" + compressedProof.toString('hex'), TRIG_CALLED_BY);
-            event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("Executed()") });
+            let start = Date.now()
+            txToBenchmark = await functionContract.verifyAndExecute(TESTCHAINID, TESTBLOCK.hash, TRIG_DEPLOYED_RINKEBY_ADDR, "0x" + compressedProof.toString('hex'), TRIG_CALLED_BY);
+            duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+            event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("Executed()") });
             assert.ok(event, "Executed event not emitted");
 
-            console.log("\tGas used to verify all proofs against ion, verify logs against the verifier and execute the function = " + tx.receipt.gasUsed.toString() + " gas");
-            utils.saveGas(config.BENCHMARK_FILEPATH, tx.tx, "clique-verifyProof", tx.receipt.gasUsed.toString())
+            console.log("\tGas used to verify all proofs against ion, verify logs against the verifier and execute the function = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
         })
 
         it('Fail Function Execution', async () => {

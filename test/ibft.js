@@ -12,6 +12,7 @@
 
 const eth_util = require('ethereumjs-util');
 const utils = require('./helpers/utils.js');
+const benchmarkUtils = require("../benchmark/helpers")
 const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
@@ -129,20 +130,40 @@ contract('Ibft.js', (accounts) => {
   let ion;
   let ibft;
   let storage;
-
+  let txToBenchmark, duration, currentTestName
+  
   beforeEach('setup contract for each test', async function () {
     ion = await MockIon.new(DEPLOYEDCHAINID);
     ibft = await Ibft.new(ion.address);
     storage = await MockStorage.new(ion.address);
+
+    //unset variables to check for benchmark after each test 
+    txToBenchmark = undefined
+    duration = 0
+    
+    //set current test name to use in afterEach hook
+    currentTestName = "ibft-" + this.currentTest.title
+
+  })
+
+  afterEach("save to file tx hash and benchmark time", async () => {
+
+    // if variables txToBenchmark has been set inside the current test
+      if(txToBenchmark){
+        duration = duration ? duration + "s" : "Not estimated"
+        benchmarkUtils.saveStatsToFile(config.BENCHMARK_FILEPATH, txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+      }
 
   })
 
   describe('Register Chain', () => {
     it('Successful Register Chain', async () => {
       // Successfully add id of another chain
-      let tx = await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
-      console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(config.BENCHMARK_FILEPATH, tx.tx, "ibft-registerChain", tx.receipt.gasUsed.toString())
+      let start = Date.now()
+      txToBenchmark = await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+      duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+      console.log("\tGas used to register chain = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
 
       let chainExists = await ibft.chains(TESTCHAINID);
 
@@ -154,8 +175,8 @@ contract('Ibft.js', (accounts) => {
 
     it('Fail Register Chain Twice', async () => {
       // Successfully add id of another chain
-      let tx = await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
-      console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
+      await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+
       let chainExists = await ibft.chains(TESTCHAINID);
 
       assert(chainExists);
@@ -201,14 +222,16 @@ contract('Ibft.js', (accounts) => {
         rlpHeader = encoder.encodeIbftHeader(block);
 
         // Submit block should succeed
-        const validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
-        console.log("\tGas used to submit block = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-        utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "ibft-submitBlock-1", validationReceipt.receipt.gasUsed.toString())
+        let start = Date.now()
+        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
+        duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+  
+        console.log("\tGas used to submit block = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
 
-        let event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
-        const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
+        const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
         assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
 
         let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);
@@ -231,21 +254,24 @@ contract('Ibft.js', (accounts) => {
 
         rlpHeader = encoder.encodeIbftHeader(block);
 
-        // Submit block should succeed
-        let validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
-        console.log("\tGas used to submit block = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-        utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "ibft-submitBlock-2", validationReceipt.receipt.gasUsed.toString())
+        // Submit block should succeed      
+        tx = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);  
 
-        let event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        console.log("\tGas used to submit block = " + tx.receipt.gasUsed.toString() + " gas");
+
+        let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
         rlpHeader = encoder.encodeIbftHeader(block_add);
 
-        validationReceipt = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
-        event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        let start = Date.now()
+        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address);
+        duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+        event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
-        const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
+        const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
         assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
 
         let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);

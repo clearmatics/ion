@@ -1,5 +1,5 @@
 // Copyright (c) 2016-2018 Clearmatics Technologies Ltd
-// SPDX-License-Identifier: LGPL-3.0+
+// SPDX-License-Identifier LGPL-3.0+
 
 /*
     Clique Validation contract test
@@ -12,6 +12,9 @@
 
 const eth_util = require('ethereumjs-util');
 const utils = require('./helpers/utils.js');
+
+const benchmarkUtils = require("../benchmark/helpers")
+
 const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
@@ -26,7 +29,7 @@ const MockStorage = artifacts.require("MockStorage");
 const web3 = new Web3();
 const rinkeby = new Web3();
 
-web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+web3.setProvider(new web3.providers.HttpProvider('http//localhost:8545'));
 rinkeby.setProvider(new web3.providers.HttpProvider('https://rinkeby.infura.io'));
 
 require('chai')
@@ -80,7 +83,8 @@ contract('Clique.js', (accounts) => {
   let ion;
   let clique;
   let storage;
-    
+  let txToBenchmark, duration, currentTestName
+
   beforeEach('setup contract for each test', async function () {
     ion = await MockIon.new(DEPLOYEDCHAINID);
     clique = await Clique.new(ion.address);
@@ -89,6 +93,24 @@ contract('Clique.js', (accounts) => {
     genesisBlock = await await rinkeby.eth.getBlock(0);
     VALIDATORS = encoder.extractValidators(genesisBlock.extraData);
     GENESIS_HASH = genesisBlock.hash;
+    
+    //unset variables to check for benchmark after each test 
+    txToBenchmark = undefined
+    duration = 0
+    
+    //set current test name to use in afterEach hook
+    currentTestName = "clique-" + this.currentTest.title
+  })
+
+  // TODO add a flag to set this off 
+  afterEach("save to file tx hash and benchmark time", async () => {
+
+    // if variables txToBenchmark has been set inside the current test
+      if(txToBenchmark){
+        duration = duration ? duration + "s" : "Not estimated"
+        benchmarkUtils.saveStatsToFile(config.BENCHMARK_FILEPATH, txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+      }
+
   })
 
   it('Deploy Contract', async () => {
@@ -100,9 +122,11 @@ contract('Clique.js', (accounts) => {
   describe('Register Chain', () => {
       it('Successful Register Chain', async () => {
         // Successfully add id of another chain
-        let tx = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
-        console.log("\tGas used to register chain = " + tx.receipt.gasUsed.toString() + " gas");
-        utils.saveGas(config.BENCHMARK_FILEPATH, tx.tx, "clique-registerChain", tx.receipt.gasUsed.toString())
+        let start = Date.now()
+        txToBenchmark = await clique.RegisterChain(TESTCHAINID, VALIDATORS, GENESIS_HASH, storage.address);
+        duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+        console.log("\tGas used to register chain = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
 
         let chainExists = await clique.chains(TESTCHAINID);
 
@@ -150,11 +174,14 @@ contract('Clique.js', (accounts) => {
         assert.equal(block.hash, signedHeaderHash);
 
         // Submit block should succeed
-        const validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-        let event = validationReceipt.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        let start = Date.now()
+        txToBenchmark = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
+        duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+        let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
-        const submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
+        const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
         assert.equal(signedHeaderHash, submittedEvent.args.blockHash);
 
         let blockHashExists = await clique.m_blockhashes(TESTCHAINID, block.hash);
@@ -282,20 +309,18 @@ contract('Clique.js', (accounts) => {
       let rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
-      let validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-      console.log("\tGas used to submit block 873982 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-1", validationReceipt.receipt.gasUsed.toString())
+      tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
+      console.log("\tGas used to submit block 873982 = " + tx.receipt.gasUsed.toString() + " gas");
 
       // Fetch block 873983 from rinkeby
       block = await rinkeby.eth.getBlock(873983);
       rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
-      validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-      console.log("\tGas used to submit block 873983 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-2", validationReceipt.receipt.gasUsed.toString())
+      tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
+      console.log("\tGas used to submit block 873983 = " + tx.receipt.gasUsed.toString() + " gas");
 
-      let submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
+      let submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
       let blockHash = submittedEvent.args.blockHash;
 
       // Check proposal is added
@@ -307,29 +332,28 @@ contract('Clique.js', (accounts) => {
       rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
-      validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-      console.log("\tGas used to submit block 873984 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-3", validationReceipt.receipt.gasUsed.toString())
+      tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
 
       // Fetch block 873985 from rinkeby
       block = await rinkeby.eth.getBlock(873985);
       rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
-      validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-      console.log("\tGas used to submit block 873985 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-4", validationReceipt.receipt.gasUsed.toString())
+      tx = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
+      console.log("\tGas used to submit block 873985 = " + tx.receipt.gasUsed.toString() + " gas");
 
       // Fetch block 873986 from rinkeby
       block = await rinkeby.eth.getBlock(873986);
       rlpHeaders = encoder.encodeBlockHeader(block);
 
       // Submit block should succeed
-      validationReceipt = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
-      console.log("\tGas used to submit block 873986 = " + validationReceipt.receipt.gasUsed.toString() + " gas");
-      utils.saveGas(config.BENCHMARK_FILEPATH, validationReceipt.tx, "clique-submitBlock-5", validationReceipt.receipt.gasUsed.toString())
+      let start = Date.now()
+      txToBenchmark = await clique.SubmitBlock(TESTCHAINID, rlpHeaders.unsigned, rlpHeaders.signed, storage.address);
+      duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
 
-      submittedEvent = validationReceipt.logs.find(l => { return l.event == 'BlockSubmitted' });
+      console.log("\tGas used to submit block 873986 = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
+
+      submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
       blockHash = submittedEvent.args.blockHash;
 
       // Check proposal is added
