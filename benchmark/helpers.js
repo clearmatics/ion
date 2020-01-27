@@ -5,9 +5,11 @@ const benchmarkHelpers = {}
 // this helper functions is 
 benchmarkHelpers.saveStatsToFile = (file, txHash, name, gas, duration) => {
     fs.ensureFile(file, err => {
-      if (err)
+      if (err) {
         console.log(err)
-  
+        return
+      }
+        
       data = fs.readFileSync(file)
       data = data.length === 0 ? {} : JSON.parse(data)
       data[name] = {gas, txHash, duration}
@@ -15,5 +17,6 @@ benchmarkHelpers.saveStatsToFile = (file, txHash, name, gas, duration) => {
       fs.writeJsonSync(file, data)
     })     
 }
+
 
 module.exports = benchmarkHelpers
