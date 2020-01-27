@@ -10,16 +10,12 @@
     Tests the clique scheme for block submission, validator signature verification and more.
 */
 
-const eth_util = require('ethereumjs-util');
-const utils = require('./helpers/utils.js');
-const benchmarkUtils = require("../benchmark/helpers")
+const benchmark= require("benchmark-solidity")
 const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
 const rlp = require('rlp');
 const sha3 = require('js-sha3').keccak_256
-const config = require("../benchmark/config.json")
-
 const Ibft = artifacts.require("IBFT");
 const MockIon = artifacts.require("MockIon");
 const MockStorage = artifacts.require("MockStorage");
@@ -131,7 +127,7 @@ contract('Ibft.js', (accounts) => {
   let ibft;
   let storage;
   let txToBenchmark, duration, currentTestName
-  
+
   beforeEach('setup contract for each test', async function () {
     ion = await MockIon.new(DEPLOYEDCHAINID);
     ibft = await Ibft.new(ion.address);
@@ -151,7 +147,7 @@ contract('Ibft.js', (accounts) => {
     // if variables txToBenchmark has been set inside the current test
       if(txToBenchmark){
         duration = duration ? duration + "s" : "Not estimated"
-        benchmarkUtils.saveStatsToFile(config.BENCHMARK_FILEPATH, txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+        benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
       }
 
   })

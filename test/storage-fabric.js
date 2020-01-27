@@ -11,12 +11,9 @@
 */
 
 const rlp = require('rlp');
-const async = require('async')
 const util = require('util');
-const utils = require('./helpers/utils.js');
-const benchmarkUtils = require("../benchmark/helpers")
+const benchmark= require("benchmark-solidity")
 
-const config = require("../benchmark/config.json")
 // Connect to the Test RPC running
 const Web3 = require('web3');
 const web3 = new Web3();
@@ -158,7 +155,7 @@ contract('FabricStore.sol', (accounts) => {
         // if variables txToBenchmark has been set inside the current test
         if(txToBenchmark){
             duration = duration ? duration + "s" : "Not estimated"
-            benchmarkUtils.saveStatsToFile(config.BENCHMARK_FILEPATH, txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+            benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
         }
     
     })

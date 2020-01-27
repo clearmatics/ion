@@ -12,15 +12,11 @@
 
 const eth_util = require('ethereumjs-util');
 const utils = require('./helpers/utils.js');
-
-const benchmarkUtils = require("../benchmark/helpers")
-
+const benchmark= require("benchmark-solidity")
 const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');
 const rlp = require('rlp');
-const config = require("../benchmark/config.json")
-const truffleAssert = require('truffle-assertions');
 const sha3 = require('js-sha3').keccak_256
 const Clique = artifacts.require("Clique");
 const MockIon = artifacts.require("MockIon");
@@ -108,7 +104,7 @@ contract('Clique.js', (accounts) => {
     // if variables txToBenchmark has been set inside the current test
       if(txToBenchmark){
         duration = duration ? duration + "s" : "Not estimated"
-        benchmarkUtils.saveStatsToFile(config.BENCHMARK_FILEPATH, txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+        benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
       }
 
   })
