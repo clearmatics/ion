@@ -16,7 +16,7 @@ COMPARE_B="$3" # after-changes benchmark file
 runComparison() {
     
     if [ ! -z $COMPARE_A ] && [ ! -z $COMPARE_B ]; then
-      node ./benchmark/benchmark.js compare $COMPARE_A $COMPARE_B
+      node ./node_modules/benchmark-solidity/benchmark.js compare $COMPARE_A $COMPARE_B
     else
       printf "Please provide the two benchmark files path you intend to compare"
     fi   
@@ -26,7 +26,7 @@ runTests() {
     for entry in ./test/*.js
     do
         npm run test "$entry" || ( printf "\nPlease provide a script name that runs an rpc network from package.json\n"; exit )
-        node ./benchmark/benchmark.js trace 
+        node ./node_modules/benchmark-solidity/benchmark.js trace 
     done
 
 
