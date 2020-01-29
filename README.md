@@ -173,15 +173,15 @@ You can run the script in 3 different ways:
 
 1) Run the whole flow of tests, benchmark and convert to MarkDown: 
 
-`./benchmark/testAndBenchmark.sh start <input_json_file> <output_md_file> <configs>`
+`./benchmark/benchmark.sh start <input_json_file> <output_md_file> <configs>`
 
 2) Compare two json benchmark files: 
 
-`./benchmark/testAndBenchmark.sh compare <json_file_before> <json_file_after>`
+`./benchmark/benchmark.sh compare <json_file_before> <json_file_after>`
 
 3) Only convert a json to Markdown format: 
 
-`./benchmark/testAndBenchmark.sh toMD <input_json_file> <output_md_file>`
+`./benchmark/benchmark.sh toMD <input_json_file> <output_md_file>`
 
 - `json_file_before`: the benchmarking file path before changes to run the comparison 
 - `json_file_after`: the benchmarking file path after changes to run the comparison
