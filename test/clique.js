@@ -79,7 +79,7 @@ contract('Clique.js', (accounts) => {
   let ion;
   let clique;
   let storage;
-  let txToBenchmark, duration, currentTestName
+  let txToBenchmark, duration, currentTestName, metadata = {title: "ION", network: "testRPC", blockTime: ""}
 
   beforeEach('setup contract for each test', async function () {
     ion = await MockIon.new(DEPLOYEDCHAINID);
@@ -103,8 +103,8 @@ contract('Clique.js', (accounts) => {
 
     // if variables txToBenchmark has been set inside the current test
       if(txToBenchmark){
-        duration = duration ? duration + "s" : "Not estimated"
-        benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+        duration = duration ? duration : "Not estimated"
+        benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration, metadata)
       }
 
   })

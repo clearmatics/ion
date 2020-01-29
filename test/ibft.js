@@ -146,7 +146,7 @@ contract('Ibft.js', (accounts) => {
 
     // if variables txToBenchmark has been set inside the current test
       if(txToBenchmark){
-        duration = duration ? duration + "s" : "Not estimated"
+        duration = duration ? duration : "Not estimated"
         benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
       }
 
