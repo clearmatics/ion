@@ -21,6 +21,7 @@
     "web3-eth-debug": "^1.0.0-beta.55"
   },
   "devDependencies": {
+    "solidity-benchmark": "0.0.1",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "ganache-cli": "^6.8.1",
@@ -33,7 +34,7 @@
     "web3-utils": "1.0.0-beta.33"
   },
   "scripts": {
-    "benchmark": "./benchmark/testAndBenchmark.sh",
+    "istanbulRpcWithBlockTime": "ganache-cli --hardfork istanbul --blockTime 2 --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "testrpc": "ganache-cli --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "istanbulRpc": "ganache-cli --hardfork istanbul --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
     "petersburgRpc": "ganache-cli --hardfork petersburg --port 8545 --gasLimit 0xFFFFFFFFFFFFF --gasPrice 0 --defaultBalanceEther 99999999999 --networkId 1234",
