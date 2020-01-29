@@ -169,14 +169,24 @@ Take a look at `FabricFunction.sol` and you'll find a very simple `execute()` fu
 
 The [benchmarking tool](https://github.com/clearmatics/solidity-benchmark-tool) has been integrated into this project. For more info about that and the source code please follow the link. 
 
-To run the script simply: 
+You can run the script in 3 different ways: 
 
-```./benchmark/testAndBenchmark.sh <command> <benchmark_file_before> <benchmark_file_after> <configs>```
-, where: 
+1) Run the whole flow of tests, benchmark and convert to MarkDown: 
 
-- `command`: either `trace` to run tests and benchmarks (default if none specified) or `compare` just to compare two benchmark files
-- `benchmark_file_before`: optional - the benchmarking file path before changes to run the comparison. Leave empty in case no comparison is needed 
-- `benchmark_file_after`: optional - the benchmarking file path after changes (usually the one specified in `BENCHMARK_FILEPATH`, where the report will be written to) to run the comparison. Leave empty in case no comparison is needed 
+`./benchmark/testAndBenchmark.sh start <input_json_file> <output_md_file> <configs>`
+
+2) Compare two json benchmark files: 
+
+`./benchmark/testAndBenchmark.sh compare <json_file_before> <json_file_after>`
+
+3) Only convert a json to Markdown format: 
+
+`./benchmark/testAndBenchmark.sh toMD <input_json_file> <output_md_file>`
+
+- `json_file_before`: the benchmarking file path before changes to run the comparison 
+- `json_file_after`: the benchmarking file path after changes to run the comparison
+- `input_json_file`: the json input file path to convert to MD
+- `output_md_file`: the Markdown output file path of the conversion 
 - `configs`: an optional json object to override the tool default configuration options. More info [here](https://github.com/clearmatics/solidity-benchmark-tool/blob/develop/README.md#configuration)
 
 ## Develop on Ion
