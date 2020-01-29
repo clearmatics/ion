@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0+
 
 
-const benchmark= require("benchmark-solidity")
+const benchmark= require("solidity-benchmark")
 const rlp = require('rlp');
 const util = require('util');
 

@@ -10,7 +10,7 @@ COMMAND="$1" # trace, compare, toMD
 
 runComparison() {
     if [ ! -z $COMPARE_A ] && [ ! -z $COMPARE_B ]; then
-      node ./node_modules/benchmark-solidity/benchmark.js compare $COMPARE_B $COMPARE_A
+      node ./node_modules/solidity-benchmark/benchmark.js compare $COMPARE_B $COMPARE_A
     else
       printf "Please provide the two benchmark files absolute paths you intend to compare"
     fi   
@@ -18,7 +18,7 @@ runComparison() {
 
 convertToMd() {
   if [ ! -z $JSON_INPUT ] && [ ! -z $MD_OUTPUT ]; then
-    node ./node_modules/benchmark-solidity/benchmark.js convertToMD "$JSON_INPUT" "$MD_OUTPUT"
+    node ./node_modules/solidity-benchmark/benchmark.js convertToMD "$JSON_INPUT" "$MD_OUTPUT"
     printf ""$JSON_INPUT" file converted into $MD_OUTPUT"
   else
     printf "Please provide the input and output file paths for the conversion"
@@ -32,7 +32,7 @@ start() {
         npm run test "$entry" || ( printf "\nAn error has occurred running the test. Quitting\n"; exit )
         
         printf "Tracing transactions in $entry..\n"
-        node ./node_modules/benchmark-solidity/benchmark.js trace $CONFIGS
+        node ./node_modules/solidity-benchmark/benchmark.js trace $CONFIGS
     done
 
     printf "All tests have been benchmarked - Converting now into Markdown"

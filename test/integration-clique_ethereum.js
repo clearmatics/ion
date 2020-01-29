@@ -3,7 +3,7 @@
 
 const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
-const benchmark= require("benchmark-solidity")
+const benchmark= require("solidity-benchmark")
 const BN = require('bignumber.js')
 const encoder = require('./helpers/encoder.js')
 const rlp = require('rlp');

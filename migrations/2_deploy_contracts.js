@@ -3,7 +3,7 @@ const Clique = artifacts.require("Clique");
 const EthereumStore = artifacts.require("EthereumStore");
 const EventFunction = artifacts.require("Function");
 const EventVerifier = artifacts.require("TriggerEventVerifier");
-const benchmark = require("benchmark-solidity")
+const benchmark = require("solidity-benchmark")
 
 module.exports = async (deployer, network) => {
 

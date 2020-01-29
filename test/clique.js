@@ -12,7 +12,7 @@
 
 const eth_util = require('ethereumjs-util');
 const utils = require('./helpers/utils.js');
-const benchmark= require("benchmark-solidity")
+const benchmark= require("solidity-benchmark")
 const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');

@@ -10,7 +10,7 @@
     Tests the clique scheme for block submission, validator signature verification and more.
 */
 
-const benchmark= require("benchmark-solidity")
+const benchmark= require("solidity-benchmark")
 const encoder = require('./helpers/encoder.js');
 const Web3 = require('web3');
 const Web3Utils = require('web3-utils');

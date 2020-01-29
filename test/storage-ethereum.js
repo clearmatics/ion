@@ -12,7 +12,7 @@
 
 const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
-const benchmark = require("benchmark-solidity")
+const benchmark = require("solidity-benchmark")
 const rlp = require('rlp');
 const sha3 = require('js-sha3').keccak_256
 

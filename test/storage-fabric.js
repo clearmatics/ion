@@ -12,7 +12,7 @@
 
 const rlp = require('rlp');
 const util = require('util');
-const benchmark= require("benchmark-solidity")
+const benchmark= require("solidity-benchmark")
 
 // Connect to the Test RPC running
 const Web3 = require('web3');
