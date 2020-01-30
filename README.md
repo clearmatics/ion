@@ -177,7 +177,7 @@ You can run the script in 3 different ways:
 
 2) Compare two json benchmark files: 
 
-`./benchmark/benchmark.sh compare <json_file_before> <json_file_after>`
+`./benchmark/benchmark.sh compare <json_file_before> <json_file_after> <output_md_file>`
 
 3) Only convert a json to Markdown format: 
 
