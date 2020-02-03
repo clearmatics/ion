@@ -201,6 +201,10 @@ contract('Clique-Ethereum Integration', async (accounts) => {
 
     })
 
+    after("Trace the transactions benchmarked in this test suite", async () => {
+        await benchmark.trace()
+    })
+
     describe('Register Clique Module', () => {
         it('Successful Register', async () => {
             await clique.register();

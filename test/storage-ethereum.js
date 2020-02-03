@@ -183,6 +183,10 @@ contract('EthereumStore.js', (accounts) => {
     
     })
 
+    after("Trace the transactions benchmarked in this test suite", async () => {
+        await benchmark.trace()
+    })
+
     describe('Register Chain', () => {
         it('Successful Register Chain', async () => {
             // Successfully add id of another chain

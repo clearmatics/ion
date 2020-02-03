@@ -160,6 +160,10 @@ contract('FabricStore.sol', (accounts) => {
     
     })
 
+    after("Trace the transactions benchmarked in this test suite", async () => {
+        await benchmark.trace()
+    })
+
     describe('Block Encode', () => {
         it('Correct Encoding', async () => {
             assert.equal(rlpEncodedBlock_Gen, rlpEncodedBlock);

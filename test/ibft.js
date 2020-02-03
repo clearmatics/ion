@@ -128,6 +128,8 @@ contract('Ibft.js', (accounts) => {
   let storage;
   let txToBenchmark, duration, currentTestName
 
+  // let customConfigs = {BENCHMARK_FILEPATH: "./benchmark/stats/test4.json", MD_OUTPUT_FILEPATH: "./benchmark/stats/test4.md"}
+
   beforeEach('setup contract for each test', async function () {
     ion = await MockIon.new(DEPLOYEDCHAINID);
     ibft = await Ibft.new(ion.address);
@@ -150,6 +152,10 @@ contract('Ibft.js', (accounts) => {
         benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
       }
 
+  })
+
+  after("Trace the transactions benchmarked in this test suite", async () => {
+    await benchmark.trace()
   })
 
   describe('Register Chain', () => {
