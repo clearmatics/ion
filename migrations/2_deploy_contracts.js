@@ -5,6 +5,9 @@ const EventFunction = artifacts.require("Function");
 const EventVerifier = artifacts.require("TriggerEventVerifier");
 const benchmark = require("solidity-benchmark")
 
+let customConfigs = {BENCHMARK_FILEPATH: "./benchmark/stats/petersburg-rpc.json", MD_OUTPUT_FILEPATH: "./benchmark/stats/petersburg-rpc.md"}
+let metadata = {title: "ION", network: "ganacheRPC-Petersburg", blockTime: "1s"}
+
 module.exports = async (deployer, network) => {
 
   try {
@@ -27,5 +30,5 @@ module.exports = async (deployer, network) => {
 writeGasToFile = async (txHash, contractName) => {
   let duration = "Not estimated"
   receipt = await web3.eth.getTransactionReceipt(txHash)
-  benchmark.saveStatsToFile(txHash, contractName, receipt.cumulativeGasUsed, duration)
+  benchmark.saveStatsToFile(txHash, contractName, receipt.cumulativeGasUsed, duration, metadata, customConfigs)
 }
