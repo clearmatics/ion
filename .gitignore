@@ -14,3 +14,4 @@ docs/deps-modules.dot
 *.egg-info/
 
 benchmark/stats/*.json
+benchmark/benchmark.sh
