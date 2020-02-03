@@ -169,25 +169,23 @@ Take a look at `FabricFunction.sol` and you'll find a very simple `execute()` fu
 
 The [benchmarking tool](https://github.com/clearmatics/solidity-benchmark-tool) has been integrated into this project. For more info about that and the source code please follow the link. 
 
-You can run the script in 3 different ways: 
 
 1) Run the whole flow of tests, benchmark and convert to MarkDown: 
 
-`./benchmark/benchmark.sh start <input_json_file> <output_md_file> <configs>`
+`truffle test` 
 
 2) Compare two json benchmark files: 
 
-`./benchmark/benchmark.sh compare <json_file_before> <json_file_after> <output_md_file>`
+`npm run benchmark-compare <json_file_before> <json_file_after> <output_md_file>`
 
-3) Only convert a json to Markdown format: 
+<!-- 3) TODO Only convert a json to Markdown format: 
 
-`./benchmark/benchmark.sh toMD <input_json_file> <output_md_file>`
+`npm run benchmark-toMD <input_json_file> <output_md_file>`
 
 - `json_file_before`: the benchmarking file path before changes to run the comparison 
 - `json_file_after`: the benchmarking file path after changes to run the comparison
 - `input_json_file`: the json input file path to convert to MD
-- `output_md_file`: the Markdown output file path of the conversion 
-- `configs`: an optional json object to override the tool default configuration options. More info [here](https://github.com/clearmatics/solidity-benchmark-tool/blob/develop/README.md#configuration)
+- `output_md_file`: the Markdown output file path of the conversion  -->
 
 ## Develop on Ion
 
