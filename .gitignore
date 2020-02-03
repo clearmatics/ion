@@ -13,5 +13,4 @@ docs/deps-modules.dot
 *.pdf
 *.egg-info/
 
-benchmark.json
-txTrace.json
+benchmark/stats/*.json
