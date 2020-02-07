@@ -18,9 +18,10 @@ library MerkleTree {
             elements[i] = bytes32(0);
         }
         
-        // hash two consecutive values and append the resulting hash
-        // tot hashes to do = num elements - 1
-        for (i = 0; i < elements.length - 1; i++) {
+        // hash pairs of consecutive values and append the resulting hash
+        uint numHashes = elements.length - 1;
+        
+        for (i = 0; i < numHashes; i++) {
             elements[elements.length + i + 1] = hashPair(elements[2*i], elements[2*i+1]);
         }
 
