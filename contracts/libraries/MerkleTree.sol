@@ -20,7 +20,7 @@ library MerkleTree {
         
         // hash pairs of consecutive values and append the resulting hash
         uint numHashes = elements.length - 1;
-        
+
         for (i = 0; i < numHashes; i++) {
             elements[elements.length + i + 1] = hashPair(elements[2*i], elements[2*i+1]);
         }
@@ -40,9 +40,9 @@ library MerkleTree {
 
         // sort the two (for verification purpose), rlp encode and hash
         if (elementA > elementB) {
-            return keccak256(abi.encodePacked(elementA, elementB))
+            return keccak256(abi.encodePacked(elementA, elementB));
         } else {
-            return keccak256(abi.encodePacked(elementB, elementA))
+            return keccak256(abi.encodePacked(elementB, elementA));
         }
     }
 
