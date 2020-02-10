@@ -12,16 +12,15 @@ library MerkleTree {
 
         uint padding = calculatePadding(elements);
         uint i;
+        uint finalLength = elements.length + padding
 
         // add padding
-        for (i = elements.length - 1; i < elements.length + padding; i++) {
+        for (i = elements.length - 1; i < finalLength; i++) {
             elements[i] = bytes32(0);
         }
         
         // hash pairs of consecutive values and append the resulting hash
-        uint numHashes = elements.length - 1;
-
-        for (i = 0; i < numHashes; i++) {
+        for (i = 0; i < finalLength - 1; i++) {
             elements[elements.length + i + 1] = hashPair(elements[2*i], elements[2*i+1]);
         }
 
@@ -49,11 +48,11 @@ library MerkleTree {
     // find the number of zero elements to add to create a complete binary tree
     function calculatePadding(bytes32[] memory elements) internal pure returns (uint) {
 
-        // TODO find the most optimal upper bound
-        for (uint8 i = 1; i <= elements.length / 2; i ++) {
+        for (uint8 i = 1; i <= elements.length; i++) {
 
             uint values;
 
+            // TODO hardcode values instead of do exp
             assembly { values := exp(2,i) }
 
             if (values == elements.length) {
