@@ -18,7 +18,10 @@ contract("Merkle Tree", (accounts) => {
 
             const merkleContract = await MerkleTreeContract.new()
 
-            receipt = await merkleContract.testRoot.call(merkleTree.elements)
+            receipt = await merkleContract.testRoot(merkleTree.elements)
+            console.log(receipt)
+
+            assert(false);
         })
     })
 })
