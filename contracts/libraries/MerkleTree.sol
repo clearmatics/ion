@@ -10,20 +10,22 @@ library MerkleTree {
 
         uint padding = calculatePadding(elements);
         uint i;
-        uint finalLength = elements.length + padding;
+        uint leavesLength = elements.length + padding;
+        uint merkleTreeLength = leavesLength * 2 - 1; //the complete merkle tree
 
         // add padding
-        for (i = elements.length; i < finalLength; i++) {
+        for (i = elements.length; i < leavesLength; i++) {
             elements[i] = bytes32(0);
         }
         
         // hash pairs of consecutive values and append the resulting hash
-        for (i = 0; i < finalLength - 1; i++) {
-            elements[elements.length + i] = hashPair(elements[2*i], elements[2*i+1]);
+        // tot hashes = leaves - 1
+        for (i = 0; i < leavesLength - 1; i++) {
+            elements[leavesLength + i] = hashPair(elements[2*i], elements[2*i+1]);
         }
 
         // last element should be root 
-        return elements[finalLength - 1];
+        return elements[merkleTreeLength - 1];
     }
 
     function hashPair(bytes32 elementA, bytes32 elementB) internal pure returns (bytes32) {
@@ -51,7 +53,8 @@ library MerkleTree {
             uint values;
 
             // TODO hardcode values instead of do exp
-            assembly { values := exp(2,i) }
+            // assembly { values := exp(2,i) }
+            values = 4;
 
             if (values == elements.length) {
                 // already complete
