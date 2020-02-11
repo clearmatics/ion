@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0+
 pragma solidity ^0.5.12;
 
-import "./RLP.sol";
-
 library MerkleTree {
 
     // elements are the hashed pre-images
@@ -12,20 +10,20 @@ library MerkleTree {
 
         uint padding = calculatePadding(elements);
         uint i;
-        uint finalLength = elements.length + padding
+        uint finalLength = elements.length + padding;
 
         // add padding
-        for (i = elements.length - 1; i < finalLength; i++) {
+        for (i = elements.length; i < finalLength; i++) {
             elements[i] = bytes32(0);
         }
         
         // hash pairs of consecutive values and append the resulting hash
         for (i = 0; i < finalLength - 1; i++) {
-            elements[elements.length + i + 1] = hashPair(elements[2*i], elements[2*i+1]);
+            elements[elements.length + i] = hashPair(elements[2*i], elements[2*i+1]);
         }
 
         // last element should be root 
-        return elements[elements.length - 1];
+        return elements[finalLength - 1];
     }
 
     function hashPair(bytes32 elementA, bytes32 elementB) internal pure returns (bytes32) {
