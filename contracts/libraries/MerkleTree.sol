@@ -61,9 +61,7 @@ library MerkleTree {
         bytes32 computedHash = leaf;
 
         for (uint256 i = 0; i < proof.length; i++) {
-            bytes32 proofElement = proof[i];
-
-            computedHash = hashPair(computedHash, proofElement);
+            computedHash = hashPair(computedHash, proof[i]);
         }
 
         return computedHash == root;
