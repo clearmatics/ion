@@ -57,6 +57,18 @@ library MerkleTree {
         return hashPair(elements[0], elements[1]);
     }
 
+    function verify(bytes32[] memory proof, bytes32 root, bytes32 leaf) internal pure returns (bool) {
+        bytes32 computedHash = leaf;
+
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+
+            computedHash = hashPair(computedHash, proofElement);
+        }
+
+        return computedHash == root;
+    }
+
     function hashPair(bytes32 elementA, bytes32 elementB) internal pure returns (bytes32) {
 
         // return hash of pair or one of the two if the other is 0x0..
@@ -67,7 +79,7 @@ library MerkleTree {
         }
 
         // sort the two (for verification purpose), rlp encode and hash
-        if (elementA > elementB) {
+        if (elementA >= elementB) {
             return keccak256(abi.encodePacked(elementB, elementA));
         } else {
             return keccak256(abi.encodePacked(elementA, elementB));
