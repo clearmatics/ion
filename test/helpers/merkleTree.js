@@ -7,8 +7,6 @@ class MerkleTree {
     // Filter empty strings and hash elements
     this.elements = elements.filter(el => el).map(el => keccak256(el));
 
-    // Sort elements
-    this.elements.sort(Buffer.compare);
     // Deduplicate elements
     this.elements = this.bufDedup(this.elements);
 

@@ -26,34 +26,32 @@ library MerkleTree {
     }
 
     // Hashes power-of-2 number of array elements down to 1
+    // Takes an array of elements and hashes a subarray from index + number of elements
     function hashArrayElements(bytes32[] memory elements, uint fromIndex, uint numOfElements) internal pure returns (bytes32) {
         require(numOfElements % 2 == 0, "Number of elements to hash must be a power of 2");
         require(elements.length >= fromIndex + numOfElements, "Cannot hash so many elements from array. Too short.");
 
+        // Find the tree depth for the number of elements needed to be hashed in the subarray
         int depth = calculateLargest2PowerIndex(numOfElements);
         for (int i = depth; i > 0; i--) {
+            // Calculate how many elements to hash for each depth of the tree
             uint depthElements;
             assembly { depthElements := exp(2, i)}
 
+            // Hash elements in the current tree depth and assign the result to the beginning of the subarray
             for (uint j = 0; j < depthElements; j += 2) {
                 bytes32 hash = hashPair(elements[fromIndex + j], elements[fromIndex + j + 1]);
                 elements[fromIndex + j/2] = hash;
             }
         }
 
+        // Root should be assigned to the beginning of the subarray
         return elements[fromIndex];
     }
 
     function hashPair(bytes32 elementA, bytes32 elementB) internal pure returns (bytes32) {
-        // return hash of pair or one of the two if the other is 0x0..
-        if (elementA == bytes32(0)) {
-            return elementB;
-        } else if (elementB == bytes32(0)) {
-            return elementA;
-        }
-
         // sort the two (for verification purpose), rlp encode and hash
-        if (elementA > elementB) {
+        if (elementA < elementB) {
             return keccak256(abi.encodePacked(elementA, elementB));
         } else {
             return keccak256(abi.encodePacked(elementB, elementA));
