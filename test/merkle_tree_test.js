@@ -23,6 +23,8 @@ contract("Merkle Tree", (accounts) => {
             const merkleContract = await MerkleTreeContract.new()
 
             root = await merkleContract.testRoot.call(merkleTree.elements)
+            tx = await merkleContract.testRoot(merkleTree.elements)
+            console.log("Gas cost: " + tx.receipt.gasUsed);
 
             assert.equal(root, expectedRoot);
         })
@@ -34,6 +36,8 @@ contract("Merkle Tree", (accounts) => {
             const merkleContract = await MerkleTreeContract.new()
 
             root = await merkleContract.testRoot.call(merkleTree.elements)
+            tx = await merkleContract.testRoot(merkleTree.elements)
+            console.log("Gas cost: " + tx.receipt.gasUsed);
 
             assert.equal(root, expectedRoot);
         })
@@ -45,6 +49,9 @@ contract("Merkle Tree", (accounts) => {
             const merkleContract = await MerkleTreeContract.new()
 
             root = await merkleContract.testRoot.call(merkleTree.elements)
+            tx = await merkleContract.testRoot(merkleTree.elements)
+            console.log("Gas cost: " + tx.receipt.gasUsed);
+
             assert.equal(root, expectedRoot);
         })
 
@@ -55,6 +62,8 @@ contract("Merkle Tree", (accounts) => {
             const merkleContract = await MerkleTreeContract.new()
 
             root = await merkleContract.testRoot.call(merkleTree.elements.slice(0,1))
+            tx = await merkleContract.testRoot(merkleTree.elements)
+            console.log("Gas cost: " + tx.receipt.gasUsed);
 
             assert.equal(root, "0x" + expectedRoot);
         })
@@ -84,6 +93,8 @@ contract("Merkle Tree", (accounts) => {
                 const leaf = bufferToHex(keccak256(completeElements[0]))
 
                 verification = await merkleContract.testVerify.call(proof, contractRoot, leaf)
+                tx = await merkleContract.testVerify(proof, contractRoot, leaf)
+                console.log("Gas cost: " + tx.receipt.gasUsed);
                 assert.equal(verification, true)
             })
 
@@ -97,6 +108,9 @@ contract("Merkle Tree", (accounts) => {
 
                 const merkleContract = await MerkleTreeContract.new()
                 verification = await merkleContract.testVerify.call(badProof, correctRoot, correctLeaf)
+                tx = await merkleContract.testVerify(badProof, correctRoot, correctLeaf)
+                console.log("Gas cost: " + tx.receipt.gasUsed);
+
                 assert.equal(verification, false)
             });
 
