@@ -18,7 +18,7 @@ library MerkleTree {
 
             hashedElements += largest2Power - 1;
             elements[hashedElements] = hash;
-            elementsToHash -= largest2Power;
+            elementsToHash -= hashedElements;
         }
 
         // last element should be root
