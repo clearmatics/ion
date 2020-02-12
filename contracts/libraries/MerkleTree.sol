@@ -6,26 +6,55 @@ library MerkleTree {
 
     // elements are the hashed pre-images
     function generateRoot(bytes32[] memory elements) internal pure returns (bytes32) {
-        require(elements.length > 0, "You passed an empty array");
-
-        uint padding = calculatePadding(elements);
-        uint i;
-        uint leavesLength = elements.length + padding;
-        uint merkleTreeLength = leavesLength * 2 - 1; //the complete merkle tree
-
-        // add padding
-        for (i = elements.length; i < leavesLength; i++) {
-            elements[i] = bytes32(0);
-        }
         
-        // hash pairs of consecutive values and append the resulting hash
-        // tot hashes = leaves - 1
-        for (i = 0; i < leavesLength - 1; i++) {
-            elements[leavesLength + i] = hashPair(elements[2*i], elements[2*i+1]);
+        // corner cases
+        if (elements.length == 0) {
+            return bytes32(0);
+        } else if (elements.length == 1) {
+            return elements[0];
         }
 
-        // last element should be root 
-        return elements[merkleTreeLength - 1];
+        uint pos = 0;
+        uint i = 0;
+        uint upperBoundIndex = elements.length - 1; // index at which stop hashing
+
+        while(upperBoundIndex > 1) {
+
+            if (i == upperBoundIndex){
+                // last element of this layer - carry it over
+                elements[pos] = elements[i];
+
+                // reset index and pos 
+                i = 0;
+                pos = 0;
+
+                // calculate new upper bound - solidity already rounds toward zero
+                upperBoundIndex = upperBoundIndex / 2;
+
+            } else {
+                // i have two values to hash
+                elements[pos] = hashPair(elements[i], elements[i + 1]);
+
+                if (i == upperBoundIndex - 1) {
+                    // those were last two elements of this layer
+                
+                    // reset index and pos 
+                    i = 0;
+                    pos = 0;
+
+                    // calculate new upper bound - solidity already rounds toward zero
+                    upperBoundIndex = upperBoundIndex / 2;
+                } else {
+
+                    // continue with this layer
+                    i += 2;   
+                    pos ++;
+                }
+            }
+        }
+
+        // i have last two elements to form root
+        return hashPair(elements[0], elements[1]);
     }
 
     function hashPair(bytes32 elementA, bytes32 elementB) internal pure returns (bytes32) {
@@ -39,29 +68,9 @@ library MerkleTree {
 
         // sort the two (for verification purpose), rlp encode and hash
         if (elementA > elementB) {
-            return keccak256(abi.encodePacked(elementA, elementB));
-        } else {
             return keccak256(abi.encodePacked(elementB, elementA));
-        }
-    }
-
-    // find the number of zero elements to add to create a complete binary tree
-    function calculatePadding(bytes32[] memory elements) internal pure returns (uint) {
-
-        for (uint8 i = 1; i <= elements.length; i++) {
-
-            uint values;
-
-            // TODO hardcode values instead of do exp
-            // assembly { values := exp(2,i) }
-            values = 4;
-
-            if (values == elements.length) {
-                // already complete
-                return 0;
-            } else if (values > elements.length) {
-                return values - elements.length;
-            }
+        } else {
+            return keccak256(abi.encodePacked(elementA, elementB));
         }
     }
 }
