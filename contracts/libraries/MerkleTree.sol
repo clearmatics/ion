@@ -4,8 +4,20 @@ pragma solidity ^0.5.12;
 
 library MerkleTree {
 
+    function verify(bytes32[] memory proof, bytes32 root, bytes32 leaf) internal pure returns (bool) {
+        bytes32 computedHash = leaf;
+
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+
+            computedHash = hashPair(computedHash, proofElement);
+        }
+
+        return computedHash == root;
+    }
+
     // elements are the hashed pre-images
-    function generateRoot(bytes32[] memory elements) internal returns (bytes32) {
+    function generateRoot(bytes32[] memory elements) internal pure returns (bytes32) {
         require(elements.length > 0, "You passed an empty array");
 
         uint elementsToHash = elements.length;

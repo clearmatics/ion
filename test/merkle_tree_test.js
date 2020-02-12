@@ -68,4 +68,37 @@ contract("Merkle Tree", (accounts) => {
             root = await merkleContract.testRoot.call().should.be.rejected;
         })
     })
+
+    describe("Verify root", () => {
+
+            it("Should return true for a valid Merkle proof", async () => {
+                const merkleTree = new MerkleTree(completeElements);
+                const expectedRoot = merkleTree.getHexRoot();
+
+                const merkleContract = await MerkleTreeContract.new()
+                const contractRoot = await merkleContract.testRoot.call(merkleTree.elements)
+
+                assert.equal(contractRoot, expectedRoot)
+
+                const proof = merkleTree.getHexProof(completeElements[0])
+                const leaf = bufferToHex(keccak256(completeElements[0]))
+
+                verification = await merkleContract.testVerify.call(proof, contractRoot, leaf)
+                assert.equal(verification, true)
+            })
+
+            it('should return false for an invalid Merkle proof', async function () {
+                const correctMerkleTree = new MerkleTree(completeElements);
+                const correctRoot = correctMerkleTree.getHexRoot();
+                const correctLeaf = bufferToHex(keccak256(completeElements[0]));
+
+                const anotherMerkleTree = new MerkleTree(sparseBinaryTree);
+                const badProof = anotherMerkleTree.getHexProof(sparseBinaryTree[0]);
+
+                const merkleContract = await MerkleTreeContract.new()
+                verification = await merkleContract.testVerify.call(badProof, correctRoot, correctLeaf)
+                assert.equal(verification, false)
+            });
+
+        })
 })
