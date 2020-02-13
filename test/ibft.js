@@ -135,8 +135,6 @@ contract('Ibft.js', (accounts) => {
   let storage;
   let txToBenchmark, duration, currentTestName
 
-  // let customConfigs = {BENCHMARK_FILEPATH: "./benchmark/stats/test4.json", MD_OUTPUT_FILEPATH: "./benchmark/stats/test4.md"}
-
   beforeEach('setup contract for each test', async function () {
     ion = await MockIon.new(DEPLOYEDCHAINID);
     ibft = await Ibft.new(ion.address);
@@ -273,8 +271,6 @@ contract('Ibft.js', (accounts) => {
         let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
         assert.equal(chainValidatorsRoot, expectedHashValidatorsAfter)
 
-        console.log("\tGas used to submit block = " + tx.receipt.gasUsed.toString() + " gas");
-
         let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
@@ -284,6 +280,8 @@ contract('Ibft.js', (accounts) => {
         let start = Date.now()
         txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, VALIDATORS_AFTER);
         duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+        console.log("\tGas used to submit block with additional validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
 
         event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
