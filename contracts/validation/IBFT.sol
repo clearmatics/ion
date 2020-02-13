@@ -5,9 +5,9 @@ pragma solidity ^0.5.12;
 import "../libraries/ECVerify.sol";
 import "../libraries/RLP.sol";
 import "../libraries/SolidityUtils.sol";
-import "../libraries/MerkleTree.sol";
-import "../IonCompatible.sol";
+import "../libraries/SortArray.sol";
 import "../storage/BlockStore.sol";
+import "../IonCompatible.sol";
 
 /*
     Smart contract for validation of blocks that use the IBFT-Soma consensus algorithm
@@ -26,12 +26,13 @@ contract IBFT is IonCompatible {
         uint256 blockNumber;
 		bytes32 blockHash;
 		bytes32 prevBlockHash;
-        bytes32 validatorsRoot;
+        bytes32 validatorsHash; // hash of the sorted list of validators
         uint256 threshold;
 	}
 
     event GenesisCreated(bytes32 chainId, bytes32 blockHash);
     event BlockSubmitted(bytes32 chainId, bytes32 blockHash);
+    event Validators(address[] validators);
 
     /*
     * onlyRegisteredChains
@@ -72,7 +73,7 @@ contract IBFT is IonCompatible {
     * the initialising of genesis blocks and their validator sets for chains. Multiple may be submitted and built upon
     * and is not opinionated on how they are used.
     */
-    function RegisterChain(bytes32 _chainId, bytes32[] memory _validators, bytes32 _genesisBlockHash, address _storeAddr) public {
+    function RegisterChain(bytes32 _chainId, address[] memory _validators, bytes32 _genesisBlockHash, address _storeAddr) public {
         require(_chainId != ion.chainId(), "Cannot add this chain id to chain register");
 
         if (chains[_chainId]) {
@@ -95,15 +96,18 @@ contract IBFT is IonCompatible {
     *
     * Submission of block headers from another chain. 
     */
-    function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, bytes memory _commitSeals, address _storageAddr, bytes32[] memory _merkleProof, address[] memory _validators) onlyRegisteredChains(_chainId) public {
+    function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, bytes memory _commitSeals, address _storageAddr, address[] memory _validators) onlyRegisteredChains(_chainId) public {
         RLP.RLPItem[] memory header = _rlpSignedBlockHeader.toRLPItem().toList();
 
         // Check the parent hash is the same as the previous block submitted
 		bytes32 parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
 		require(m_chainHeads[_chainId] == parentBlockHash, "Not child of previous block!");
 
-        // Verify that validator and sealers are correct
-        require(checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash, _merkleProof), "Signer is not validator");
+        // verify passed validators yields the same hash 
+        require(m_blockheaders[_chainId][parentBlockHash].validatorsHash == keccak256(abi.encode(SortArray.sortAddresses(_validators))), "This is not the set of validators of the previous block");
+
+        // Verify that validator and sealers of the block are correct
+        require(checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash, _validators), "Signer is not validator");
         require(checkSeals(_chainId, _commitSeals, _rlpSignedBlockHeader, parentBlockHash, _validators), "Sealer(s) not valid");
 
         // Append new block to the struct
@@ -129,11 +133,11 @@ contract IBFT is IonCompatible {
     *
     * Adds a genesis block with the validators and other metadata for this genesis block
     */
-    function addGenesisBlock(bytes32 _chainId, bytes32[] memory _validators, bytes32 _genesisBlockHash) internal {
+    function addGenesisBlock(bytes32 _chainId, address[] memory _validators, bytes32 _genesisBlockHash) internal {
         BlockHeader storage header = m_blockheaders[_chainId][_genesisBlockHash];
         header.blockNumber = 0;
         header.blockHash = _genesisBlockHash;
-        header.validatorsRoot = MerkleTree.generateRoot(_validators);
+        header.validatorsHash = keccak256(abi.encode(SortArray.sortAddresses(_validators)));
         header.threshold = 2*(_validators.length/3) + 1;
 
         m_chainHeads[_chainId] = _genesisBlockHash;
@@ -150,7 +154,7 @@ contract IBFT is IonCompatible {
     * Checks that the submitted block has actually been signed, recovers the signer and checks if they are validator in
     * parent block
     */
-    function checkSignature(bytes32 _chainId, bytes memory _extraData, bytes32 _hash, bytes32 _parentBlockHash, bytes32[] memory _merkleProof) internal returns (bool) {
+    function checkSignature(bytes32 _chainId, bytes memory _extraData, bytes32 _hash, bytes32 _parentBlockHash, address[] memory _validators) internal returns (bool) {
         // Retrieve Istanbul Extra Data
         bytes memory istanbulExtra = new bytes(_extraData.length - 32);
         SolUtils.BytesToBytes(istanbulExtra, _extraData, 32);
@@ -162,11 +166,9 @@ contract IBFT is IonCompatible {
 
         // Recover the signature
         address sigAddr = ECVerify.ecrecovery(keccak256(abi.encode(_hash)), extraDataSig);
-        BlockHeader storage parentBlock = m_blockheaders[_chainId][_parentBlockHash];
 
         // Check if signature is a validator that exists in previous block
-		// return isValidator(parentBlock.validatorsRoot, sigAddr, _merkleProof);
-        return MerkleTree.verify(_merkleProof, parentBlock.validatorsRoot, keccak256(abi.encodePacked(sigAddr)));
+		return isValidator(_validators, sigAddr);
     }
 
     /*
@@ -226,15 +228,16 @@ contract IBFT is IonCompatible {
         RLP.RLPItem[] memory istanbulExtra = rlpIstanbulExtra.toRLPItem().toList();
         RLP.RLPItem[] memory decodedExtra = istanbulExtra[0].toBytes().toRLPItem().toList();
 
-        bytes32[] memory hashedValidators;
+        address[] memory newValidators = new address[](decodedExtra.length);
 
         for (uint i = 0; i < decodedExtra.length; i++) {
-            address validator = decodedExtra[i].toAddress();
-            hashedValidators[i] = keccak256(abi.encodePacked(validator));
+            newValidators[i] = decodedExtra[i].toAddress();
         }
-
-        newBlock.validatorsRoot = MerkleTree.generateRoot(hashedValidators);
-        newBlock.threshold = 2*(hashedValidators.length/3) + 1;
+        
+        emit Validators(newValidators);
+        
+        newBlock.validatorsHash = keccak256(abi.encode(SortArray.sortAddresses(newValidators)));
+        newBlock.threshold = 2*(newValidators.length/3) + 1;
     }
 
     /*
@@ -270,13 +273,6 @@ contract IBFT is IonCompatible {
     }
 
     function getValidatorsRoot(bytes32 _chainId) public view returns (bytes32) {
-        return m_blockheaders[_chainId][m_chainHeads[_chainId]].validatorsRoot;
-    }
-
-    function hashValidators(address[] memory _validators) internal returns (bytes32[] memory hashedValidators) {
-        
-        for (uint i = 0; i < _validators.length; i++) {
-            hashedValidators[i] = keccak256(abi.encodePacked(_validators[i]));
-        }
+        return m_blockheaders[_chainId][m_chainHeads[_chainId]].validatorsHash;
     }
 }
