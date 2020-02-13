@@ -32,7 +32,6 @@ contract IBFT is IonCompatible {
 
     event GenesisCreated(bytes32 chainId, bytes32 blockHash);
     event BlockSubmitted(bytes32 chainId, bytes32 blockHash);
-    event Validators(address[] validators);
 
     /*
     * onlyRegisteredChains
@@ -93,6 +92,7 @@ contract IBFT is IonCompatible {
     * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain including all proposal seal in the IstanbulExtra field
     * param: _commitSeals (bytes) RLP-encoded commitment seals that are typically contained in the last element of the IstanbulExtra field
     * param: _storeAddr (address) Address of block store contract to store block to
+    * param: _validators (address[]) Validators of the previous block 
     *
     * Submission of block headers from another chain. 
     */
@@ -150,6 +150,7 @@ contract IBFT is IonCompatible {
     * param: _extraData (bytes) Byte array of the extra data containing signature
     * param: _hash (bytes32) Hash of the unsigned block header
     * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
+    * param: _validators (address[]) Set of validators of the previous block 
     *
     * Checks that the submitted block has actually been signed, recovers the signer and checks if they are validator in
     * parent block
@@ -177,6 +178,7 @@ contract IBFT is IonCompatible {
     * param: _seals (bytes) RLP-encoded list of 65 byte seals
     * param: _rlpBlock (bytes) Byte array of RLP encoded unsigned block header
     * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
+    * param: _validators (address[]) Set of validators of the previous block 
     *
     * Checks that the submitted block has enough seals to be considered valid as per the IBFT Soma rules
     */
@@ -214,7 +216,6 @@ contract IBFT is IonCompatible {
     * param: _chainId (bytes32) Unique id of interoperating chain
     * param: _extraData (bytes) Byte array of the extra data containing signature
     * param: _blockHash (bytes32) Current block hash being checked
-    * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
     *
     * Updates the validators from the RLP encoded extradata
     */
@@ -233,8 +234,6 @@ contract IBFT is IonCompatible {
         for (uint i = 0; i < decodedExtra.length; i++) {
             newValidators[i] = decodedExtra[i].toAddress();
         }
-        
-        emit Validators(newValidators);
         
         newBlock.validatorsHash = keccak256(abi.encode(SortArray.sortAddresses(newValidators)));
         newBlock.threshold = 2*(newValidators.length/3) + 1;
