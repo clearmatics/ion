@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: LGPL-3.0+
 
 /*
-    Clique Validation contract test
+    Ibft Validation contract test
 
-    Tests here are standalone unit tests for clique module functionality.
+    Tests here are standalone unit tests for ibft module functionality.
     Other contracts have been mocked to simulate basic behaviour.
 
-    Tests the clique scheme for block submission, validator signature verification and more.
+    Tests the ibft scheme for block submission, validator signature verification and more.
 */
 
 const benchmark= require("solidity-benchmark")
@@ -22,6 +22,7 @@ const MockStorage = artifacts.require("MockStorage");
 const { MerkleTree } = require('./helpers/merkleTree.js');
 const { keccak256, bufferToHex } = require('ethereumjs-util');
 const Web3EthAbi = require('web3-eth-abi');
+const testBlocks = require("./helpers/blockSamples").testBlocks.ibft //require ibft testBlocks
 
 const web3 = new Web3();
 
@@ -39,73 +40,7 @@ function pad(n, width, z) {
 
 const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
 const TESTCHAINID = "0x22b55e8a4f7c03e1689da845dd463b09299cb3a574e64c68eafc4e99077a7254"
-
-// validators of block_add below
-const VALIDATORS_BEFORE = [
-    '0x4335d75841d8b85187cf651ed130774143927c79',
-    '0x61d7d88dbc76259fcf1f26bc0b5763aebd67aead',
-    '0x955425273ef777d6430d910f9a8b10adbe95fff6',
-    '0xf00d3c728929e42000c8d92d1a7e6a666f12e6ed',
-    '0xd42d697aa23f7b3e209259002b456c57af26edd6'
-  ];
-
-// validators of block below
-const VALIDATORS_AFTER = [
-    '0x4335d75841d8b85187cf651ed130774143927c79',
-    '0x61d7d88dbc76259fcf1f26bc0b5763aebd67aead',
-    '0x955425273ef777d6430d910f9a8b10adbe95fff6',
-    '0xf00d3c728929e42000c8d92d1a7e6a666f12e6ed'
-  ];
-
 const GENESIS_HASH = "0x6893c6fe9270461992e748db2f30aa1359babbd74d0392eb4c3476ef942eb5ec";
-
-const block = {
-    difficulty: 1,
-    extraData: "0xdc83010000886175746f6e69747988676f312e31302e34856c696e7578000000f90164f854944335d75841d8b85187cf651ed130774143927c799461d7d88dbc76259fcf1f26bc0b5763aebd67aead94955425273ef777d6430d910f9a8b10adbe95fff694f00d3c728929e42000c8d92d1a7e6a666f12e6edb8410c11022a97fcb2248a2d757a845b4804755702125f8b7ec6c06503ae0277ad996dc22f81431e8036b6cf9ef7d3c1ff1b65a255c9cb70dd2f4925951503a6fdbf01f8c9b8412d3849c86c8ba3ed9a79cdd71b1684364c4c4efb1f01e83ca8cf663f3c95f7ac64b711cd297527d42fb3111b8f78d5227182f38ccc442be5ac4dcb52efede89a01b84135de3661d0191247c7f835c8eb6d7939052c0da8ae234baf8bd208c00225e706112df9bad5bf773120ba4bbc55f6d18e478de43712c0cd3de7a3e2bfd65abb7c01b841735f482a051e6ad7fb76a815907e68d903b73eff4e472006e56fdeca8155cb575f4c1d3e98cf3a4b013331c1bd171d0d500243ac0e073a5fd382294c4fe996f000",
-    gasLimit: 4877543,
-    gasUsed: 0,
-    hash: "0xed607d816f792bff503fc01bf8903b50aae5bbc6d00293350e38bba92cde40ab",
-    logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-    miner: "0x955425273ef777d6430d910f9a8b10adbe95fff6",
-    mixHash: "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
-    nonce: "0x0000000000000000",
-    number: 38,
-    parentHash: "0x6893c6fe9270461992e748db2f30aa1359babbd74d0392eb4c3476ef942eb5ec",
-    receiptsRoot: "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-    sha3Uncles: "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-    size: 901,
-    stateRoot: "0x4e64a3b5ab9c561f72836209e376d035a0aa23a1fc7251e5d21c3c8437fef58e",
-    timestamp: 1549897775,
-    totalDifficulty: 39,
-    transactions: [],
-    transactionsRoot: "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-    uncles: []
-  };
-
-const block_add = {
-    difficulty: 1,
-    extraData: "0xdc83010000886175746f6e69747988676f312e31302e34856c696e7578000000f90179f869944335d75841d8b85187cf651ed130774143927c799461d7d88dbc76259fcf1f26bc0b5763aebd67aead94955425273ef777d6430d910f9a8b10adbe95fff694f00d3c728929e42000c8d92d1a7e6a666f12e6ed94d42d697aa23f7b3e209259002b456c57af26edd6b841a01291465dfa2b138d48f0f819c31ae9e707a2ee2f3bb93d1341371ab315c9473a4b93b6ccb2b9b29462da66c1a95b27e9254cdf9fcac731e84c7183772f091200f8c9b841ce258c674a9b7ec8bacd5386313c976cbf3dd3f63dd704f93b5e71155c3ce11f124bcf430e1c285e0bce060172930a2c8c15054a14b5629b5dcec069c87e570400b841640736f30ef4ee4baf68448d87020366da4ce6ad2d3872027bbcba8cbbad58e01f2e4e057075dad411f958753615e4141bce861f2780e0499a485741154c707601b841490aa29598b1a7ee0830799bc781b47bfb22c884e2ed2aedd6e9c7ca648e1b547cb469e92e5f375bc1bc3abc191cb180abc93bf3cb67009c75d397a1ab4717d901",
-    gasLimit: 4882305,
-    gasUsed: 52254,
-    hash: "0xd9944319153421ebe524ad3648fbb733f8d8b4aaa75bca8e406fc3b8c171e568",
-    logsBloom: "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-    miner: "0xf00d3c728929e42000c8d92d1a7e6a666f12e6ed",
-    mixHash: "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
-    nonce: "0x0000000000000000",
-    number: 39,
-    parentHash: "0xed607d816f792bff503fc01bf8903b50aae5bbc6d00293350e38bba92cde40ab",
-    receiptsRoot: "0x5340517c0dcd60ef9d9735035fcd4a55607eff320684f48796ff57b0a28c8933",
-    sha3Uncles: "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-    size: 1066,
-    stateRoot: "0x68ebd003e05d477e02be898089958e509ca2bff03fe4a9ca1bef2b24aefda03d",
-    timestamp: 1549897776,
-    totalDifficulty: 40,
-    transactions: ["0x8c0faa1990b8b4e0ec8129cd8e2ccf5578be92ee9540361efad993b51179594c"],
-    transactionsRoot: "0xd21dcc8688b5b3ab638474485516cda326615f0e8a9853e97589d198b01916b9",
-    uncles: []
-  };
-
-
 
 function hexToBytes(hex) {
   for (var bytes = [], c = 0; c < hex.length; c += 2)
@@ -127,8 +62,8 @@ contract('Ibft.js', (accounts) => {
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
 
-  const expectedHashValidatorsBefore = bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", VALIDATORS_BEFORE.map(x => x.toLowerCase()).sort())));
-  const expectedHashValidatorsAfter= bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", VALIDATORS_AFTER.map(x => x.toLowerCase()).sort())));
+  const expectedHashValidatorsBefore = bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", testBlocks.validators_5.validators.map(x => x.toLowerCase()).sort())));
+  const expectedHashValidatorsAfter= bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", testBlocks.validators_4.validators.map(x => x.toLowerCase()).sort())));
 
   let ion;
   let ibft;
@@ -168,7 +103,7 @@ contract('Ibft.js', (accounts) => {
 
       // Successfully add id of another chain
       let start = Date.now()
-      txToBenchmark = await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+      txToBenchmark = await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address);
       duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
 
       console.log("\tGas used to register chain = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
@@ -183,7 +118,7 @@ contract('Ibft.js', (accounts) => {
 
     it('Fail Register Chain Twice', async () => {
       // Successfully add id of another chain
-      await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+      await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address);
 
       let chainExists = await ibft.chains(TESTCHAINID);
 
@@ -193,15 +128,15 @@ contract('Ibft.js', (accounts) => {
       assert.equal(chainHead, GENESIS_HASH);
 
       // Fail adding id of this chain
-      await ibft.RegisterChain(DEPLOYEDCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address).should.be.rejected;
+      await ibft.RegisterChain(DEPLOYEDCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address).should.be.rejected;
 
       // Fail adding id of chain already initialised
-      await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address).should.be.rejected;
+      await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address).should.be.rejected;
     })
 
     it('Check Validators', async () => {
       // Successfully add id of another chain
-      await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+      await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address);
 
       let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
       assert.equal(chainValidatorsRoot, expectedHashValidatorsBefore)
@@ -210,7 +145,7 @@ contract('Ibft.js', (accounts) => {
 
     it('Check Genesis Hash', async () => {
       // Successfully add id of another chain
-      await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+      await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address);
 
       let chainHead = await ibft.m_chainHeads(TESTCHAINID);
       assert.equal(chainHead, GENESIS_HASH);
@@ -219,7 +154,12 @@ contract('Ibft.js', (accounts) => {
 
   describe('Submit Block', () => {
       it('Successful Submit block', async () => {
-        await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+        // get block and validators from samples
+        block = testBlocks.validators_5.block
+        validators = testBlocks.validators_5.validators
+
+        // start
+        await ibft.RegisterChain(TESTCHAINID, validators, GENESIS_HASH, storage.address);
 
         let chainHead = await ibft.m_chainHeads(TESTCHAINID);
         assert.equal(chainHead, GENESIS_HASH);
@@ -228,7 +168,7 @@ contract('Ibft.js', (accounts) => {
 
         // Submit block should succeed
         let start = Date.now()
-        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, VALIDATORS_BEFORE);
+        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators);
         duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
         
         console.log("\tGas used to submit block = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
@@ -253,32 +193,39 @@ contract('Ibft.js', (accounts) => {
         chainHead = await ibft.m_chainHeads(TESTCHAINID);
         assert.equal(chainHead, block.hash);
 
-        // Check new validators
+        // Check new validators that are changed in this block
         let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
         assert.equal(chainValidatorsRoot, expectedHashValidatorsAfter)
 
       })
 
       it('Submit Sequential Blocks with Additional Validator', async () => {
-        await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+        // get blocks and validators from samples
+        firstBlock = testBlocks.validators_5.block
+        firstValidators = testBlocks.validators_5.validators
 
-        rlpHeader = encoder.encodeIbftHeader(block);
+        secondBlock = testBlocks.validators_4.block
+        secondValidators = testBlocks.validators_4.validators
 
-        // Submit block should succeed - validators of this are VALIDATORS_AFTER      
-        tx = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, VALIDATORS_BEFORE);  
+        await ibft.RegisterChain(TESTCHAINID, firstValidators, GENESIS_HASH, storage.address);
 
-        // Check validators
+        rlpHeader = encoder.encodeIbftHeader(firstBlock);
+
+        // Submit block should succeed   
+        tx = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, firstValidators);  
+
+        // Check validators have changed
         let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
         assert.equal(chainValidatorsRoot, expectedHashValidatorsAfter)
 
         let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
-        rlpHeader = encoder.encodeIbftHeader(block_add);
+        // submit another block
+        rlpHeader = encoder.encodeIbftHeader(secondBlock);
 
-        // validators of this are VALIDATORS_BEFORE  
         let start = Date.now()
-        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, VALIDATORS_AFTER);
+        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, secondValidators);
         duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
 
         console.log("\tGas used to submit block with additional validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
@@ -290,15 +237,15 @@ contract('Ibft.js', (accounts) => {
         assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
 
         let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);
-        assert.equal(addedBlockHash, block_add.hash);
+        assert.equal(addedBlockHash, secondBlock.hash);
 
-        let header = await ibft.m_blockheaders(TESTCHAINID, block_add.hash);
+        let header = await ibft.m_blockheaders(TESTCHAINID, secondBlock.hash);
 
         // Separate fetched header info
         parentHash = header[2];
 
         // Assert that block was persisted correctly
-        assert.equal(parentHash, block_add.parentHash);
+        assert.equal(parentHash, secondBlock.parentHash);
 
         // Check new validators
         chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
@@ -306,19 +253,25 @@ contract('Ibft.js', (accounts) => {
       })
 
       it('Fail Submit Block with Unknown Validator', async () => {
-        await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+        block = testBlocks.validators_5.block 
+        validators = testBlocks.validators_5.validators
+
+        await ibft.RegisterChain(TESTCHAINID, validators, GENESIS_HASH, storage.address);
 
         block.extraData = "0xdc83010000886175746f6e69747988676f312e31302e34856c696e7578000000f90164f854941cb62855cd70774634c85c9acb7c3070ce692936946b2f468af3d0ba2f3a09712faea4d379c2e891a194a667ea98809a69724c6672018bd7db799cd3fefc94c2054df3acfdbe5b221866b25e09026734ca5572b841012edd2e5936deaf4c0ee17698dc0fda832bb51a81d929ae3156d73e5475123c19d162cf1e434637c16811d63d1d3b587906933d75e25cedf7bef59e8fa8375d01f8c9b841719c5bc521721e71ff7fafff09fdff4037e678a77a816b08d45b89d55f35edc94b5c51cc3eeba79d3de291c3c46fbf04faec4952e7d0836be9ad5d855f525c9301b841a7c9eed0337f92a5d4caf6f57b3b59ba10a14ea615c6264fc82fcf5b2e4b626f701fd3596cd1f8639b37a41cb4f3a7582bb530790441de73e6e3449284127b4d00b841210db6ef89906ef1c77538426d29b8440a1c987d508e396776e63515df2a345767c195dc540cfabdf86d696c73b4a24632445565d322d8e45fa2668ec5e6c0e000";
 
         rlpHeader = encoder.encodeIbftHeader(block);
 
         // Submit block should not succeed
-        await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, VALIDATORS_BEFORE).should.be.rejected;
+        await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators).should.be.rejected;
         
       })
 
       it('Fail Submit Block with Insufficient Seals', async () => {
-        await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+        block = testBlocks.validators_5.block 
+        validators = testBlocks.validators_5.validators
+
+        await ibft.RegisterChain(TESTCHAINID, validators, GENESIS_HASH, storage.address);
 
         let badExtraData = "0xf90164f854944335d75841d8b85187cf651ed130774143927c799461d7d88dbc76259fcf1f26bc0b5763aebd67aead94955425273ef777d6430d910f9a8b10adbe95fff694f00d3c728929e42000c8d92d1a7e6a666f12e6edb8410c11022a97fcb2248a2d757a845b4804755702125f8b7ec6c06503ae0277ad996dc22f81431e8036b6cf9ef7d3c1ff1b65a255c9cb70dd2f4925951503a6fdbf01f8c9b8412d3849c86c8ba3ed9a79cdd71b1684364c4c4efb1f01e83ca8cf663f3c95f7ac64b711cd297527d42fb3111b8f78d5227182f38ccc442be5ac4dcb52efede89a01b84135de3661d0191247c7f835c8eb6d7939052c0da8ae234baf8bd208c00225e706112df9bad5bf773120ba4bbc55f6d18e478de43712c0cd3de7a3e2bfd65abb7c01b841735f482a051e6ad7fb76a815907e68d903b73eff4e472006e56fdeca8155cb575f4c1d3e98cf3a4b013331c1bd171d0d500243ac0e073a5fd382294c4fe996f000";
 
@@ -328,16 +281,19 @@ contract('Ibft.js', (accounts) => {
 
         // Reapply the rlp encoded istanbul extra minus single seal
         encodedExtraData = rlp.encode(decodedExtraData).toString('hex');
-        block.extraData = "0xdc83010000886175746f6e69747988676f312e31302e34856c696e7578000000" + encodedExtraData;
+        testBlocks.validators_5.block.extraData = "0xdc83010000886175746f6e69747988676f312e31302e34856c696e7578000000" + encodedExtraData;
         rlpHeader = encoder.encodeIbftHeader(block);
 
-        // Submit block should not succeed
-        await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, VALIDATORS_BEFORE).should.be.rejected;
+        // Submit testBlocks.validators_5.block should not succeed
+        await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators).should.be.rejected;
         
       })
       
       it("Fails when the provided set of validators is not the one in the previous block", async () => {
-        await ibft.RegisterChain(TESTCHAINID, VALIDATORS_BEFORE, GENESIS_HASH, storage.address);
+        block = testBlocks.validators_5.block 
+        validators = testBlocks.validators_5.validators
+
+        await ibft.RegisterChain(TESTCHAINID, validators, GENESIS_HASH, storage.address);
 
         let chainHead = await ibft.m_chainHeads(TESTCHAINID);
         assert.equal(chainHead, GENESIS_HASH);
@@ -345,7 +301,7 @@ contract('Ibft.js', (accounts) => {
         rlpHeader = encoder.encodeIbftHeader(block);
 
         // Submit block should fail cause i provide a set of validators that are different from the one stored in the previous block
-        await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, VALIDATORS_AFTER).should.be.rejected;
+        await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, testBlocks.validators_4.validators).should.be.rejected;
       })
   })
 
