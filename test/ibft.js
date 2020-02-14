@@ -100,10 +100,13 @@ contract('Ibft.js', (accounts) => {
 
   describe('Register Chain', () => {
     it('Successful Register Chain', async () => {
+      // get block and validators from samples
+      block = testBlocks.validators_5.block
+      validators = testBlocks.validators_5.validators
 
       // Successfully add id of another chain
       let start = Date.now()
-      txToBenchmark = await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address);
+      txToBenchmark = await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
       duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
 
       console.log("\tGas used to register chain = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
@@ -113,30 +116,38 @@ contract('Ibft.js', (accounts) => {
       assert(chainExists);
 
       let chainHead = await ibft.m_chainHeads(TESTCHAINID);
-      assert.equal(chainHead, GENESIS_HASH);
+      assert.equal(chainHead, block.parentHash);
     })
 
     it('Fail Register Chain Twice', async () => {
+      // get block and validators from samples
+      block = testBlocks.validators_5.block
+      validators = testBlocks.validators_5.validators
+
       // Successfully add id of another chain
-      await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address);
+      await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
 
       let chainExists = await ibft.chains(TESTCHAINID);
 
       assert(chainExists);
 
       let chainHead = await ibft.m_chainHeads(TESTCHAINID);
-      assert.equal(chainHead, GENESIS_HASH);
+      assert.equal(chainHead, block.parentHash);
 
       // Fail adding id of this chain
-      await ibft.RegisterChain(DEPLOYEDCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address).should.be.rejected;
+      await ibft.RegisterChain(DEPLOYEDCHAINID, validators, block.parentHash, storage.address).should.be.rejected;
 
       // Fail adding id of chain already initialised
-      await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address).should.be.rejected;
+      await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address).should.be.rejected;
     })
 
     it('Check Validators', async () => {
+       // get block and validators from samples
+       block = testBlocks.validators_5.block
+       validators = testBlocks.validators_5.validators
+
       // Successfully add id of another chain
-      await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address);
+      await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
 
       let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
       assert.equal(chainValidatorsRoot, expectedHashValidatorsBefore)
@@ -144,25 +155,29 @@ contract('Ibft.js', (accounts) => {
     })
 
     it('Check Genesis Hash', async () => {
+       // get block and validators from samples
+       block = testBlocks.validators_5.block
+       validators = testBlocks.validators_5.validators
+ 
       // Successfully add id of another chain
-      await ibft.RegisterChain(TESTCHAINID, testBlocks.validators_5.validators, GENESIS_HASH, storage.address);
+      await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
 
       let chainHead = await ibft.m_chainHeads(TESTCHAINID);
-      assert.equal(chainHead, GENESIS_HASH);
+      assert.equal(chainHead, block.parentHash);
     })
   })
 
   describe('Submit Block', () => {
-      it('Successful Submit block', async () => {
+      it('Successful Submit block - 5 validators', async () => {
         // get block and validators from samples
         block = testBlocks.validators_5.block
         validators = testBlocks.validators_5.validators
 
         // start
-        await ibft.RegisterChain(TESTCHAINID, validators, GENESIS_HASH, storage.address);
+        await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
 
         let chainHead = await ibft.m_chainHeads(TESTCHAINID);
-        assert.equal(chainHead, GENESIS_HASH);
+        assert.equal(chainHead, block.parentHash);
 
         rlpHeader = encoder.encodeIbftHeader(block);
 
@@ -171,7 +186,7 @@ contract('Ibft.js', (accounts) => {
         txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators);
         duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
         
-        console.log("\tGas used to submit block = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
+        console.log("\tGas used to submit block with 5 validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
 
         let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
@@ -199,6 +214,98 @@ contract('Ibft.js', (accounts) => {
 
       })
 
+      it('Successful Submit block - 8 validators', async () => {
+        // get block and validators from samples
+        block = testBlocks.validators_8.block
+        validators = testBlocks.validators_8.validators
+        expectedHash = bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", validators.map(x => x.toLowerCase()).sort())));
+
+        // start
+        await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
+
+        let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, block.parentHash);
+
+        rlpHeader = encoder.encodeIbftHeader(block);
+
+        // Submit block should succeed
+        let start = Date.now()
+        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators);
+        duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+        
+        console.log("\tGas used to submit block with 8 validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
+
+        let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        assert.ok(event, "Stored event not emitted");
+
+        const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
+        assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
+
+        let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);
+        assert.equal(addedBlockHash, block.hash);
+
+        let header = await ibft.m_blockheaders(TESTCHAINID, block.hash);
+
+        // Separate fetched header info
+        parentHash = header[2];
+
+        // Assert that block was persisted correctly
+        assert.equal(parentHash, block.parentHash);
+
+        chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, block.hash);
+
+        // Check validators hash is correct
+        let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
+        assert.equal(chainValidatorsRoot, expectedHash)
+      })
+
+      it('Successful Submit block - 16 validators', async () => {
+        // get block and validators from samples
+        block = testBlocks.validators_16.block
+        validators = testBlocks.validators_16.validators
+        expectedHash = bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", validators.map(x => x.toLowerCase()).sort())));
+
+        // start
+        await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
+
+        let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, block.parentHash);
+
+        rlpHeader = encoder.encodeIbftHeader(block);
+
+        // Submit block should succeed
+        let start = Date.now()
+        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators);
+        duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+        
+        console.log("\tGas used to submit block with 16 validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
+
+        let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        assert.ok(event, "Stored event not emitted");
+
+        const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
+        assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
+
+        let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);
+        assert.equal(addedBlockHash, block.hash);
+
+        let header = await ibft.m_blockheaders(TESTCHAINID, block.hash);
+
+        // Separate fetched header info
+        parentHash = header[2];
+
+        // Assert that block was persisted correctly
+        assert.equal(parentHash, block.parentHash);
+
+        chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, block.hash);
+
+        // Check validators hash is correct
+        let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
+        assert.equal(chainValidatorsRoot, expectedHash)
+      })
+
       it('Submit Sequential Blocks with Additional Validator', async () => {
         // get blocks and validators from samples
         firstBlock = testBlocks.validators_5.block
@@ -207,7 +314,7 @@ contract('Ibft.js', (accounts) => {
         secondBlock = testBlocks.validators_4.block
         secondValidators = testBlocks.validators_4.validators
 
-        await ibft.RegisterChain(TESTCHAINID, firstValidators, GENESIS_HASH, storage.address);
+        await ibft.RegisterChain(TESTCHAINID, firstValidators, firstBlock.parentHash, storage.address);
 
         rlpHeader = encoder.encodeIbftHeader(firstBlock);
 
@@ -228,7 +335,7 @@ contract('Ibft.js', (accounts) => {
         txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, secondValidators);
         duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
 
-        console.log("\tGas used to submit block with additional validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
+        console.log("\tGas used to submit block with 4 validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
 
         event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
@@ -256,7 +363,7 @@ contract('Ibft.js', (accounts) => {
         block = testBlocks.validators_5.block 
         validators = testBlocks.validators_5.validators
 
-        await ibft.RegisterChain(TESTCHAINID, validators, GENESIS_HASH, storage.address);
+        await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
 
         block.extraData = "0xdc83010000886175746f6e69747988676f312e31302e34856c696e7578000000f90164f854941cb62855cd70774634c85c9acb7c3070ce692936946b2f468af3d0ba2f3a09712faea4d379c2e891a194a667ea98809a69724c6672018bd7db799cd3fefc94c2054df3acfdbe5b221866b25e09026734ca5572b841012edd2e5936deaf4c0ee17698dc0fda832bb51a81d929ae3156d73e5475123c19d162cf1e434637c16811d63d1d3b587906933d75e25cedf7bef59e8fa8375d01f8c9b841719c5bc521721e71ff7fafff09fdff4037e678a77a816b08d45b89d55f35edc94b5c51cc3eeba79d3de291c3c46fbf04faec4952e7d0836be9ad5d855f525c9301b841a7c9eed0337f92a5d4caf6f57b3b59ba10a14ea615c6264fc82fcf5b2e4b626f701fd3596cd1f8639b37a41cb4f3a7582bb530790441de73e6e3449284127b4d00b841210db6ef89906ef1c77538426d29b8440a1c987d508e396776e63515df2a345767c195dc540cfabdf86d696c73b4a24632445565d322d8e45fa2668ec5e6c0e000";
 
@@ -271,7 +378,7 @@ contract('Ibft.js', (accounts) => {
         block = testBlocks.validators_5.block 
         validators = testBlocks.validators_5.validators
 
-        await ibft.RegisterChain(TESTCHAINID, validators, GENESIS_HASH, storage.address);
+        await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
 
         let badExtraData = "0xf90164f854944335d75841d8b85187cf651ed130774143927c799461d7d88dbc76259fcf1f26bc0b5763aebd67aead94955425273ef777d6430d910f9a8b10adbe95fff694f00d3c728929e42000c8d92d1a7e6a666f12e6edb8410c11022a97fcb2248a2d757a845b4804755702125f8b7ec6c06503ae0277ad996dc22f81431e8036b6cf9ef7d3c1ff1b65a255c9cb70dd2f4925951503a6fdbf01f8c9b8412d3849c86c8ba3ed9a79cdd71b1684364c4c4efb1f01e83ca8cf663f3c95f7ac64b711cd297527d42fb3111b8f78d5227182f38ccc442be5ac4dcb52efede89a01b84135de3661d0191247c7f835c8eb6d7939052c0da8ae234baf8bd208c00225e706112df9bad5bf773120ba4bbc55f6d18e478de43712c0cd3de7a3e2bfd65abb7c01b841735f482a051e6ad7fb76a815907e68d903b73eff4e472006e56fdeca8155cb575f4c1d3e98cf3a4b013331c1bd171d0d500243ac0e073a5fd382294c4fe996f000";
 
@@ -293,10 +400,10 @@ contract('Ibft.js', (accounts) => {
         block = testBlocks.validators_5.block 
         validators = testBlocks.validators_5.validators
 
-        await ibft.RegisterChain(TESTCHAINID, validators, GENESIS_HASH, storage.address);
+        await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
 
         let chainHead = await ibft.m_chainHeads(TESTCHAINID);
-        assert.equal(chainHead, GENESIS_HASH);
+        assert.equal(chainHead, block.parentHash);
 
         rlpHeader = encoder.encodeIbftHeader(block);
 
