@@ -25,7 +25,6 @@ const MockStorage = artifacts.require("MockStorage");
 const web3 = new Web3();
 const rinkeby = new Web3();
 
-web3.setProvider(new web3.providers.HttpProvider('http//localhost:8545'));
 rinkeby.setProvider(new web3.providers.HttpProvider('https://rinkeby.infura.io/v3/430e7d9d2b104879aee73ced56f0b8ba'));
 
 require('chai')
