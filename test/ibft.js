@@ -62,8 +62,8 @@ contract('Ibft.js', (accounts) => {
 
   const watchEvent = (eventObj) => new Promise((resolve,reject) => eventObj.watch((error,event) => error ? reject(error) : resolve(event)));
 
-  const expectedHashValidatorsBefore = bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", testBlocks.validators_5.validators.map(x => x.toLowerCase()).sort())));
-  const expectedHashValidatorsAfter= bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", testBlocks.validators_4.validators.map(x => x.toLowerCase()).sort())));
+  const expectedHashValidators5 = bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", testBlocks.validators_5.validators.map(x => x.toLowerCase()).sort())));
+  const expectedHashValidators4= bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", testBlocks.validators_4.validators.map(x => x.toLowerCase()).sort())));
 
   let ion;
   let ibft;
@@ -150,7 +150,7 @@ contract('Ibft.js', (accounts) => {
       await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
 
       let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
-      assert.equal(chainValidatorsRoot, expectedHashValidatorsBefore)
+      assert.equal(chainValidatorsRoot, expectedHashValidators5)
 
     })
 
@@ -168,13 +168,12 @@ contract('Ibft.js', (accounts) => {
   })
 
   describe('Submit Block', () => {
-      it('Submit Sequential Blocks 4 validators', async () => {
+      it('Submit Sequential Blocks', async () => {
         // get blocks and validators from samples
         firstBlock = testBlocks.validators_5.block
         firstValidators = testBlocks.validators_5.validators
 
-        secondBlock = testBlocks.validators_4.block
-        secondValidators = testBlocks.validators_4.validators
+        secondBlock = testBlocks.validators_5.nextBlock
 
         await ibft.RegisterChain(TESTCHAINID, firstValidators, firstBlock.parentHash, storage.address);
 
@@ -185,24 +184,21 @@ contract('Ibft.js', (accounts) => {
 
         // Check validators have changed
         let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
-        assert.equal(chainValidatorsRoot, expectedHashValidatorsAfter)
+        assert.equal(chainValidatorsRoot, expectedHashValidators5)
 
         let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
         // submit another block
         rlpHeader = encoder.encodeIbftHeader(secondBlock);
+        tx = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, firstValidators);
 
-        let start = Date.now()
-        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, secondValidators);
-        duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+        // console.log("\tGas used to submit block with 4 validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
 
-        console.log("\tGas used to submit block with 4 validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
-
-        event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
         assert.ok(event, "Stored event not emitted");
 
-        const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
+        const submittedEvent = tx.logs.find(l => { return l.event == 'BlockSubmitted' });
         assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
 
         let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);
@@ -218,7 +214,53 @@ contract('Ibft.js', (accounts) => {
 
         // Check new validators
         chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
-        assert.equal(chainValidatorsRoot, expectedHashValidatorsBefore)
+        assert.equal(chainValidatorsRoot, expectedHashValidators5)
+      })
+
+      it('Successful Submit block - 4 validators', async () => {
+        // get block and validators from samples
+        block = testBlocks.validators_4.block
+        validators = testBlocks.validators_4.validators
+
+        // start
+        await ibft.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address);
+
+        let chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, block.parentHash);
+
+        rlpHeader = encoder.encodeIbftHeader(block);
+
+        // Submit block should succeed
+        let start = Date.now()
+        txToBenchmark = await ibft.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators);
+        duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+        
+        console.log("\tGas used to submit block with 4 validators= " + txToBenchmark.receipt.gasUsed.toString() + " gas");
+
+        let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+        assert.ok(event, "Stored event not emitted");
+
+        const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
+        assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
+
+        let addedBlockHash = await ibft.m_chainHeads.call(TESTCHAINID);
+        assert.equal(addedBlockHash, block.hash);
+
+        let header = await ibft.m_blockheaders(TESTCHAINID, block.hash);
+
+        // Separate fetched header info
+        parentHash = header[2];
+
+        // Assert that block was persisted correctly
+        assert.equal(parentHash, block.parentHash);
+
+        chainHead = await ibft.m_chainHeads(TESTCHAINID);
+        assert.equal(chainHead, block.hash);
+
+        // Check new validators that are changed in this block
+        let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
+        assert.equal(chainValidatorsRoot, expectedHashValidators4)
+
       })
 
       it('Successful Submit block - 5 validators', async () => {
@@ -263,7 +305,7 @@ contract('Ibft.js', (accounts) => {
 
         // Check new validators that are changed in this block
         let chainValidatorsRoot = await ibft.getValidatorsRoot.call(TESTCHAINID);
-        assert.equal(chainValidatorsRoot, expectedHashValidatorsAfter)
+        assert.equal(chainValidatorsRoot, expectedHashValidators5)
 
       })
 
