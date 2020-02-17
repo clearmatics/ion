@@ -5,8 +5,8 @@ const EventFunction = artifacts.require("Function");
 const EventVerifier = artifacts.require("TriggerEventVerifier");
 const benchmark = require("solidity-benchmark")
 
-let customConfigs = {BENCHMARK_FILEPATH: "./benchmark/stats/petersburg-rpc.json", MD_OUTPUT_FILEPATH: "./benchmark/stats/petersburg-rpc.md"}
-let metadata = {title: "ION", network: "ganacheRPC-Petersburg", blockTime: "1s"}
+let customConfigs = {BENCHMARK_FILEPATH: "./benchmark/stats/test-hashValidators.json", MD_OUTPUT_FILEPATH: "./benchmark/stats/test-hashValidators.md"}
+let metadata = {title: "ION", network: "ganacheRPC-Istanbul", blockTime: "0s", difference: "ibft validation stores hash of sorted array of validators instead of whole set"}
 
 module.exports = async (deployer, network) => {
 
