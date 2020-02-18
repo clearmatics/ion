@@ -14,6 +14,7 @@ const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
 const rlp = require('rlp');
 const async = require('async')
+const benchmark= require("solidity-benchmark")
 const sha3 = require('js-sha3').keccak_256
 
 // Connect to the Test RPC running
@@ -115,6 +116,29 @@ contract('Ion.js', (accounts) => {
         ion = await Ion.new(DEPLOYEDCHAINID);
         validation = await MockValidation.new(ion.address);
         storage = await MockStorage.new(ion.address);
+
+        //unset variables to check for benchmark after each test 
+        txToBenchmark = undefined
+        duration = 0
+        
+        //set current test name to use in afterEach hook
+        currentTestName = "Ion contract-" + this.currentTest.title
+    
+    })
+
+  
+    afterEach("save to file tx hash and benchmark time", async () => {
+
+        // if variables txToBenchmark has been set inside the current test
+        if(txToBenchmark){
+            duration = duration ? duration : "Not estimated"
+            benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+        }
+
+    })
+
+    after("Trace the transactions benchmarked in this test suite", async () => {
+        await benchmark.trace()
     })
 
     it('Deploy Ion', async () => {
@@ -152,8 +176,11 @@ contract('Ion.js', (accounts) => {
         it('Successful Store Block', async () => {
             await validation.register();
 
-            const tx = await validation.SubmitBlock(storage.address, TESTCHAINID, TEST_SIGNED_HEADER);
-            let event = tx.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+            let start = Date.now()
+            txToBenchmark = await validation.SubmitBlock(storage.address, TESTCHAINID, TEST_SIGNED_HEADER);
+            duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+            let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
             assert.ok(event, "Block not stored");
         })
 

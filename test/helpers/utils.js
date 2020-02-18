@@ -3,6 +3,7 @@
 
 const crypto = require('crypto')
 const Web3 = require('web3');
+
 var web3;
 
 const utils = {};
@@ -120,4 +121,5 @@ utils.deploy = (ABI, bytecode, callback) => {
     });
 }
 
-module.exports = utils;
+
+module.exports = utils

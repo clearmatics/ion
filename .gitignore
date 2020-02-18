@@ -12,3 +12,6 @@ docs/deps-modules.dot
 *.log
 *.pdf
 *.egg-info/
+
+benchmark/stats/*.json
+benchmark/benchmark.sh

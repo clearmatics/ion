@@ -5,8 +5,9 @@ pragma solidity ^0.5.12;
 import "../libraries/ECVerify.sol";
 import "../libraries/RLP.sol";
 import "../libraries/SolidityUtils.sol";
-import "../IonCompatible.sol";
+import "../libraries/SortArray.sol";
 import "../storage/BlockStore.sol";
+import "../IonCompatible.sol";
 
 /*
     Smart contract for validation of blocks that use the IBFT-Soma consensus algorithm
@@ -25,7 +26,7 @@ contract IBFT is IonCompatible {
         uint256 blockNumber;
 		bytes32 blockHash;
 		bytes32 prevBlockHash;
-        address[] validators;
+        bytes32 validatorsHash; // hash of the sorted list of validators
         uint256 threshold;
 	}
 
@@ -91,19 +92,23 @@ contract IBFT is IonCompatible {
     * param: _rlpSignedBlockHeader (bytes) RLP-encoded byte array of the block header from other chain including all proposal seal in the IstanbulExtra field
     * param: _commitSeals (bytes) RLP-encoded commitment seals that are typically contained in the last element of the IstanbulExtra field
     * param: _storeAddr (address) Address of block store contract to store block to
+    * param: _validators (address[]) Validators of the previous block 
     *
     * Submission of block headers from another chain. 
     */
-    function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, bytes memory _commitSeals, address _storageAddr) onlyRegisteredChains(_chainId) public {
+    function SubmitBlock(bytes32 _chainId, bytes memory _rlpUnsignedBlockHeader, bytes memory _rlpSignedBlockHeader, bytes memory _commitSeals, address _storageAddr, address[] memory _validators) onlyRegisteredChains(_chainId) public {
         RLP.RLPItem[] memory header = _rlpSignedBlockHeader.toRLPItem().toList();
 
         // Check the parent hash is the same as the previous block submitted
 		bytes32 parentBlockHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
 		require(m_chainHeads[_chainId] == parentBlockHash, "Not child of previous block!");
 
-        // Verify that validator and sealers are correct
-        require(checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash), "Signer is not validator");
-        require(checkSeals(_chainId, _commitSeals, _rlpSignedBlockHeader, parentBlockHash), "Sealer(s) not valid");
+        // verify passed validators yields the same hash 
+        require(m_blockheaders[_chainId][parentBlockHash].validatorsHash == keccak256(abi.encode(SortArray.sortAddresses(_validators))), "This is not the set of validators of the previous block");
+
+        // Verify that validator and sealers of the block are correct
+        require(checkSignature(_chainId, header[12].toData(), keccak256(_rlpUnsignedBlockHeader), parentBlockHash, _validators), "Signer is not validator");
+        require(checkSeals(_chainId, _commitSeals, _rlpSignedBlockHeader, parentBlockHash, _validators), "Sealer(s) not valid");
 
         // Append new block to the struct
         addValidators(_chainId, header[12].toData(), keccak256(_rlpSignedBlockHeader));
@@ -132,7 +137,7 @@ contract IBFT is IonCompatible {
         BlockHeader storage header = m_blockheaders[_chainId][_genesisBlockHash];
         header.blockNumber = 0;
         header.blockHash = _genesisBlockHash;
-        header.validators = _validators;
+        header.validatorsHash = keccak256(abi.encode(SortArray.sortAddresses(_validators)));
         header.threshold = 2*(_validators.length/3) + 1;
 
         m_chainHeads[_chainId] = _genesisBlockHash;
@@ -145,11 +150,12 @@ contract IBFT is IonCompatible {
     * param: _extraData (bytes) Byte array of the extra data containing signature
     * param: _hash (bytes32) Hash of the unsigned block header
     * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
+    * param: _validators (address[]) Set of validators of the previous block 
     *
     * Checks that the submitted block has actually been signed, recovers the signer and checks if they are validator in
     * parent block
     */
-    function checkSignature(bytes32 _chainId, bytes memory _extraData, bytes32 _hash, bytes32 _parentBlockHash) internal view returns (bool) {
+    function checkSignature(bytes32 _chainId, bytes memory _extraData, bytes32 _hash, bytes32 _parentBlockHash, address[] memory _validators) internal returns (bool) {
         // Retrieve Istanbul Extra Data
         bytes memory istanbulExtra = new bytes(_extraData.length - 32);
         SolUtils.BytesToBytes(istanbulExtra, _extraData, 32);
@@ -161,10 +167,9 @@ contract IBFT is IonCompatible {
 
         // Recover the signature
         address sigAddr = ECVerify.ecrecovery(keccak256(abi.encode(_hash)), extraDataSig);
-        BlockHeader storage parentBlock = m_blockheaders[_chainId][_parentBlockHash];
 
         // Check if signature is a validator that exists in previous block
-		return isValidator(parentBlock.validators, sigAddr);
+		return isValidator(_validators, sigAddr);
     }
 
     /*
@@ -173,10 +178,11 @@ contract IBFT is IonCompatible {
     * param: _seals (bytes) RLP-encoded list of 65 byte seals
     * param: _rlpBlock (bytes) Byte array of RLP encoded unsigned block header
     * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
+    * param: _validators (address[]) Set of validators of the previous block 
     *
     * Checks that the submitted block has enough seals to be considered valid as per the IBFT Soma rules
     */
-    function checkSeals(bytes32 _chainId, bytes memory _seals, bytes memory _rlpBlock, bytes32 _parentBlockHash) internal view returns (bool) {
+    function checkSeals(bytes32 _chainId, bytes memory _seals, bytes memory _rlpBlock, bytes32 _parentBlockHash, address[] memory _validators) internal view returns (bool) {
         bytes32 signedHash = keccak256(abi.encodePacked(keccak256(_rlpBlock), byte(0x02)));
         BlockHeader storage parentBlock = m_blockheaders[_chainId][_parentBlockHash];
         uint256 validSeals = 0;
@@ -186,7 +192,7 @@ contract IBFT is IonCompatible {
         for (uint i = 0; i < seals.length; i++) {
             // Recover the signature
             address sigAddr = ECVerify.ecrecovery(signedHash, seals[i].toData());
-            if (!isValidator(parentBlock.validators, sigAddr))
+            if (!isValidator(_validators, sigAddr))
                 return false;
             validSeals++;
         }
@@ -210,7 +216,6 @@ contract IBFT is IonCompatible {
     * param: _chainId (bytes32) Unique id of interoperating chain
     * param: _extraData (bytes) Byte array of the extra data containing signature
     * param: _blockHash (bytes32) Current block hash being checked
-    * param: _parentBlockHash (bytes32) Parent block hash of current block being checked
     *
     * Updates the validators from the RLP encoded extradata
     */
@@ -224,12 +229,14 @@ contract IBFT is IonCompatible {
         RLP.RLPItem[] memory istanbulExtra = rlpIstanbulExtra.toRLPItem().toList();
         RLP.RLPItem[] memory decodedExtra = istanbulExtra[0].toBytes().toRLPItem().toList();
 
-        for (uint i = 0; i < decodedExtra.length; i++) {
-            address validator = decodedExtra[i].toAddress();
-            newBlock.validators.push(validator);
-        }
+        address[] memory newValidators = new address[](decodedExtra.length);
 
-        newBlock.threshold = 2*(newBlock.validators.length/3) + 1;
+        for (uint i = 0; i < decodedExtra.length; i++) {
+            newValidators[i] = decodedExtra[i].toAddress();
+        }
+        
+        newBlock.validatorsHash = keccak256(abi.encode(SortArray.sortAddresses(newValidators)));
+        newBlock.threshold = 2*(newValidators.length/3) + 1;
     }
 
     /*
@@ -264,8 +271,7 @@ contract IBFT is IonCompatible {
         ion.storeBlock(_storageAddr, _chainId, _rlpBlockHeader);
     }
 
-    function getValidators(bytes32 _chainId) public view returns (address[] memory) {
-        return m_blockheaders[_chainId][m_chainHeads[_chainId]].validators;
+    function getValidatorsRoot(bytes32 _chainId) public view returns (bytes32) {
+        return m_blockheaders[_chainId][m_chainHeads[_chainId]].validatorsHash;
     }
-
 }

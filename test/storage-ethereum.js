@@ -12,10 +12,8 @@
 
 const Web3Utils = require('web3-utils');
 const utils = require('./helpers/utils.js');
-const BN = require('bignumber.js')
-const encoder = require('./helpers/encoder.js')
+const benchmark = require("solidity-benchmark")
 const rlp = require('rlp');
-const async = require('async')
 const sha3 = require('js-sha3').keccak_256
 
 // Connect to the Test RPC running
@@ -28,8 +26,8 @@ const MockValidation = artifacts.require("MockValidation");
 const EthereumStore = artifacts.require("EthereumStore");
 
 require('chai')
- .use(require('chai-as-promised'))
- .should();
+    .use(require('chai-as-promised'))
+    .should();
 
 const DEPLOYEDCHAINID = "0xab830ae0774cb20180c8b463202659184033a9f30a21550b89a2b406c3ac8075"
 
@@ -107,12 +105,12 @@ const signedHeader = [
     TESTBLOCK.extraData,
     TESTBLOCK.mixHash,
     TESTBLOCK.nonce
-    ];
+];
 
 // Remove last 65 Bytes of extraData
 const extraBytes = utils.hexToBytes(TESTBLOCK.extraData);
-const extraBytesShort = extraBytes.splice(1, extraBytes.length-66);
-const extraDataSignature = '0x' + utils.bytesToHex(extraBytes.splice(extraBytes.length-65));
+const extraBytesShort = extraBytes.splice(1, extraBytes.length - 66);
+const extraDataSignature = '0x' + utils.bytesToHex(extraBytes.splice(extraBytes.length - 65));
 const extraDataShort = '0x' + utils.bytesToHex(extraBytesShort);
 
 const unsignedHeader = [
@@ -131,7 +129,7 @@ const unsignedHeader = [
     extraDataShort, // extraData minus the signature
     TESTBLOCK.mixHash,
     TESTBLOCK.nonce
-    ];
+];
 
 const TEST_SIGNED_HEADER = '0x' + rlp.encode(signedHeader).toString('hex');
 const signedHeaderHash = Web3Utils.sha3(TEST_SIGNED_HEADER);
@@ -160,11 +158,33 @@ contract('EthereumStore.js', (accounts) => {
     let ion;
     let validation;
     let storage;
+    let txToBenchmark, duration, currentTestName
 
     beforeEach('setup contract for each test', async function () {
         ion = await MockIon.new(DEPLOYEDCHAINID);
         validation = await MockValidation.new(ion.address);
         storage = await EthereumStore.new(ion.address);
+
+        //unset variables to check for benchmark after each test 
+        txToBenchmark = undefined
+        duration = 0
+        
+        //set current test name to use in afterEach hook
+        currentTestName = "storage-ethereum-" + this.currentTest.title
+    })
+
+    afterEach("save to file tx hash and benchmark time", async () => {
+
+        // if variables txToBenchmark has been set inside the current test
+        if(txToBenchmark){
+            duration = duration ? duration : "Not estimated"
+            benchmark.saveStatsToFile(txToBenchmark.tx, currentTestName, txToBenchmark.receipt.gasUsed.toString(), duration)
+        }
+    
+    })
+
+    after("Trace the transactions benchmarked in this test suite", async () => {
+        await benchmark.trace()
     })
 
     describe('Register Chain', () => {
@@ -241,8 +261,11 @@ contract('EthereumStore.js', (accounts) => {
 
             compressedProof = generateProof();
 
-            let tx = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
-            console.log("\tGas used to submit check all proofs = " + tx.receipt.gasUsed.toString() + " gas");
+            let start = Date.now()
+            txToBenchmark = await storage.CheckProofs(TESTCHAINID, TESTBLOCK.hash, "0x" + compressedProof.toString('hex'));
+            duration = Number( (Date.now() - start) / 1000 ).toFixed(3)
+
+            console.log("\tGas used to submit check all proofs = " + txToBenchmark.receipt.gasUsed.toString() + " gas");
         })
 
         it('Fail Proofs with wrong chain id', async () => {
@@ -311,7 +334,7 @@ function generateMalformedProof() {
     decodedTxNodes = rlp.decode(Buffer.from(TEST_TX_NODES.slice(2), 'hex'));
     decodedReceipt = rlp.decode(Buffer.from(TEST_RECEIPT_VALUE.slice(2), 'hex'));
     // Exclude receipt nodes
-//    decodedReceiptNodes = rlp.decode(Buffer.from(TEST_RECEIPT_NODES.slice(2), 'hex'));
+    //    decodedReceiptNodes = rlp.decode(Buffer.from(TEST_RECEIPT_NODES.slice(2), 'hex'));
 
     proof = rlp.encode([decodedPath, decodedTx, decodedTxNodes, decodedReceipt]);
     return proof;

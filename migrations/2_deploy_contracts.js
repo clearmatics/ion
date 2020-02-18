@@ -3,21 +3,32 @@ const Clique = artifacts.require("Clique");
 const EthereumStore = artifacts.require("EthereumStore");
 const EventFunction = artifacts.require("Function");
 const EventVerifier = artifacts.require("TriggerEventVerifier");
+const benchmark = require("solidity-benchmark")
 
-module.exports = async (deployer) => {
+let customConfigs = {BENCHMARK_FILEPATH: "./benchmark/stats/test-hashValidators.json", MD_OUTPUT_FILEPATH: "./benchmark/stats/test-hashValidators.md"}
+let metadata = {title: "ION", network: "ganacheRPC-Istanbul", blockTime: "0s", difference: "ibft validation stores hash of sorted array of validators instead of whole set"}
+
+module.exports = async (deployer, network) => {
+
   try {
       deployer.deploy(Ion, "0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
-      .then(() => Ion.deployed)
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Ion"))
       .then(() => deployer.deploy(EthereumStore, Ion.address))
-      .then(() => EthereumStore.deployed)
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Ethereum Store"))
       .then(() => deployer.deploy(Clique, Ion.address))
-      .then(() => Clique.deployed)
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Clique Validation"))
       .then(() => deployer.deploy(EventVerifier))
-      .then(() => EventVerifier.deployed)
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Event verifier"))
       .then(() => deployer.deploy(EventFunction, Ion.address, EventVerifier.address))
-      .then(() => EventFunction.deployed)
+      .then((res) => writeGasToFile(res.transactionHash, "Deploy Event Function"))
   } catch(err) {
     console.log('ERROR on deploy:',err);
   }
 
 };
+
+writeGasToFile = async (txHash, contractName) => {
+  let duration = "Not estimated"
+  receipt = await web3.eth.getTransactionReceipt(txHash)
+  benchmark.saveStatsToFile(txHash, contractName, receipt.cumulativeGasUsed, duration, metadata, customConfigs)
+}

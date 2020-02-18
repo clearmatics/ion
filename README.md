@@ -22,6 +22,7 @@ We envision Ion to evolve to become a library of tools that developers can use o
 * [Interoperate with Rinkeby!](#interoperate-with-rinkeby)
     * [Ethereum to Rinkeby](#ethereum-to-rinkeby)
     * [Hyperledger Fabric to Rinkeby](#hyperledger-fabric-to-rinkeby)
+* [Benchmarking](#benchmarking)    
 * [Develop on Ion](#develop-on-ion)
     * [Ethereum to Ethereum Interface](#ethereum-to-ethereum-interface)
     * [Hyperledger Fabric to Ethereum Interface](#hyperledger-fabric-to-ethereum-interface)
@@ -163,6 +164,28 @@ The above leverages Fabric block state that has been submitted to the Rinkeby ch
 #### Try out your own functions!
 
 Take a look at `FabricFunction.sol` and you'll find a very simple `execute()` function. This function currently simply takes data and emits it. However you can use this state in however you choose. Try replacing the `execute` function body with your own logic to perform a transaction using Fabric block state. It's important to note that chaincode, the smart contract equivalent in Fabric, writes values as raw strings which means the stored data is arbitrary. This means that your functional contracts should be knowledgeable of these data formats to be able to use them effectively in your smart contracts on Ethereum.
+
+### Benchmarking 
+
+The [benchmarking tool](https://github.com/clearmatics/solidity-benchmark-tool) has been integrated into this project. For more info about that and the source code please follow the link. 
+
+
+1) Run the whole flow of tests, benchmark and convert to MarkDown: 
+
+`truffle test` 
+
+2) Compare two json benchmark files: 
+
+`npm run benchmark-compare <json_file_before> <json_file_after> <output_md_file>`
+
+<!-- 3) TODO Only convert a json to Markdown format: 
+
+`npm run benchmark-toMD <input_json_file> <output_md_file>`
+
+- `json_file_before`: the benchmarking file path before changes to run the comparison 
+- `json_file_after`: the benchmarking file path after changes to run the comparison
+- `input_json_file`: the json input file path to convert to MD
+- `output_md_file`: the Markdown output file path of the conversion  -->
 
 ## Develop on Ion
 
