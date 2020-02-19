@@ -15,6 +15,7 @@ const MockIon = artifacts.require("MockIon");
 const MockStorage = artifacts.require("MockStorage");
 const Tendermint = artifacts.require("TendermintAutonity");
 const testBlocks = require("./helpers/blockSamples").testBlocks.tendermint_autonity
+const encoder = require('./helpers/encoder.js');
 const { keccak256, bufferToHex } = require('ethereumjs-util');
 const Web3EthAbi = require('web3-eth-abi');
 const Web3 = require('web3');
@@ -93,6 +94,44 @@ contract("Tendermint Validation Module", (accounts) => {
 
             // Fail adding id of chain already initialised
             await tendermint.RegisterChain(TESTCHAINID, validators, block.parentHash, storage.address).should.be.rejected;
+        })
+    })
+
+    describe("Submit Block", () => {
+
+        afterEach("Perform all the checks", () => {
+
+            // check the events have been triggered
+            let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+            assert.ok(event, "Stored event not emitted");
+
+            const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
+            assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
+
+            // Check that block was persisted correctly
+            let addedBlock = await tendermint.id_chainHeaders(TESTCHAINID, block.hash);
+
+            assert.equal(addedBlock.hash, block.hash);
+            assert.equal(addedBlock.parentHash, block.parentHash);
+            assert.equal(addedBlock.validatorsHash, expectedHash)
+
+            // TODO check voting power
+
+        })
+
+        it("Succesfully Submit Block - 5 validators", async () => {
+            // get block and validators from samples
+            block = testBlocks.validators_5.block
+            validators = testBlocks.validators_5.validators 
+            expectedHash = bufferToHex(keccak256(Web3EthAbi.encodeParameter("address[]", validators.map(x => x.toLowerCase()).sort())));
+
+            // add genesis block
+            await tendermint.RegisterChain(TESTCHAINID, validators, INITIAL_VOTING_THRESHOLD, block.parentHash, storage.address);
+
+            // submit next block 
+            rlpHeader = encoder.encodeIbftHeader(block);
+            txToBenchmark = await tendermint.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators);
+
         })
     })
 })
