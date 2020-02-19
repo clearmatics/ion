@@ -1,6 +1,6 @@
 // Copyright (c) 2020 Clearmatics Technologies Ltd
 // SPDX-License-Identifier: LGPL-3.0+
-pragma solidity ^0.5.2;
+pragma solidity ^0.5.12;
 
 import "../libraries/ECVerify.sol";
 import "../libraries/RLP.sol";
@@ -25,7 +25,7 @@ contract TendermintAutonity is IonCompatible {
     struct BlockHeader {
         bytes32 blockHash;
         bytes32 parentHash;
-        bytes32 committeeHash; // hash of the sorted committee list 
+        bytes32 validatorsHash; // hash of the sorted validators list
         uint256 votingThreshold; // threshold of the voting power needed to consider a block valid 
     }
 
@@ -46,14 +46,25 @@ contract TendermintAutonity is IonCompatible {
     *
     * Modifier that checks if the provided chain id has been registered to this contract
     */
-    modifier onlyRegisteredChains(bytes32 _id) {
-        require(chains[_id], "Chain is not registered");
+    modifier onlyRegisteredChains(bytes32 id) {
+        require(supportedChains[id], "Chain is not registered");
         _;
     }
 
     // initialize ION hub contract
-    constructor (address _ionAddress) IonCompatible(_ionAddr) public {}
+    constructor (address ionAddr) IonCompatible(ionAddr) public {}
 
+/* =====================================================================================================================
+
+        View Functions
+
+   =====================================================================================================================
+*/
+
+    // returns the validators hash of a specific chain head
+    function getValidatorsRoot(bytes32 chainId, bytes32 blockHash) external view returns (bytes32) {
+        return id_chainHeaders[chainId][blockHash].validatorsHash;
+    }
 
 /* =====================================================================================================================
 
@@ -62,15 +73,40 @@ contract TendermintAutonity is IonCompatible {
    =====================================================================================================================
 */
     
-    // register this validation module to ION hub so that this can send blocks to be stored
+    // register this validation module to ION hub 
+    // so that this contract can send blocks to be stored
     function Register() public returns (bool) {
-        ion.registervalidationModule();
-        return true
+        ion.registerValidationModule();
+        return true;
     }
 
-    function RegisterChain(address[] memory committee, bytes32 genesisBlockHash) {
-        
+    function RegisterChain(bytes32 chainId, address[] calldata validators, uint256 initialTreshold, bytes32 genesisBlockHash, address storeAddr) external {
+        require(chainId != ion.chainId(), "Cannot add this chain id to chain register");
+        require(id_chainHeaders[chainId][genesisBlockHash].blockHash == bytes32(0), "This chain already exists");
+
+        // someone may be already building a chain with the same chainID 
+        if (!supportedChains[chainId]){
+            // initialize the chain 
+            supportedChains[chainId] = true;
+        }
+
+        // register this chain to ion hub
+        ion.addChain(storeAddr, chainId);
+
+        // store genesis block needed to validate further blocks
+        BlockHeader storage header = id_chainHeaders[chainId][genesisBlockHash];
+        header.blockHash = genesisBlockHash;
+        header.validatorsHash = keccak256(abi.encode(SortArray.sortAddresses(validators)));
+        header.votingThreshold = initialTreshold;
+
+        emit GenesisCreated(chainId, genesisBlockHash);
     }
 
+/* =====================================================================================================================
+
+        Internal Functions
+
+   =====================================================================================================================
+*/
 
 }
