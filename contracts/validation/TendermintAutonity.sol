@@ -31,6 +31,7 @@ contract TendermintAutonity is IonCompatible {
 
     event GenesisCreated(bytes32 chainId, bytes32 blockHash);
     event BlockSubmitted(bytes32 chainId, bytes32 blockHash);
+    event Header(bytes header, bytes header2); 
 
     // ids of the chains registered to this module
     mapping (bytes32 => bool) public supportedChains; 
@@ -128,25 +129,25 @@ contract TendermintAutonity is IonCompatible {
         emit GenesisCreated(chainId, genesisBlockHash);
     }
 
-    function SubmitBlock
-    (
+    function SubmitBlock(
         bytes32 chainId, 
-        bytes calldata rlpUnsignedBlockHeader, 
-        bytes calldata rlpSignedBlockHeader, 
-        bytes calldata commitSeals, 
-        address[] calldata validatorsPreviousBlock,
+        bytes memory rlpUnsignedBlockHeader, 
+        bytes memory rlpSignedBlockHeader, 
+        bytes memory commitSeals, 
+        address[] memory validatorsPreviousBlock,
         address storageAddr
-    ) onlyRegisteredChains (chainId) external {
+    ) onlyRegisteredChains (chainId) public {
 
         // unmarshal rlp block header
         RLP.RLPItem[] memory header = rlpSignedBlockHeader.toRLPItem().toList();
+
         bytes32 expectedParentHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
 
         // storage pointer to parent block
         BlockHeader storage parentBlock = id_chainHeaders[chainId][expectedParentHash];
 
         // check parent hash is correct
-        require(parentBlock.parentHash == expectedParentHash, "Not child of previous block!");
+        require(parentBlock.blockHash == expectedParentHash, "Not child of previous block!");
 
         // verify the passed set of validators is the one that signed the previous block
         require(parentBlock.validatorsHash == keccak256(abi.encode(SortArray.sortAddresses(validatorsPreviousBlock))), "This is not the set of validators of the parent block");
@@ -158,7 +159,7 @@ contract TendermintAutonity is IonCompatible {
         require(checkSeals(chainId, commitSeals, rlpSignedBlockHeader, expectedParentHash, validatorsPreviousBlock), "Sealer(s) not valid");
 
         // valid block - store it with the new set of validators
-        storeBlock(chainId, header[12].toData(), keccak256(rlpSignedBlockHeader), expectedParentHash, rlpSignedBlockHeader, storageAddr);
+        storeBlock(chainId, header[12].toData(), expectedParentHash, rlpSignedBlockHeader, storageAddr);
 
         emit BlockSubmitted(chainId, keccak256(rlpSignedBlockHeader));
     }
@@ -173,7 +174,7 @@ contract TendermintAutonity is IonCompatible {
     function checkSignature(
         bytes32 chainId, 
         bytes memory extraData, 
-        bytes32 blockHash, 
+        bytes32 hashUnsignedHeader, 
         bytes32 parentHash, 
         address[] memory validators
     ) internal returns (bool) {
@@ -193,24 +194,37 @@ contract TendermintAutonity is IonCompatible {
     function storeBlock(
         bytes32 chainId, 
         bytes memory extraData,
-        bytes32 blockHash,
         bytes32 parentHash, 
-        bytes memory rlpBlockHeader,
+        bytes memory rlpSignedBlockHeader,
         address storageAddr
     ) internal {
 
         // point to parent block and overwrite it with new one
         BlockHeader storage header = id_chainHeaders[chainId][parentHash];
-        header.blockHash = blockHash;
+        header.blockHash = keccak256(rlpSignedBlockHeader);
         header.parentHash = parentHash;
         (header.validatorsHash, header.votingThreshold) = calculateRootAndThreshold(extraData);
 
         // add block to storage module through ION hub 
-        ion.storeBlock(storageAddr, chainId, rlpBlockHeader);
+        ion.storeBlock(storageAddr, chainId, rlpSignedBlockHeader);
     }
 
-    function calculateRootAndThreshold(bytes memory extraData) internal pure returns (bytes32, uint256) {
-        return (bytes32(0), 0);
+    function calculateRootAndThreshold(bytes memory extraData) internal returns (bytes32, uint256) {
+        
+        // retrieve committee and voting power from extraData header field 
+        bytes memory rlpExtraData = new bytes(extraData.length - 32);
+        SolUtils.BytesToBytes(rlpExtraData, extraData, 32);
+
+        
+        RLP.RLPItem[] memory extraDecoded = rlpExtraData.toRLPItem().toList()[0].toBytes().toRLPItem().toList();
+    
+        address[] memory newValidators = new address[](extraDecoded.length);
+
+        for (uint i = 0; i < extraDecoded.length; i++) {
+            newValidators[i] = extraDecoded[i].toAddress();
+        }
+
+        return (keccak256(abi.encode(SortArray.sortAddresses(newValidators))), 1);
     }
 
 }
