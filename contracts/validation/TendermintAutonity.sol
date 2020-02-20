@@ -158,8 +158,7 @@ contract TendermintAutonity is IonCompatible {
         require(checkSeals(chainId, commitSeals, rlpSignedBlockHeader, expectedParentHash, validatorsPreviousBlock), "Sealer(s) not valid");
 
         // valid block - store it with the new set of validators
-        addValidators(chainId, header[12].toData(), keccak256(rlpSignedBlockHeader));
-        storeBlock(chainId, keccak256(rlpSignedBlockHeader), expectedParentHash, rlpSignedBlockHeader, storageAddr);
+        storeBlock(chainId, header[12].toData(), keccak256(rlpSignedBlockHeader), expectedParentHash, rlpSignedBlockHeader, storageAddr);
 
         emit BlockSubmitted(chainId, keccak256(rlpSignedBlockHeader));
     }
@@ -191,18 +190,27 @@ contract TendermintAutonity is IonCompatible {
         return true;
     }
 
-    function addValidators(bytes32 chainId, bytes memory extraData, bytes32 blockHash) internal {
-
-    }
-
     function storeBlock(
         bytes32 chainId, 
+        bytes memory extraData,
         bytes32 blockHash,
         bytes32 parentHash, 
         bytes memory rlpBlockHeader,
         address storageAddr
     ) internal {
 
+        // point to parent block and overwrite it with new one
+        BlockHeader storage header = id_chainHeaders[chainId][parentHash];
+        header.blockHash = blockHash;
+        header.parentHash = parentHash;
+        (header.validatorsHash, header.votingThreshold) = calculateRootAndThreshold(extraData);
+
+        // add block to storage module through ION hub 
+        ion.storeBlock(storageAddr, chainId, rlpBlockHeader);
+    }
+
+    function calculateRootAndThreshold(bytes memory extraData) internal pure returns (bytes32, uint256) {
+        return (bytes32(0), 0);
     }
 
 }
