@@ -18,6 +18,7 @@ const testBlocks = require("./helpers/blockSamples").testBlocks.tendermint_auton
 const encoder = require('./helpers/encoder.js');
 const { keccak256, bufferToHex } = require('ethereumjs-util');
 const Web3EthAbi = require('web3-eth-abi');
+const Web3Utils = require("web3-utils");
 const Web3 = require('web3');
 const web3 = new Web3();
 
@@ -61,6 +62,8 @@ contract("Tendermint Validation Module", (accounts) => {
     describe("Register Chain", () => {
         let block, validators 
 
+
+
         beforeEach(async () => {
             // get block and validators from samples
             block = testBlocks.validators_5.block
@@ -99,14 +102,14 @@ contract("Tendermint Validation Module", (accounts) => {
 
     describe("Submit Block", () => {
 
-        afterEach("Perform all the checks", () => {
+        afterEach("Perform all the checks", async () => {
 
             // check the events have been triggered
-            let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + sha3("AddedBlock()") });
+            let event = txToBenchmark.receipt.rawLogs.some(l => { return l.topics[0] == '0x' + keccak256("AddedBlock()") });
             assert.ok(event, "Stored event not emitted");
 
             const submittedEvent = txToBenchmark.logs.find(l => { return l.event == 'BlockSubmitted' });
-            assert.equal(Web3Utils.sha3(rlpHeader.signed), submittedEvent.args.blockHash);
+            assert.equal(keccak256(rlpHeader.signed), submittedEvent.args.blockHash);
 
             // Check that block was persisted correctly
             let addedBlock = await tendermint.id_chainHeaders(TESTCHAINID, block.hash);
@@ -114,12 +117,12 @@ contract("Tendermint Validation Module", (accounts) => {
             assert.equal(addedBlock.hash, block.hash);
             assert.equal(addedBlock.parentHash, block.parentHash);
             assert.equal(addedBlock.validatorsHash, expectedHash)
-
+            assert.equal(addedBlock.votingPower, 1)
             // TODO check voting power
 
         })
 
-        it("Succesfully Submit Block - 5 validators", async () => {
+        it.only("Succesfully Submit Block - 5 validators", async () => {
             // get block and validators from samples
             block = testBlocks.validators_5.block
             validators = testBlocks.validators_5.validators 
@@ -130,8 +133,8 @@ contract("Tendermint Validation Module", (accounts) => {
 
             // submit next block 
             rlpHeader = encoder.encodeIbftHeader(block);
-            txToBenchmark = await tendermint.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, storage.address, validators);
-
+            txToBenchmark = await tendermint.SubmitBlock(TESTCHAINID, rlpHeader.unsigned, rlpHeader.signed, rlpHeader.seal, validators, storage.address);
+            assert(false)
         })
     })
 })
