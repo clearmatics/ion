@@ -75,7 +75,7 @@ contract TendermintAutonity is IonCompatible {
 
 /* =====================================================================================================================
 
-        Public Functions
+        External Functions
 
    =====================================================================================================================
 */
@@ -100,7 +100,14 @@ contract TendermintAutonity is IonCompatible {
     *
     * @description: Adds a genesis block with the validators and other metadata for this genesis block
     */
-    function RegisterChain(bytes32 chainId, address[] calldata validators, uint256 initialTreshold, bytes32 genesisBlockHash, address storeAddr) external {
+    function RegisterChain(
+        bytes32 chainId, 
+        address[] calldata validators, 
+        uint256 initialTreshold, 
+        bytes32 genesisBlockHash, 
+        address storeAddr
+    ) external {
+
         require(chainId != ion.chainId(), "Cannot add this chain id to chain register");
         require(id_chainHeaders[chainId][genesisBlockHash].blockHash == bytes32(0), "This chain already exists");
 
@@ -121,11 +128,81 @@ contract TendermintAutonity is IonCompatible {
         emit GenesisCreated(chainId, genesisBlockHash);
     }
 
+    function SubmitBlock
+    (
+        bytes32 chainId, 
+        bytes calldata rlpUnsignedBlockHeader, 
+        bytes calldata rlpSignedBlockHeader, 
+        bytes calldata commitSeals, 
+        address[] calldata validatorsPreviousBlock,
+        address storageAddr
+    ) onlyRegisteredChains (chainId) external {
+
+        // unmarshal rlp block header
+        RLP.RLPItem[] memory header = rlpSignedBlockHeader.toRLPItem().toList();
+        bytes32 expectedParentHash = SolUtils.BytesToBytes32(header[0].toBytes(), 1);
+
+        // storage pointer to parent block
+        BlockHeader storage parentBlock = id_chainHeaders[chainId][expectedParentHash];
+
+        // check parent hash is correct
+        require(parentBlock.parentHash == expectedParentHash, "Not child of previous block!");
+
+        // verify the passed set of validators is the one that signed the previous block
+        require(parentBlock.validatorsHash == keccak256(abi.encode(SortArray.sortAddresses(validatorsPreviousBlock))), "This is not the set of validators of the parent block");
+
+        // use that set of validators to verify signatures of this block
+        require(checkSignature(chainId, header[12].toData(), keccak256(rlpUnsignedBlockHeader), expectedParentHash, validatorsPreviousBlock), "Signer is not a validator");
+
+        // and to verify sealers
+        require(checkSeals(chainId, commitSeals, rlpSignedBlockHeader, expectedParentHash, validatorsPreviousBlock), "Sealer(s) not valid");
+
+        // valid block - store it with the new set of validators
+        addValidators(chainId, header[12].toData(), keccak256(rlpSignedBlockHeader));
+        storeBlock(chainId, keccak256(rlpSignedBlockHeader), expectedParentHash, rlpSignedBlockHeader, storageAddr);
+
+        emit BlockSubmitted(chainId, keccak256(rlpSignedBlockHeader));
+    }
+
 /* =====================================================================================================================
 
         Internal Functions
 
    =====================================================================================================================
-*/
+*/  
+
+    function checkSignature(
+        bytes32 chainId, 
+        bytes memory extraData, 
+        bytes32 blockHash, 
+        bytes32 parentHash, 
+        address[] memory validators
+    ) internal returns (bool) {
+        return true;
+    }
+
+    function checkSeals(
+        bytes32 chainId, 
+        bytes memory seals, 
+        bytes memory rlpBlock, 
+        bytes32 parentHash, 
+        address[] memory validators
+    ) internal view returns (bool) {
+        return true;
+    }
+
+    function addValidators(bytes32 chainId, bytes memory extraData, bytes32 blockHash) internal {
+
+    }
+
+    function storeBlock(
+        bytes32 chainId, 
+        bytes32 blockHash,
+        bytes32 parentHash, 
+        bytes memory rlpBlockHeader,
+        address storageAddr
+    ) internal {
+
+    }
 
 }
